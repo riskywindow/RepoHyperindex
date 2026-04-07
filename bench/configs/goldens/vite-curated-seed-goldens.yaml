@@ -1,0 +1,29 @@
+schema_version: "1"
+golden_set_id: vite-curated-seed-goldens
+corpus_id: vite
+query_pack_id: vite-curated-seed-pack
+expectations:
+  - query_id: vite-exact-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: text
+        rank_max: 5
+    notes: Placeholder expectation. Replace with a concrete path after local bootstrap.
+  - query_id: vite-symbol-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: definition
+        rank_max: 3
+    notes: Placeholder expectation. Replace with a concrete symbol path after local bootstrap.
+  - query_id: vite-semantic-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: semantic
+        rank_max: 5
+    notes: Placeholder expectation. Replace with semantic evidence after local bootstrap.
+  - query_id: vite-impact-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: reference
+        rank_max: 5
+    notes: Placeholder expectation. Replace with impact evidence after local bootstrap.

@@ -1,0 +1,1058 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "expectations": [
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/store/session-store.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sessionStore"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/store/session-store.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sessionStore"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-store"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/store/session-store.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "recordSessionEvent"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/store/session-store.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "recordSessionEvent"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-record-session-event"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "InvalidateResult"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/session/service.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "InvalidateResult"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-invalidate-result"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "invalidateSession"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/session/service.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "invalidateSession"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-invalidate-session"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "revokeAllUserSessions"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/session/service.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "revokeAllUserSessions"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-revoke-all-user-sessions"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "authPolicy"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "config/auth-policy.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "authPolicy"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-policy"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/jobs/password-reset.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "handlePasswordReset"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/worker/src/jobs/password-reset.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "handlePasswordReset"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-handle-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/logout-handler.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "logoutHandler"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/handlers/logout-handler.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "logoutHandler"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-logout-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/api-token-rotate-handler.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "apiTokenRotateHandler"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/handlers/api-token-rotate-handler.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "apiTokenRotateHandler"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-token-rotate-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/password-reset-handler.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "passwordResetHandler"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/handlers/password-reset-handler.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "passwordResetHandler"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-password-reset-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/admin-revoke-handler.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "adminRevokeHandler"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/handlers/admin-revoke-handler.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "adminRevokeHandler"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-admin-revoke-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/logout.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "logoutRoute"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/routes/logout.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "logoutRoute"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-logout-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/api-token-rotate.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "apiTokenRotateRoute"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/routes/api-token-rotate.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "apiTokenRotateRoute"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-token-rotate-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/password-reset.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "passwordResetRoute"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/routes/password-reset.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "passwordResetRoute"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-password-reset-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/admin-revoke.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "adminRevokeRoute"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/routes/admin-revoke.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "adminRevokeRoute"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-admin-revoke-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/route-registry.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "route_registry"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "config/route-registry.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "route_registry"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-config-route-registry"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/session-limits.json",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "session_limits"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "config/session-limits.json",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "session_limits"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-config-session-limits"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/worker-flags.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "worker_flags"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "config/worker-flags.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "worker_flags"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-config-worker-flags"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "AUTH_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "AUTH_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "AUTH_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "AUTH_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SESSION_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SESSION_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SESSION_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SESSION_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "API_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "API_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "API_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "API_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "WORKER_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/worker/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "WORKER_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-worker-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "WORKER_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/worker/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "WORKER_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-worker-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "TESTS_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/tests/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "TESTS_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-tests-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "TESTS_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/tests/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "TESTS_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-tests-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "WEB_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/web/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "WEB_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-web-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "WEB_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/web/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "WEB_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-web-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SHARED_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/shared/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SHARED_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-shared-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SHARED_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/shared/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SHARED_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-shared-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SUPPORT_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/support/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SUPPORT_PACKAGE_SLUG"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-support-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/index.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "SUPPORT_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/support/src/index.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "SUPPORT_PACKAGE_NAME"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-support-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-001.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "authGenerated001"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/generated/generated-001.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "authGenerated001"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-generated-001"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-002.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sessionGenerated002"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/generated/generated-002.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sessionGenerated002"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-generated-002"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-003.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "apiGenerated003"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/generated/generated-003.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "apiGenerated003"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-generated-003"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-004.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "workerGenerated004"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/worker/src/generated/generated-004.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "workerGenerated004"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-worker-generated-004"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-005.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "webGenerated005"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/web/src/generated/generated-005.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "webGenerated005"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-web-generated-005"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-006.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sharedGenerated006"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/shared/src/generated/generated-006.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sharedGenerated006"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-shared-generated-006"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-007.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "supportGenerated007"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/support/src/generated/generated-007.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "supportGenerated007"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-support-generated-007"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-008.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "authGenerated008"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/generated/generated-008.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "authGenerated008"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-generated-008"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-009.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sessionGenerated009"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/generated/generated-009.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sessionGenerated009"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-generated-009"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-010.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "apiGenerated010"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/api/src/generated/generated-010.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "apiGenerated010"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-api-generated-010"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-011.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "workerGenerated011"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/worker/src/generated/generated-011.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "workerGenerated011"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-worker-generated-011"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-012.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "webGenerated012"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/web/src/generated/generated-012.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "webGenerated012"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-web-generated-012"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-013.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sharedGenerated013"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/shared/src/generated/generated-013.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sharedGenerated013"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-shared-generated-013"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-014.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "supportGenerated014"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/support/src/generated/generated-014.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "supportGenerated014"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-support-generated-014"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-015.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "authGenerated015"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/auth/src/generated/generated-015.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "authGenerated015"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-auth-generated-015"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-016.ts",
+          "rank_max": 1,
+          "reason": "definition",
+          "symbol": "sessionGenerated016"
+        }
+      ],
+      "expected_top_hit": {
+        "min_score": null,
+        "path": "packages/session/src/generated/generated-016.ts",
+        "rank_max": 1,
+        "reason": "definition",
+        "symbol": "sessionGenerated016"
+      },
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "symbol-session-generated-016"
+    }
+  ],
+  "golden_set_id": "synthetic-saas-medium-symbol-goldens",
+  "query_pack_id": "synthetic-saas-medium-symbol-pack",
+  "schema_version": "1"
+}

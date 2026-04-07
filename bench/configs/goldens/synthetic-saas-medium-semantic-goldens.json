@@ -1,0 +1,493 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "expectations": [
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "invalidateSession"
+        },
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/logout.ts",
+          "rank_max": 5,
+          "reason": "caller",
+          "symbol": "logoutRoute"
+        },
+        {
+          "min_score": null,
+          "path": "packages/worker/src/jobs/password-reset.ts",
+          "rank_max": 7,
+          "reason": "callee",
+          "symbol": "handlePasswordReset"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-hero-session-invalidation"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/logout.ts",
+          "rank_max": 3,
+          "reason": "route",
+          "symbol": "logoutRoute"
+        },
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/logout-handler.ts",
+          "rank_max": 5,
+          "reason": "callee",
+          "symbol": "logoutHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-logout-entrypoint"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/logout-handler.ts",
+          "rank_max": 3,
+          "reason": "callee",
+          "symbol": "logoutHandler"
+        },
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 5,
+          "reason": "callee",
+          "symbol": "invalidateSession"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-logout-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/jobs/password-reset.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "handlePasswordReset"
+        },
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 5,
+          "reason": "callee",
+          "symbol": "revokeAllUserSessions"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-password-reset-worker"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "config",
+          "symbol": "authPolicy"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-auth-policy-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/store/session-store.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "sessionStore"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-session-store-delete"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/session.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-session-invalidation-test"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "revokeAllUserSessions"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-revoke-all-user-sessions"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/logout.ts",
+          "rank_max": 3,
+          "reason": "route",
+          "symbol": "logoutRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-route-logout"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/api-token-rotate.ts",
+          "rank_max": 3,
+          "reason": "route",
+          "symbol": "apiTokenRotateRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-route-api-token-rotate"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/password-reset.ts",
+          "rank_max": 3,
+          "reason": "route",
+          "symbol": "passwordResetRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-route-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/admin-revoke.ts",
+          "rank_max": 3,
+          "reason": "route",
+          "symbol": "adminRevokeRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-route-admin-revoke"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/logout-handler.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "logoutHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-handler-logout"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/api-token-rotate-handler.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "apiTokenRotateHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-handler-api-token-rotate"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/password-reset-handler.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "passwordResetHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-handler-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/admin-revoke-handler.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "adminRevokeHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-handler-admin-revoke"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "config",
+          "symbol": "authPolicy"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-config-auth-policy"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/route-registry.ts",
+          "rank_max": 3,
+          "reason": "config",
+          "symbol": "route_registry"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-config-route-registry"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/session-limits.json",
+          "rank_max": 3,
+          "reason": "config",
+          "symbol": "session_limits"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-config-session-limits"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/worker-flags.ts",
+          "rank_max": 3,
+          "reason": "config",
+          "symbol": "worker_flags"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-config-worker-flags"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/logout.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-test-logout"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/api-token-rotate.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-test-api-token-rotate"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/password-reset.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-test-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/admin-revoke.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-test-admin-revoke"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/session/session-05.test.ts",
+          "rank_max": 3,
+          "reason": "test",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-test-session-05"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-001.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "authGenerated001"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-auth-generated-001"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-002.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "sessionGenerated002"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-session-generated-002"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-003.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "apiGenerated003"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-api-generated-003"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-004.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "workerGenerated004"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-worker-generated-004"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-005.ts",
+          "rank_max": 3,
+          "reason": "semantic",
+          "symbol": "webGenerated005"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "semantic-web-generated-005"
+    }
+  ],
+  "golden_set_id": "synthetic-saas-medium-semantic-goldens",
+  "query_pack_id": "synthetic-saas-medium-semantic-pack",
+  "schema_version": "1"
+}

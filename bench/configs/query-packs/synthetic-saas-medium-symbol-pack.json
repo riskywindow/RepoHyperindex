@@ -1,0 +1,754 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "description": "Deterministic synthetic symbol queries for synthetic-saas-medium.",
+  "queries": [
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-store",
+      "scope": "repo",
+      "symbol": "sessionStore",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "session"
+      ],
+      "title": "Resolve sessionStore",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-record-session-event",
+      "scope": "repo",
+      "symbol": "recordSessionEvent",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "session",
+        "events"
+      ],
+      "title": "Resolve recordSessionEvent",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-invalidate-result",
+      "scope": "repo",
+      "symbol": "InvalidateResult",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "auth",
+        "types"
+      ],
+      "title": "Resolve InvalidateResult",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-invalidate-session",
+      "scope": "repo",
+      "symbol": "invalidateSession",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "hero",
+        "session"
+      ],
+      "title": "Resolve invalidateSession",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-revoke-all-user-sessions",
+      "scope": "repo",
+      "symbol": "revokeAllUserSessions",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "auth",
+        "session-bulk"
+      ],
+      "title": "Resolve revokeAllUserSessions",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-policy",
+      "scope": "repo",
+      "symbol": "authPolicy",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "config",
+        "auth"
+      ],
+      "title": "Resolve authPolicy",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-handle-password-reset",
+      "scope": "repo",
+      "symbol": "handlePasswordReset",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "worker",
+        "password-reset"
+      ],
+      "title": "Resolve handlePasswordReset",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-logout-handler",
+      "scope": "repo",
+      "symbol": "logoutHandler",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "handler",
+        "logout"
+      ],
+      "title": "Resolve logoutHandler",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-token-rotate-handler",
+      "scope": "repo",
+      "symbol": "apiTokenRotateHandler",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "handler",
+        "api-token-rotate"
+      ],
+      "title": "Resolve apiTokenRotateHandler",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-password-reset-handler",
+      "scope": "repo",
+      "symbol": "passwordResetHandler",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "handler",
+        "password-reset"
+      ],
+      "title": "Resolve passwordResetHandler",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-admin-revoke-handler",
+      "scope": "repo",
+      "symbol": "adminRevokeHandler",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "handler",
+        "admin-revoke"
+      ],
+      "title": "Resolve adminRevokeHandler",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-logout-route",
+      "scope": "repo",
+      "symbol": "logoutRoute",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "route",
+        "logout"
+      ],
+      "title": "Resolve logoutRoute",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-token-rotate-route",
+      "scope": "repo",
+      "symbol": "apiTokenRotateRoute",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "route",
+        "api-token-rotate"
+      ],
+      "title": "Resolve apiTokenRotateRoute",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-password-reset-route",
+      "scope": "repo",
+      "symbol": "passwordResetRoute",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "route",
+        "password-reset"
+      ],
+      "title": "Resolve passwordResetRoute",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-admin-revoke-route",
+      "scope": "repo",
+      "symbol": "adminRevokeRoute",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "route",
+        "admin-revoke"
+      ],
+      "title": "Resolve adminRevokeRoute",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-config-route-registry",
+      "scope": "repo",
+      "symbol": "route_registry",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "config"
+      ],
+      "title": "Resolve route_registry",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-config-session-limits",
+      "scope": "repo",
+      "symbol": "session_limits",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "config"
+      ],
+      "title": "Resolve session_limits",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-config-worker-flags",
+      "scope": "repo",
+      "symbol": "worker_flags",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "config"
+      ],
+      "title": "Resolve worker_flags",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-package-slug",
+      "scope": "repo",
+      "symbol": "AUTH_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "auth"
+      ],
+      "title": "Resolve AUTH_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-package-name",
+      "scope": "repo",
+      "symbol": "AUTH_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "auth"
+      ],
+      "title": "Resolve AUTH_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-package-slug",
+      "scope": "repo",
+      "symbol": "SESSION_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "session"
+      ],
+      "title": "Resolve SESSION_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-package-name",
+      "scope": "repo",
+      "symbol": "SESSION_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "session"
+      ],
+      "title": "Resolve SESSION_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-package-slug",
+      "scope": "repo",
+      "symbol": "API_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "api"
+      ],
+      "title": "Resolve API_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-package-name",
+      "scope": "repo",
+      "symbol": "API_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "api"
+      ],
+      "title": "Resolve API_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-worker-package-slug",
+      "scope": "repo",
+      "symbol": "WORKER_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "worker"
+      ],
+      "title": "Resolve WORKER_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-worker-package-name",
+      "scope": "repo",
+      "symbol": "WORKER_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "worker"
+      ],
+      "title": "Resolve WORKER_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-tests-package-slug",
+      "scope": "repo",
+      "symbol": "TESTS_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "tests"
+      ],
+      "title": "Resolve TESTS_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-tests-package-name",
+      "scope": "repo",
+      "symbol": "TESTS_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "tests"
+      ],
+      "title": "Resolve TESTS_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-web-package-slug",
+      "scope": "repo",
+      "symbol": "WEB_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "web"
+      ],
+      "title": "Resolve WEB_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-web-package-name",
+      "scope": "repo",
+      "symbol": "WEB_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "web"
+      ],
+      "title": "Resolve WEB_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-shared-package-slug",
+      "scope": "repo",
+      "symbol": "SHARED_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "shared"
+      ],
+      "title": "Resolve SHARED_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-shared-package-name",
+      "scope": "repo",
+      "symbol": "SHARED_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "shared"
+      ],
+      "title": "Resolve SHARED_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-support-package-slug",
+      "scope": "repo",
+      "symbol": "SUPPORT_PACKAGE_SLUG",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "support"
+      ],
+      "title": "Resolve SUPPORT_PACKAGE_SLUG",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-support-package-name",
+      "scope": "repo",
+      "symbol": "SUPPORT_PACKAGE_NAME",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "package",
+        "support"
+      ],
+      "title": "Resolve SUPPORT_PACKAGE_NAME",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-generated-001",
+      "scope": "repo",
+      "symbol": "authGenerated001",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "title": "Resolve authGenerated001",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-generated-002",
+      "scope": "repo",
+      "symbol": "sessionGenerated002",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "title": "Resolve sessionGenerated002",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-generated-003",
+      "scope": "repo",
+      "symbol": "apiGenerated003",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "api"
+      ],
+      "title": "Resolve apiGenerated003",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-worker-generated-004",
+      "scope": "repo",
+      "symbol": "workerGenerated004",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "worker"
+      ],
+      "title": "Resolve workerGenerated004",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-web-generated-005",
+      "scope": "repo",
+      "symbol": "webGenerated005",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "web"
+      ],
+      "title": "Resolve webGenerated005",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-shared-generated-006",
+      "scope": "repo",
+      "symbol": "sharedGenerated006",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "shared"
+      ],
+      "title": "Resolve sharedGenerated006",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-support-generated-007",
+      "scope": "repo",
+      "symbol": "supportGenerated007",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "support"
+      ],
+      "title": "Resolve supportGenerated007",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-generated-008",
+      "scope": "repo",
+      "symbol": "authGenerated008",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "title": "Resolve authGenerated008",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-generated-009",
+      "scope": "repo",
+      "symbol": "sessionGenerated009",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "title": "Resolve sessionGenerated009",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-api-generated-010",
+      "scope": "repo",
+      "symbol": "apiGenerated010",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "api"
+      ],
+      "title": "Resolve apiGenerated010",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-worker-generated-011",
+      "scope": "repo",
+      "symbol": "workerGenerated011",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "worker"
+      ],
+      "title": "Resolve workerGenerated011",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-web-generated-012",
+      "scope": "repo",
+      "symbol": "webGenerated012",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "web"
+      ],
+      "title": "Resolve webGenerated012",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-shared-generated-013",
+      "scope": "repo",
+      "symbol": "sharedGenerated013",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "shared"
+      ],
+      "title": "Resolve sharedGenerated013",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-support-generated-014",
+      "scope": "repo",
+      "symbol": "supportGenerated014",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "support"
+      ],
+      "title": "Resolve supportGenerated014",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-auth-generated-015",
+      "scope": "repo",
+      "symbol": "authGenerated015",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "title": "Resolve authGenerated015",
+      "type": "symbol"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "query_id": "symbol-session-generated-016",
+      "scope": "repo",
+      "symbol": "sessionGenerated016",
+      "tags": [
+        "synthetic",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "title": "Resolve sessionGenerated016",
+      "type": "symbol"
+    }
+  ],
+  "query_pack_id": "synthetic-saas-medium-symbol-pack",
+  "schema_version": "1"
+}

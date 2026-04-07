@@ -1,0 +1,48 @@
+schema_version: "1"
+golden_set_id: hero-sessions-goldens
+corpus_id: synthetic-saas-medium
+query_pack_id: hero-sessions-pack
+expectations:
+  - query_id: exact-invalidate-session
+    expected_hits:
+      - path: packages/auth/src/session/service.ts
+        symbol: invalidateSession
+        reason: text
+        rank_max: 3
+  - query_id: symbol-invalidate-session
+    expected_hits:
+      - path: packages/auth/src/session/service.ts
+        symbol: invalidateSession
+        reason: definition
+        rank_max: 1
+    expected_top_hit:
+      path: packages/auth/src/session/service.ts
+      symbol: invalidateSession
+      reason: definition
+      rank_max: 1
+    max_latency_ms: 75
+  - query_id: semantic-where-invalidate-sessions
+    expected_hits:
+      - path: packages/auth/src/session/service.ts
+        symbol: invalidateSession
+        reason: semantic
+        rank_max: 3
+      - path: packages/api/src/routes/logout.ts
+        symbol: logoutRoute
+        reason: caller
+        rank_max: 5
+    max_latency_ms: 200
+  - query_id: impact-invalidate-session
+    expected_hits:
+      - path: packages/auth/src/session/service.ts
+        symbol: invalidateSession
+        reason: definition
+        rank_max: 1
+      - path: packages/api/src/routes/logout.ts
+        symbol: logoutRoute
+        reason: caller
+        rank_max: 5
+      - path: packages/tests/src/session/session.test.ts
+        reason: test
+        rank_max: 8
+    max_latency_ms: 300

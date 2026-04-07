@@ -1,0 +1,29 @@
+schema_version: "1"
+golden_set_id: next-js-curated-seed-goldens
+corpus_id: next-js
+query_pack_id: next-js-curated-seed-pack
+expectations:
+  - query_id: next-js-exact-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: text
+        rank_max: 5
+    notes: Placeholder expectation. Replace with a concrete path after local bootstrap.
+  - query_id: next-js-symbol-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: definition
+        rank_max: 3
+    notes: Placeholder expectation. Replace with a concrete symbol path after local bootstrap.
+  - query_id: next-js-semantic-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: semantic
+        rank_max: 5
+    notes: Placeholder expectation. Replace with semantic evidence after local bootstrap.
+  - query_id: next-js-impact-seed
+    expected_hits:
+      - path: __manual_verification_required__
+        reason: reference
+        rank_max: 5
+    notes: Placeholder expectation. Replace with impact evidence after local bootstrap.

@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repo-hyperindex-phase1-bench"
+version = "0.1.0"
+description = "Phase 1 scaffold for the Repo Hyperindex benchmark harness."
+readme = "bench/README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.11.0",
+  "PyYAML>=6.0.2",
+]
+
+[project.scripts]
+hyperbench = "hyperbench.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3.0",
+  "ruff>=0.11.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "bench"}
+
+[tool.setuptools.packages.find]
+where = ["bench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

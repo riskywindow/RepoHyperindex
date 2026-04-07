@@ -1,0 +1,488 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "description": "Deterministic synthetic impact queries for synthetic-saas-medium.",
+  "queries": [
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-invalidate-session",
+      "tags": [
+        "synthetic",
+        "impact",
+        "hero",
+        "session"
+      ],
+      "target": "packages/auth/src/session/service.ts#invalidateSession",
+      "target_type": "symbol",
+      "title": "Impact of invalidateSession behavior change",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-revoke-all-user-sessions",
+      "tags": [
+        "synthetic",
+        "impact",
+        "auth",
+        "session-bulk"
+      ],
+      "target": "packages/auth/src/session/service.ts#revokeAllUserSessions",
+      "target_type": "symbol",
+      "title": "Impact of revokeAllUserSessions signature changes",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-auth-policy-password-reset",
+      "tags": [
+        "synthetic",
+        "impact",
+        "config",
+        "hero"
+      ],
+      "target": "config/auth-policy.ts#invalidateOnPasswordReset",
+      "target_type": "config_key",
+      "title": "Impact of changing the password reset invalidation flag",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-logout-route-file",
+      "tags": [
+        "synthetic",
+        "impact",
+        "hero",
+        "route"
+      ],
+      "target": "packages/api/src/routes/logout.ts",
+      "target_type": "file",
+      "title": "Impact of editing the logout route file",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-handle-password-reset",
+      "tags": [
+        "synthetic",
+        "impact",
+        "worker",
+        "password-reset"
+      ],
+      "target": "packages/worker/src/jobs/password-reset.ts#handlePasswordReset",
+      "target_type": "symbol",
+      "title": "Impact of changing the password reset worker",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-session-store",
+      "tags": [
+        "synthetic",
+        "impact",
+        "session",
+        "storage"
+      ],
+      "target": "packages/session/src/store/session-store.ts#sessionStore",
+      "target_type": "symbol",
+      "title": "Impact of editing the session store",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-auth-generated-001",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "auth"
+      ],
+      "target": "packages/auth/src/generated/generated-001.ts#authGenerated001",
+      "target_type": "symbol",
+      "title": "Impact of changing authGenerated001",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-session-generated-002",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "session"
+      ],
+      "target": "packages/session/src/generated/generated-002.ts#sessionGenerated002",
+      "target_type": "symbol",
+      "title": "Impact of changing sessionGenerated002",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-api-generated-003",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "api"
+      ],
+      "target": "packages/api/src/generated/generated-003.ts#apiGenerated003",
+      "target_type": "symbol",
+      "title": "Impact of changing apiGenerated003",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-worker-generated-004",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "worker"
+      ],
+      "target": "packages/worker/src/generated/generated-004.ts#workerGenerated004",
+      "target_type": "symbol",
+      "title": "Impact of changing workerGenerated004",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-web-generated-005",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "web"
+      ],
+      "target": "packages/web/src/generated/generated-005.ts#webGenerated005",
+      "target_type": "symbol",
+      "title": "Impact of changing webGenerated005",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-shared-generated-006",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "shared"
+      ],
+      "target": "packages/shared/src/generated/generated-006.ts#sharedGenerated006",
+      "target_type": "symbol",
+      "title": "Impact of changing sharedGenerated006",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-support-generated-007",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "support"
+      ],
+      "target": "packages/support/src/generated/generated-007.ts#supportGenerated007",
+      "target_type": "symbol",
+      "title": "Impact of changing supportGenerated007",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-auth-generated-008",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "auth"
+      ],
+      "target": "packages/auth/src/generated/generated-008.ts#authGenerated008",
+      "target_type": "symbol",
+      "title": "Impact of changing authGenerated008",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-session-generated-009",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "session"
+      ],
+      "target": "packages/session/src/generated/generated-009.ts#sessionGenerated009",
+      "target_type": "symbol",
+      "title": "Impact of changing sessionGenerated009",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-api-generated-010",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "api"
+      ],
+      "target": "packages/api/src/generated/generated-010.ts#apiGenerated010",
+      "target_type": "symbol",
+      "title": "Impact of changing apiGenerated010",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-worker-generated-011",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "worker"
+      ],
+      "target": "packages/worker/src/generated/generated-011.ts#workerGenerated011",
+      "target_type": "symbol",
+      "title": "Impact of changing workerGenerated011",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-web-generated-012",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "web"
+      ],
+      "target": "packages/web/src/generated/generated-012.ts#webGenerated012",
+      "target_type": "symbol",
+      "title": "Impact of changing webGenerated012",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-shared-generated-013",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "shared"
+      ],
+      "target": "packages/shared/src/generated/generated-013.ts#sharedGenerated013",
+      "target_type": "symbol",
+      "title": "Impact of changing sharedGenerated013",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-support-generated-014",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "support"
+      ],
+      "target": "packages/support/src/generated/generated-014.ts#supportGenerated014",
+      "target_type": "symbol",
+      "title": "Impact of changing supportGenerated014",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-auth-generated-015",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "auth"
+      ],
+      "target": "packages/auth/src/generated/generated-015.ts#authGenerated015",
+      "target_type": "symbol",
+      "title": "Impact of changing authGenerated015",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-session-generated-016",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "session"
+      ],
+      "target": "packages/session/src/generated/generated-016.ts#sessionGenerated016",
+      "target_type": "symbol",
+      "title": "Impact of changing sessionGenerated016",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-api-generated-017",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "api"
+      ],
+      "target": "packages/api/src/generated/generated-017.ts#apiGenerated017",
+      "target_type": "symbol",
+      "title": "Impact of changing apiGenerated017",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-worker-generated-018",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "worker"
+      ],
+      "target": "packages/worker/src/generated/generated-018.ts#workerGenerated018",
+      "target_type": "symbol",
+      "title": "Impact of changing workerGenerated018",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-web-generated-019",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "web"
+      ],
+      "target": "packages/web/src/generated/generated-019.ts#webGenerated019",
+      "target_type": "symbol",
+      "title": "Impact of changing webGenerated019",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-shared-generated-020",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "shared"
+      ],
+      "target": "packages/shared/src/generated/generated-020.ts#sharedGenerated020",
+      "target_type": "symbol",
+      "title": "Impact of changing sharedGenerated020",
+      "type": "impact"
+    },
+    {
+      "change_hint": "modify_behavior",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-support-generated-021",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "support"
+      ],
+      "target": "packages/support/src/generated/generated-021.ts#supportGenerated021",
+      "target_type": "symbol",
+      "title": "Impact of changing supportGenerated021",
+      "type": "impact"
+    },
+    {
+      "change_hint": "rename",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-auth-generated-022",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "auth"
+      ],
+      "target": "packages/auth/src/generated/generated-022.ts#authGenerated022",
+      "target_type": "symbol",
+      "title": "Impact of changing authGenerated022",
+      "type": "impact"
+    },
+    {
+      "change_hint": "signature_change",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-session-generated-023",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "session"
+      ],
+      "target": "packages/session/src/generated/generated-023.ts#sessionGenerated023",
+      "target_type": "symbol",
+      "title": "Impact of changing sessionGenerated023",
+      "type": "impact"
+    },
+    {
+      "change_hint": "delete",
+      "limit": 10,
+      "notes": null,
+      "query_id": "impact-api-generated-024",
+      "tags": [
+        "synthetic",
+        "impact",
+        "generated",
+        "api"
+      ],
+      "target": "packages/api/src/generated/generated-024.ts#apiGenerated024",
+      "target_type": "symbol",
+      "title": "Impact of changing apiGenerated024",
+      "type": "impact"
+    }
+  ],
+  "query_pack_id": "synthetic-saas-medium-impact-pack",
+  "schema_version": "1"
+}

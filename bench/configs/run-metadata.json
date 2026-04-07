@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "run_id": "phase1-smoke-001",
+  "recorded_at": "2026-04-06T10:00:00Z",
+  "harness_version": "0.1.0",
+  "engine_name": "dummy",
+  "engine_version": "0.0.0",
+  "corpus_id": "synthetic-saas-medium",
+  "query_pack_id": "hero-sessions-pack",
+  "hardware_target_id": "mbp-m4-pro-24gb",
+  "git_commit": "abc1234",
+  "command": [
+    "hyperbench",
+    "run",
+    "--engine",
+    "dummy"
+  ],
+  "notes": "Schema example only; not an executed benchmark."
+}

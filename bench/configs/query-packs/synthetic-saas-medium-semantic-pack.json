@@ -1,0 +1,547 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "description": "Deterministic synthetic semantic queries for synthetic-saas-medium.",
+  "queries": [
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/**",
+        "config/**"
+      ],
+      "query_id": "semantic-hero-session-invalidation",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "hero",
+        "session",
+        "impact"
+      ],
+      "text": "where do we invalidate sessions?",
+      "title": "Hero semantic question",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**",
+        "packages/auth/**"
+      ],
+      "query_id": "semantic-logout-entrypoint",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "hero",
+        "route"
+      ],
+      "text": "Which route logs users out by invalidating the active session?",
+      "title": "Find the logout route entrypoint",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**",
+        "packages/auth/**"
+      ],
+      "query_id": "semantic-logout-handler",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "hero",
+        "handler"
+      ],
+      "text": "Which handler calls invalidateSession for the logout flow?",
+      "title": "Find the logout handler",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/worker/**",
+        "packages/auth/**"
+      ],
+      "query_id": "semantic-password-reset-worker",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "worker",
+        "password-reset"
+      ],
+      "text": "Which worker handles password reset by revoking all user sessions?",
+      "title": "Find the password reset worker",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "config/**"
+      ],
+      "query_id": "semantic-auth-policy-password-reset",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "config",
+        "hero"
+      ],
+      "text": "Where is the policy that invalidates sessions after password reset configured?",
+      "title": "Find the auth policy for password reset invalidation",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/session/**"
+      ],
+      "query_id": "semantic-session-store-delete",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "session",
+        "storage"
+      ],
+      "text": "Where do we delete a session from the in-memory session store?",
+      "title": "Find session deletion storage logic",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**",
+        "packages/auth/**",
+        "packages/api/**"
+      ],
+      "query_id": "semantic-session-invalidation-test",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests",
+        "hero"
+      ],
+      "text": "Which test covers invalidating the active session through the logout route?",
+      "title": "Find the session invalidation test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/auth/**",
+        "packages/worker/**"
+      ],
+      "query_id": "semantic-revoke-all-user-sessions",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "auth",
+        "session-bulk"
+      ],
+      "text": "Where do we revoke all of a user's sessions in one place?",
+      "title": "Find the bulk invalidation implementation",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-route-logout",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "route",
+        "logout"
+      ],
+      "text": "Where is the API route for logout?",
+      "title": "Find the logout route",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-route-api-token-rotate",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "route",
+        "api-token-rotate"
+      ],
+      "text": "Where is the API route for api token rotate?",
+      "title": "Find the api-token-rotate route",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-route-password-reset",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "route",
+        "password-reset"
+      ],
+      "text": "Where is the API route for password reset?",
+      "title": "Find the password-reset route",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-route-admin-revoke",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "route",
+        "admin-revoke"
+      ],
+      "text": "Where is the API route for admin revoke?",
+      "title": "Find the admin-revoke route",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-handler-logout",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "handler",
+        "logout"
+      ],
+      "text": "Which handler owns the logout flow?",
+      "title": "Find the logout handler",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-handler-api-token-rotate",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "handler",
+        "api-token-rotate"
+      ],
+      "text": "Which handler owns the api token rotate flow?",
+      "title": "Find the api-token-rotate handler",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-handler-password-reset",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "handler",
+        "password-reset"
+      ],
+      "text": "Which handler owns the password reset flow?",
+      "title": "Find the password-reset handler",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-handler-admin-revoke",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "handler",
+        "admin-revoke"
+      ],
+      "text": "Which handler owns the admin revoke flow?",
+      "title": "Find the admin-revoke handler",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "config/**"
+      ],
+      "query_id": "semantic-config-auth-policy",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "config"
+      ],
+      "text": "Where is the auth policy configuration defined?",
+      "title": "Find the auth-policy config",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "config/**"
+      ],
+      "query_id": "semantic-config-route-registry",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "config"
+      ],
+      "text": "Where is the route registry configuration defined?",
+      "title": "Find the route-registry config",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "config/**"
+      ],
+      "query_id": "semantic-config-session-limits",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "config"
+      ],
+      "text": "Where is the session limits configuration defined?",
+      "title": "Find the session-limits config",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "config/**"
+      ],
+      "query_id": "semantic-config-worker-flags",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "config"
+      ],
+      "text": "Where is the worker flags configuration defined?",
+      "title": "Find the worker-flags config",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**"
+      ],
+      "query_id": "semantic-test-logout",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests"
+      ],
+      "text": "Which test fixture covers the logout session scenario?",
+      "title": "Find the logout test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**"
+      ],
+      "query_id": "semantic-test-api-token-rotate",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests"
+      ],
+      "text": "Which test fixture covers the api token rotate session scenario?",
+      "title": "Find the api-token-rotate test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**"
+      ],
+      "query_id": "semantic-test-password-reset",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests"
+      ],
+      "text": "Which test fixture covers the password reset session scenario?",
+      "title": "Find the password-reset test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**"
+      ],
+      "query_id": "semantic-test-admin-revoke",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests"
+      ],
+      "text": "Which test fixture covers the admin revoke session scenario?",
+      "title": "Find the admin-revoke test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/tests/**"
+      ],
+      "query_id": "semantic-test-session-05",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "tests"
+      ],
+      "text": "Which test fixture covers the session 05 session scenario?",
+      "title": "Find the session-05 test",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/auth/**"
+      ],
+      "query_id": "semantic-auth-generated-001",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "generated",
+        "auth"
+      ],
+      "text": "Which generated dependency summary helper belongs to the auth package for authGenerated001?",
+      "title": "Find generated module generated-001 in auth",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/session/**"
+      ],
+      "query_id": "semantic-session-generated-002",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "generated",
+        "session"
+      ],
+      "text": "Which generated dependency summary helper belongs to the session package for sessionGenerated002?",
+      "title": "Find generated module generated-002 in session",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/api/**"
+      ],
+      "query_id": "semantic-api-generated-003",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "generated",
+        "api"
+      ],
+      "text": "Which generated dependency summary helper belongs to the api package for apiGenerated003?",
+      "title": "Find generated module generated-003 in api",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/worker/**"
+      ],
+      "query_id": "semantic-worker-generated-004",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "generated",
+        "worker"
+      ],
+      "text": "Which generated dependency summary helper belongs to the worker package for workerGenerated004?",
+      "title": "Find generated module generated-004 in worker",
+      "type": "semantic"
+    },
+    {
+      "limit": 10,
+      "notes": null,
+      "path_globs": [
+        "packages/web/**"
+      ],
+      "query_id": "semantic-web-generated-005",
+      "rerank_mode": "hybrid",
+      "tags": [
+        "synthetic",
+        "semantic",
+        "generated",
+        "web"
+      ],
+      "text": "Which generated dependency summary helper belongs to the web package for webGenerated005?",
+      "title": "Find generated module generated-005 in web",
+      "type": "semantic"
+    }
+  ],
+  "query_pack_id": "synthetic-saas-medium-semantic-pack",
+  "schema_version": "1"
+}

@@ -1,0 +1,59 @@
+schema_version: "1"
+query_pack_id: next-js-curated-seed-pack
+corpus_id: next-js
+description: Manual seed query pack template for the selected large real corpus.
+queries:
+  - query_id: next-js-exact-seed
+    type: exact
+    title: Manual exact seed for next-js
+    text: TODO_REPLACE_EXACT_TOKEN_AFTER_BOOTSTRAP
+    tags:
+      - real-corpus
+      - manual
+      - seed
+      - next-js
+      - exact
+    notes: Replace with a stable exact token after local bootstrap and snapshot review.
+    limit: 10
+  - query_id: next-js-symbol-seed
+    type: symbol
+    title: Manual symbol seed for next-js
+    symbol: TODO_REPLACE_SYMBOL_AFTER_BOOTSTRAP
+    scope: repo
+    tags:
+      - real-corpus
+      - manual
+      - seed
+      - next-js
+      - symbol
+    notes: Replace with a stable exported symbol after local bootstrap and curation.
+    limit: 10
+  - query_id: next-js-semantic-seed
+    type: semantic
+    title: Manual semantic seed for next-js
+    text: TODO replace with a stable semantic question after local bootstrap
+    path_globs:
+      - "**/*"
+    rerank_mode: hybrid
+    tags:
+      - real-corpus
+      - manual
+      - seed
+      - next-js
+      - semantic
+    notes: Replace with a repo-specific semantic question once the local snapshot is pinned.
+    limit: 10
+  - query_id: next-js-impact-seed
+    type: impact
+    title: Manual impact seed for next-js
+    target_type: file
+    target: __manual_verification_required__
+    change_hint: modify_behavior
+    tags:
+      - real-corpus
+      - manual
+      - seed
+      - next-js
+      - impact
+    notes: Replace with a stable impact anchor after local bootstrap and manual review.
+    limit: 10

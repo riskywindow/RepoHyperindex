@@ -1,0 +1,2266 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "description": "Deterministic synthetic exact queries for synthetic-saas-medium.",
+  "queries": [
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/session/service.ts"
+      ],
+      "query_id": "exact-invalidate-session",
+      "tags": [
+        "synthetic",
+        "exact",
+        "hero",
+        "session",
+        "auth"
+      ],
+      "text": "invalidateSession",
+      "title": "Find invalidateSession by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/session/service.ts"
+      ],
+      "query_id": "exact-revoke-all-user-sessions",
+      "tags": [
+        "synthetic",
+        "exact",
+        "auth",
+        "session-bulk"
+      ],
+      "text": "revokeAllUserSessions",
+      "title": "Find revokeAllUserSessions by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/store/session-store.ts"
+      ],
+      "query_id": "exact-session-store",
+      "tags": [
+        "synthetic",
+        "exact",
+        "session",
+        "storage"
+      ],
+      "text": "sessionStore",
+      "title": "Find sessionStore by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/store/session-store.ts"
+      ],
+      "query_id": "exact-record-session-event",
+      "tags": [
+        "synthetic",
+        "exact",
+        "session",
+        "events"
+      ],
+      "text": "recordSessionEvent",
+      "title": "Find recordSessionEvent by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/session/service.ts"
+      ],
+      "query_id": "exact-invalidate-result",
+      "tags": [
+        "synthetic",
+        "exact",
+        "auth",
+        "types"
+      ],
+      "text": "InvalidateResult",
+      "title": "Find InvalidateResult by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "config/auth-policy.ts"
+      ],
+      "query_id": "exact-auth-policy",
+      "tags": [
+        "synthetic",
+        "exact",
+        "config",
+        "auth"
+      ],
+      "text": "authPolicy",
+      "title": "Find authPolicy by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/routes/logout.ts"
+      ],
+      "query_id": "exact-logout-route",
+      "tags": [
+        "synthetic",
+        "exact",
+        "hero",
+        "route"
+      ],
+      "text": "logoutRoute",
+      "title": "Find logoutRoute by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/handlers/logout-handler.ts"
+      ],
+      "query_id": "exact-logout-handler",
+      "tags": [
+        "synthetic",
+        "exact",
+        "hero",
+        "handler"
+      ],
+      "text": "logoutHandler",
+      "title": "Find logoutHandler by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/jobs/password-reset.ts"
+      ],
+      "query_id": "exact-handle-password-reset",
+      "tags": [
+        "synthetic",
+        "exact",
+        "worker",
+        "password-reset"
+      ],
+      "text": "handlePasswordReset",
+      "title": "Find handlePasswordReset by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "config/auth-policy.ts"
+      ],
+      "query_id": "exact-password-reset-flag",
+      "tags": [
+        "synthetic",
+        "exact",
+        "config",
+        "hero"
+      ],
+      "text": "invalidateOnPasswordReset",
+      "title": "Find invalidateOnPasswordReset by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "config/auth-policy.ts"
+      ],
+      "query_id": "exact-role-change-flag",
+      "tags": [
+        "synthetic",
+        "exact",
+        "config"
+      ],
+      "text": "invalidateOnRoleChange",
+      "title": "Find invalidateOnRoleChange by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "config/auth-policy.ts"
+      ],
+      "query_id": "exact-session-ttl",
+      "tags": [
+        "synthetic",
+        "exact",
+        "config",
+        "session"
+      ],
+      "text": "sessionTtlMinutes",
+      "title": "Find sessionTtlMinutes by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/session/service.ts"
+      ],
+      "query_id": "exact-session-invalidated-event",
+      "tags": [
+        "synthetic",
+        "exact",
+        "events",
+        "hero"
+      ],
+      "text": "session.invalidated",
+      "title": "Find session.invalidated by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/session/service.ts"
+      ],
+      "query_id": "exact-session-bulk-invalidated-event",
+      "tags": [
+        "synthetic",
+        "exact",
+        "events"
+      ],
+      "text": "session.bulk-invalidated",
+      "title": "Find session.bulk-invalidated by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/jobs/password-reset.ts"
+      ],
+      "query_id": "exact-password-reset-worker-tag",
+      "tags": [
+        "synthetic",
+        "exact",
+        "worker",
+        "events"
+      ],
+      "text": "password-reset-worker",
+      "title": "Find password-reset-worker by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/package.json"
+      ],
+      "query_id": "exact-package-name-auth",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "auth"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the auth package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/package.json"
+      ],
+      "query_id": "exact-package-name-session",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "session"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the session package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/package.json"
+      ],
+      "query_id": "exact-package-name-api",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "api"
+      ],
+      "text": "@hyperindex/api",
+      "title": "Find the api package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/package.json"
+      ],
+      "query_id": "exact-package-name-worker",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "worker"
+      ],
+      "text": "@hyperindex/worker",
+      "title": "Find the worker package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/tests/package.json"
+      ],
+      "query_id": "exact-package-name-tests",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "tests"
+      ],
+      "text": "@hyperindex/tests",
+      "title": "Find the tests package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/package.json"
+      ],
+      "query_id": "exact-package-name-web",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "web"
+      ],
+      "text": "@hyperindex/web",
+      "title": "Find the web package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/package.json"
+      ],
+      "query_id": "exact-package-name-shared",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "shared"
+      ],
+      "text": "@hyperindex/shared",
+      "title": "Find the shared package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/package.json"
+      ],
+      "query_id": "exact-package-name-support",
+      "tags": [
+        "synthetic",
+        "exact",
+        "package",
+        "support"
+      ],
+      "text": "@hyperindex/support",
+      "title": "Find the support package name string",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/handlers/api-token-rotate-handler.ts"
+      ],
+      "query_id": "exact-api-token-rotate-handler",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "handler",
+        "api-token-rotate"
+      ],
+      "text": "apiTokenRotateHandler",
+      "title": "Find apiTokenRotateHandler by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/handlers/password-reset-handler.ts"
+      ],
+      "query_id": "exact-password-reset-handler",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "handler",
+        "password-reset"
+      ],
+      "text": "passwordResetHandler",
+      "title": "Find passwordResetHandler by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/handlers/admin-revoke-handler.ts"
+      ],
+      "query_id": "exact-admin-revoke-handler",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "handler",
+        "admin-revoke"
+      ],
+      "text": "adminRevokeHandler",
+      "title": "Find adminRevokeHandler by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/routes/api-token-rotate.ts"
+      ],
+      "query_id": "exact-api-token-rotate-route",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "route",
+        "api-token-rotate"
+      ],
+      "text": "apiTokenRotateRoute",
+      "title": "Find apiTokenRotateRoute by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/routes/password-reset.ts"
+      ],
+      "query_id": "exact-password-reset-route",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "route",
+        "password-reset"
+      ],
+      "text": "passwordResetRoute",
+      "title": "Find passwordResetRoute by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/routes/admin-revoke.ts"
+      ],
+      "query_id": "exact-admin-revoke-route",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "route",
+        "admin-revoke"
+      ],
+      "text": "adminRevokeRoute",
+      "title": "Find adminRevokeRoute by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/index.ts"
+      ],
+      "query_id": "exact-auth-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "auth"
+      ],
+      "text": "AUTH_PACKAGE_SLUG",
+      "title": "Find AUTH_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/index.ts"
+      ],
+      "query_id": "exact-auth-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "auth"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find AUTH_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/index.ts"
+      ],
+      "query_id": "exact-session-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "session"
+      ],
+      "text": "SESSION_PACKAGE_SLUG",
+      "title": "Find SESSION_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/index.ts"
+      ],
+      "query_id": "exact-session-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "session"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find SESSION_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/index.ts"
+      ],
+      "query_id": "exact-api-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "api"
+      ],
+      "text": "API_PACKAGE_SLUG",
+      "title": "Find API_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/index.ts"
+      ],
+      "query_id": "exact-api-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "api"
+      ],
+      "text": "API_PACKAGE_NAME",
+      "title": "Find API_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/index.ts"
+      ],
+      "query_id": "exact-worker-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "worker"
+      ],
+      "text": "WORKER_PACKAGE_SLUG",
+      "title": "Find WORKER_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/index.ts"
+      ],
+      "query_id": "exact-worker-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "worker"
+      ],
+      "text": "WORKER_PACKAGE_NAME",
+      "title": "Find WORKER_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/tests/src/index.ts"
+      ],
+      "query_id": "exact-tests-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "tests"
+      ],
+      "text": "TESTS_PACKAGE_SLUG",
+      "title": "Find TESTS_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/tests/src/index.ts"
+      ],
+      "query_id": "exact-tests-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "tests"
+      ],
+      "text": "TESTS_PACKAGE_NAME",
+      "title": "Find TESTS_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/index.ts"
+      ],
+      "query_id": "exact-web-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "web"
+      ],
+      "text": "WEB_PACKAGE_SLUG",
+      "title": "Find WEB_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/index.ts"
+      ],
+      "query_id": "exact-web-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "web"
+      ],
+      "text": "WEB_PACKAGE_NAME",
+      "title": "Find WEB_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/index.ts"
+      ],
+      "query_id": "exact-shared-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "shared"
+      ],
+      "text": "SHARED_PACKAGE_SLUG",
+      "title": "Find SHARED_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/index.ts"
+      ],
+      "query_id": "exact-shared-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "shared"
+      ],
+      "text": "SHARED_PACKAGE_NAME",
+      "title": "Find SHARED_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/index.ts"
+      ],
+      "query_id": "exact-support-package-slug",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "support"
+      ],
+      "text": "SUPPORT_PACKAGE_SLUG",
+      "title": "Find SUPPORT_PACKAGE_SLUG by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/index.ts"
+      ],
+      "query_id": "exact-support-package-name",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "package",
+        "support"
+      ],
+      "text": "SUPPORT_PACKAGE_NAME",
+      "title": "Find SUPPORT_PACKAGE_NAME by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-001.ts"
+      ],
+      "query_id": "exact-auth-generated-001",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "text": "authGenerated001",
+      "title": "Find authGenerated001 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-002.ts"
+      ],
+      "query_id": "exact-session-generated-002",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "text": "sessionGenerated002",
+      "title": "Find sessionGenerated002 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-003.ts"
+      ],
+      "query_id": "exact-api-generated-003",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "api"
+      ],
+      "text": "apiGenerated003",
+      "title": "Find apiGenerated003 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-004.ts"
+      ],
+      "query_id": "exact-worker-generated-004",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "worker"
+      ],
+      "text": "workerGenerated004",
+      "title": "Find workerGenerated004 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-005.ts"
+      ],
+      "query_id": "exact-web-generated-005",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "web"
+      ],
+      "text": "webGenerated005",
+      "title": "Find webGenerated005 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-006.ts"
+      ],
+      "query_id": "exact-shared-generated-006",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "shared"
+      ],
+      "text": "sharedGenerated006",
+      "title": "Find sharedGenerated006 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-007.ts"
+      ],
+      "query_id": "exact-support-generated-007",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "support"
+      ],
+      "text": "supportGenerated007",
+      "title": "Find supportGenerated007 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-008.ts"
+      ],
+      "query_id": "exact-auth-generated-008",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "text": "authGenerated008",
+      "title": "Find authGenerated008 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-009.ts"
+      ],
+      "query_id": "exact-session-generated-009",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "text": "sessionGenerated009",
+      "title": "Find sessionGenerated009 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-010.ts"
+      ],
+      "query_id": "exact-api-generated-010",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "api"
+      ],
+      "text": "apiGenerated010",
+      "title": "Find apiGenerated010 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-011.ts"
+      ],
+      "query_id": "exact-worker-generated-011",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "worker"
+      ],
+      "text": "workerGenerated011",
+      "title": "Find workerGenerated011 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-012.ts"
+      ],
+      "query_id": "exact-web-generated-012",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "web"
+      ],
+      "text": "webGenerated012",
+      "title": "Find webGenerated012 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-013.ts"
+      ],
+      "query_id": "exact-shared-generated-013",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "shared"
+      ],
+      "text": "sharedGenerated013",
+      "title": "Find sharedGenerated013 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-014.ts"
+      ],
+      "query_id": "exact-support-generated-014",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "support"
+      ],
+      "text": "supportGenerated014",
+      "title": "Find supportGenerated014 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-015.ts"
+      ],
+      "query_id": "exact-auth-generated-015",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "auth"
+      ],
+      "text": "authGenerated015",
+      "title": "Find authGenerated015 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-016.ts"
+      ],
+      "query_id": "exact-session-generated-016",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "session"
+      ],
+      "text": "sessionGenerated016",
+      "title": "Find sessionGenerated016 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-017.ts"
+      ],
+      "query_id": "exact-api-generated-017",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "api"
+      ],
+      "text": "apiGenerated017",
+      "title": "Find apiGenerated017 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-018.ts"
+      ],
+      "query_id": "exact-worker-generated-018",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "worker"
+      ],
+      "text": "workerGenerated018",
+      "title": "Find workerGenerated018 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-019.ts"
+      ],
+      "query_id": "exact-web-generated-019",
+      "tags": [
+        "synthetic",
+        "exact",
+        "symbol",
+        "generated",
+        "web"
+      ],
+      "text": "webGenerated019",
+      "title": "Find webGenerated019 by exact text",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-001.ts"
+      ],
+      "query_id": "exact-auth-generated-001-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "auth"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find the dependency constant in auth/generated-001",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-001.ts"
+      ],
+      "query_id": "exact-auth-generated-001-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "auth"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the dependency import in auth/generated-001",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-002.ts"
+      ],
+      "query_id": "exact-session-generated-002-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "session"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in session/generated-002",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-002.ts"
+      ],
+      "query_id": "exact-session-generated-002-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "session"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in session/generated-002",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-003.ts"
+      ],
+      "query_id": "exact-api-generated-003-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "api"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in api/generated-003",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-003.ts"
+      ],
+      "query_id": "exact-api-generated-003-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "api"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in api/generated-003",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-004.ts"
+      ],
+      "query_id": "exact-worker-generated-004-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "worker"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in worker/generated-004",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-004.ts"
+      ],
+      "query_id": "exact-worker-generated-004-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "worker"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in worker/generated-004",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-005.ts"
+      ],
+      "query_id": "exact-web-generated-005-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "web"
+      ],
+      "text": "API_PACKAGE_NAME",
+      "title": "Find the dependency constant in web/generated-005",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-005.ts"
+      ],
+      "query_id": "exact-web-generated-005-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "web"
+      ],
+      "text": "@hyperindex/api",
+      "title": "Find the dependency import in web/generated-005",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-006.ts"
+      ],
+      "query_id": "exact-shared-generated-006-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "shared"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find the dependency constant in shared/generated-006",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-006.ts"
+      ],
+      "query_id": "exact-shared-generated-006-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "shared"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the dependency import in shared/generated-006",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-007.ts"
+      ],
+      "query_id": "exact-support-generated-007-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "support"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in support/generated-007",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-007.ts"
+      ],
+      "query_id": "exact-support-generated-007-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "support"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in support/generated-007",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-008.ts"
+      ],
+      "query_id": "exact-auth-generated-008-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "auth"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find the dependency constant in auth/generated-008",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-008.ts"
+      ],
+      "query_id": "exact-auth-generated-008-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "auth"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the dependency import in auth/generated-008",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-009.ts"
+      ],
+      "query_id": "exact-session-generated-009-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "session"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in session/generated-009",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-009.ts"
+      ],
+      "query_id": "exact-session-generated-009-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "session"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in session/generated-009",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-010.ts"
+      ],
+      "query_id": "exact-api-generated-010-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "api"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in api/generated-010",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-010.ts"
+      ],
+      "query_id": "exact-api-generated-010-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "api"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in api/generated-010",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-011.ts"
+      ],
+      "query_id": "exact-worker-generated-011-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "worker"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in worker/generated-011",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-011.ts"
+      ],
+      "query_id": "exact-worker-generated-011-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "worker"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in worker/generated-011",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-012.ts"
+      ],
+      "query_id": "exact-web-generated-012-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "web"
+      ],
+      "text": "API_PACKAGE_NAME",
+      "title": "Find the dependency constant in web/generated-012",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/web/src/generated/generated-012.ts"
+      ],
+      "query_id": "exact-web-generated-012-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "web"
+      ],
+      "text": "@hyperindex/api",
+      "title": "Find the dependency import in web/generated-012",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-013.ts"
+      ],
+      "query_id": "exact-shared-generated-013-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "shared"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find the dependency constant in shared/generated-013",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/shared/src/generated/generated-013.ts"
+      ],
+      "query_id": "exact-shared-generated-013-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "shared"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the dependency import in shared/generated-013",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-014.ts"
+      ],
+      "query_id": "exact-support-generated-014-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "support"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in support/generated-014",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/support/src/generated/generated-014.ts"
+      ],
+      "query_id": "exact-support-generated-014-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "support"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in support/generated-014",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-015.ts"
+      ],
+      "query_id": "exact-auth-generated-015-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "auth"
+      ],
+      "text": "SESSION_PACKAGE_NAME",
+      "title": "Find the dependency constant in auth/generated-015",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/auth/src/generated/generated-015.ts"
+      ],
+      "query_id": "exact-auth-generated-015-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "auth"
+      ],
+      "text": "@hyperindex/session",
+      "title": "Find the dependency import in auth/generated-015",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-016.ts"
+      ],
+      "query_id": "exact-session-generated-016-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "session"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in session/generated-016",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/session/src/generated/generated-016.ts"
+      ],
+      "query_id": "exact-session-generated-016-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "session"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in session/generated-016",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-017.ts"
+      ],
+      "query_id": "exact-api-generated-017-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "api"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in api/generated-017",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/api/src/generated/generated-017.ts"
+      ],
+      "query_id": "exact-api-generated-017-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "api"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in api/generated-017",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-018.ts"
+      ],
+      "query_id": "exact-worker-generated-018-dep-const",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "worker"
+      ],
+      "text": "AUTH_PACKAGE_NAME",
+      "title": "Find the dependency constant in worker/generated-018",
+      "type": "exact"
+    },
+    {
+      "languages": [
+        "typescript",
+        "tsx"
+      ],
+      "limit": 10,
+      "mode": "plain",
+      "notes": null,
+      "path_globs": [
+        "packages/worker/src/generated/generated-018.ts"
+      ],
+      "query_id": "exact-worker-generated-018-dep-import",
+      "tags": [
+        "synthetic",
+        "exact",
+        "generated",
+        "imports",
+        "worker"
+      ],
+      "text": "@hyperindex/auth",
+      "title": "Find the dependency import in worker/generated-018",
+      "type": "exact"
+    }
+  ],
+  "query_pack_id": "synthetic-saas-medium-exact-pack",
+  "schema_version": "1"
+}

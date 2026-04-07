@@ -1,0 +1,37 @@
+{
+  "schema_version": "1",
+  "baseline_run_id": "fixture-synthetic-saas-medium-smoke-20260407010000",
+  "candidate_run_id": "fixture-synthetic-saas-medium-smoke-20260407010100",
+  "verdict": "pass",
+  "metric_deltas": [
+    {
+      "metric_name": "query-latency-p95",
+      "unit": "ms",
+      "baseline_value": 21.0,
+      "candidate_value": 20.0,
+      "absolute_delta": -1.0,
+      "percent_delta": -4.762
+    },
+    {
+      "metric_name": "query-pass-rate",
+      "unit": "ratio",
+      "baseline_value": 1.0,
+      "candidate_value": 1.0,
+      "absolute_delta": 0.0,
+      "percent_delta": 0.0
+    }
+  ],
+  "budget_results": [
+    {
+      "metric_name": "query-latency-p95",
+      "status": "pass",
+      "message": "Candidate remains under the p95 latency budget.",
+      "observed_value": 20.0
+    },
+    {
+      "metric_name": "peak-rss",
+      "status": "warn",
+      "message": "Metric unavailable; skipped budget evaluation."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "1",
+  "run_id": "phase1-smoke-001",
+  "samples": [
+    {
+      "metric_name": "exact-p95",
+      "metric_kind": "latency",
+      "unit": "ms",
+      "value": 42.0,
+      "tags": {
+        "query_type": "exact"
+      }
+    },
+    {
+      "metric_name": "impact-p95",
+      "metric_kind": "latency",
+      "unit": "ms",
+      "value": 210.0,
+      "tags": {
+        "query_type": "impact"
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "metric_name": "exact-p95",
+      "metric_kind": "latency",
+      "unit": "ms",
+      "sample_count": 5,
+      "minimum": 35.0,
+      "maximum": 42.0,
+      "mean": 39.2,
+      "p50": 39.0,
+      "p95": 42.0,
+      "p99": 42.0
+    }
+  ]
+}

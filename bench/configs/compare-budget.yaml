@@ -1,0 +1,19 @@
+schema_version: "1"
+budget_id: phase1-default-budget
+thresholds:
+  - metric_name: query-pass-rate
+    unit: ratio
+    min_value: 1.0
+    severity: fail
+  - metric_name: query-latency-p95
+    unit: ms
+    max_value: 30
+    severity: fail
+  - metric_name: refresh-latency-p95
+    unit: ms
+    max_value: 20
+    severity: warn
+  - metric_name: peak-rss
+    unit: bytes
+    max_regression_pct: 25
+    severity: warn

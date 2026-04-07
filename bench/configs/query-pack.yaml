@@ -1,0 +1,53 @@
+schema_version: "1"
+query_pack_id: hero-sessions-pack
+corpus_id: synthetic-saas-medium
+description: Hero-path benchmark prompts covering exact, symbol, semantic, and impact evaluations.
+queries:
+  - query_id: exact-invalidate-session
+    type: exact
+    title: Find invalidateSession by exact text
+    text: invalidateSession
+    tags:
+      - example
+      - hero
+      - exact
+    mode: plain
+    path_globs:
+      - packages/auth/**
+    languages:
+      - typescript
+      - tsx
+    limit: 10
+  - query_id: symbol-invalidate-session
+    type: symbol
+    title: Resolve invalidateSession symbol
+    symbol: invalidateSession
+    tags:
+      - example
+      - hero
+      - symbol
+    scope: repo
+    limit: 10
+  - query_id: semantic-where-invalidate-sessions
+    type: semantic
+    title: Hero semantic question
+    text: where do we invalidate sessions?
+    tags:
+      - example
+      - hero
+      - semantic
+    path_globs:
+      - packages/**
+    rerank_mode: hybrid
+    limit: 10
+  - query_id: impact-invalidate-session
+    type: impact
+    title: Impact of invalidateSession behavior change
+    target_type: symbol
+    target: packages/auth/src/session/service.ts#invalidateSession
+    change_hint: modify_behavior
+    tags:
+      - example
+      - hero
+      - impact
+    limit: 10

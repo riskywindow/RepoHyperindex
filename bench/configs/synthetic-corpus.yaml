@@ -1,0 +1,28 @@
+schema_version: "1"
+config_id: synthetic-saas-medium
+corpus_id: synthetic-saas-medium
+repo_tier: M
+seed: 7
+scenario: saas_monorepo
+package_manager: pnpm
+package_count: 8
+file_count: 72
+dependency_fanout: 2
+route_count: 4
+handler_count: 4
+config_file_count: 4
+test_file_count: 5
+auth_flow_count: 4
+exports_per_package: 3
+edit_scenario_count: 4
+query_seed_count: 6
+required_package_roles:
+  - auth
+  - session
+  - api
+  - worker
+  - tests
+  - web
+include_session_invalidation_path: true
+workspace_package_prefix: "@hyperindex"
+notes: Seeded synthetic SaaS monorepo for Phase 1 hero-query validation.

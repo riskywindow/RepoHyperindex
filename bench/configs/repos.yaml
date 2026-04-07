@@ -1,0 +1,98 @@
+schema_version: "1"
+generated_for_phase: phase1
+selection_note: >
+  Real-repo benchmark candidates selected from publicly visible GitHub repository metadata.
+  Tier assignment is an expected tier until LOC and package counts are measured locally after cloning.
+repos:
+  - repo_id: svelte-cli
+    status: selected
+    owner: sveltejs
+    name: cli
+    repo_url: https://github.com/sveltejs/cli
+    clone_url: https://github.com/sveltejs/cli.git
+    rationale: >
+      Small multi-package TypeScript-oriented CLI/workspace with packages, docs, scripts, and
+      community add-on surfaces visible from the repository root.
+    expected_tier: S
+    tier_verification_status: partial
+    why_useful: >
+      Good small benchmark for exact and symbol workflows across a compact pnpm workspace without
+      needing a huge monorepo. It gives Repo Hyperindex a realistic small-tier target with config,
+      package, and CLI boundaries.
+    license:
+      spdx_id: MIT
+      verification_status: verified
+      source_url: https://github.com/sveltejs/cli
+    clone_strategy: shallow
+    pinned_ref:
+    pinning_policy: Pin a specific commit SHA in the corpus manifest after selection is finalized.
+    source_urls:
+      - https://github.com/sveltejs/cli
+    risks:
+      - Tier fit is not measured yet; LOC and package counts must be verified after cloning.
+      - Community add-on template and documentation content may require ignore rules for benchmark consistency.
+    manual_verification:
+      - Measure TS/JS LOC and package count to confirm S-tier placement.
+      - Confirm whether docs and community addon folders should be included or excluded from benchmark indexing.
+  - repo_id: vite
+    status: selected
+    owner: vitejs
+    name: vite
+    repo_url: https://github.com/vitejs/vite
+    clone_url: https://github.com/vitejs/vite.git
+    rationale: >
+      Medium-complexity TypeScript-heavy workspace with packages, playgrounds, docs, and scripts,
+      which makes it a strong real-world benchmark for cross-package navigation and impact analysis.
+    expected_tier: M
+    tier_verification_status: partial
+    why_useful: >
+      Useful for measuring how Repo Hyperindex handles a typed toolchain repository with multiple
+      packages, plugin surfaces, and test/config boundaries, without jumping straight to a very
+      large application framework repo.
+    license:
+      spdx_id: MIT
+      verification_status: verified
+      source_url: https://github.com/vitejs/vite
+    clone_strategy: filter_blobless
+    pinned_ref:
+    pinning_policy: Pin a specific commit SHA in the corpus manifest after cloning and smoke validation.
+    source_urls:
+      - https://github.com/vitejs/vite
+    risks:
+      - Expected tier is still an estimate until local LOC measurement is recorded.
+      - Playground content may skew retrieval unless inclusion rules are documented.
+      - Build-tool internals may overweight config and test assets relative to application code.
+    manual_verification:
+      - Measure TS/JS LOC and package count to confirm M-tier placement.
+      - Audit playground and docs directories for inclusion or ignore policy.
+  - repo_id: next-js
+    status: selected
+    owner: vercel
+    name: next.js
+    repo_url: https://github.com/vercel/next.js
+    clone_url: https://github.com/vercel/next.js.git
+    rationale: >
+      Large, widely used framework repository with apps, packages, tests, examples, and substantial
+      TypeScript/JavaScript surface area.
+    expected_tier: L
+    tier_verification_status: partial
+    why_useful: >
+      Strong large-tier benchmark candidate for Repo Hyperindex because it exercises monorepo-scale
+      navigation, evidence-backed search, and impact-style reasoning across packages, apps, examples,
+      and test surfaces.
+    license:
+      spdx_id: MIT
+      verification_status: verified
+      source_url: https://github.com/vercel/next.js
+    clone_strategy: filter_blobless
+    pinned_ref:
+    pinning_policy: Pin a specific commit SHA in the corpus manifest and re-measure after any corpus refresh.
+    source_urls:
+      - https://github.com/vercel/next.js
+    risks:
+      - Large multi-language surface includes Rust and benchmark folders that may need ignore rules for TS/JS-focused runs.
+      - Examples and test fixtures may add retrieval noise if not scoped carefully.
+      - Expected tier is still an estimate until local LOC measurement is recorded.
+    manual_verification:
+      - Measure TS/JS LOC and package count to confirm L-tier placement.
+      - Decide whether Rust, examples, bench, and generated/test-fixture content should be excluded from benchmark indexing.

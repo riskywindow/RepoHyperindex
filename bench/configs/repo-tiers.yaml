@@ -1,0 +1,29 @@
+schema_version: "1"
+tiers:
+  - tier: S
+    loc_range:
+      minimum: 50000
+      maximum: 150000
+    package_range:
+      minimum: 1
+      maximum: 3
+  - tier: M
+    loc_range:
+      minimum: 250000
+      maximum: 750000
+    package_range:
+      minimum: 5
+      maximum: 20
+  - tier: L
+    loc_range:
+      minimum: 1000000
+      maximum: 3000000
+    package_range:
+      minimum: 20
+      maximum: 100
+  - tier: XL
+    loc_range:
+      minimum: 3000000
+      maximum: 10000000
+    package_range:
+      minimum: 100

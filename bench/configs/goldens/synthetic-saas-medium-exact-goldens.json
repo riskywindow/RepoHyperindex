@@ -1,0 +1,1508 @@
+{
+  "corpus_id": "synthetic-saas-medium",
+  "expectations": [
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "invalidateSession"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-invalidate-session"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "revokeAllUserSessions"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-revoke-all-user-sessions"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/store/session-store.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sessionStore"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-store"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/store/session-store.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "recordSessionEvent"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-record-session-event"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "InvalidateResult"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-invalidate-result"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "authPolicy"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-policy"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/logout.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "logoutRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-logout-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/logout-handler.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "logoutHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-logout-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/jobs/password-reset.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "handlePasswordReset"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-handle-password-reset"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-password-reset-flag"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-role-change-flag"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "config/auth-policy.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-ttl"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-invalidated-event"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/session/service.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-bulk-invalidated-event"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/jobs/password-reset.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-password-reset-worker-tag"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-auth"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-session"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-api"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-worker"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-tests"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-web"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-shared"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/package.json",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-package-name-support"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/api-token-rotate-handler.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "apiTokenRotateHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-token-rotate-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/password-reset-handler.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "passwordResetHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-password-reset-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/handlers/admin-revoke-handler.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "adminRevokeHandler"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-admin-revoke-handler"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/api-token-rotate.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "apiTokenRotateRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-token-rotate-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/password-reset.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "passwordResetRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-password-reset-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/routes/admin-revoke.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "adminRevokeRoute"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-admin-revoke-route"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "AUTH_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "AUTH_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SESSION_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SESSION_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "API_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "API_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "WORKER_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "WORKER_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "TESTS_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-tests-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/tests/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "TESTS_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-tests-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "WEB_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "WEB_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SHARED_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SHARED_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SUPPORT_PACKAGE_SLUG"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-package-slug"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/index.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "SUPPORT_PACKAGE_NAME"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-package-name"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-001.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "authGenerated001"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-001"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-002.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sessionGenerated002"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-002"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-003.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "apiGenerated003"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-003"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-004.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "workerGenerated004"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-004"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-005.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "webGenerated005"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-005"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-006.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sharedGenerated006"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-006"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-007.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "supportGenerated007"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-007"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-008.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "authGenerated008"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-008"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-009.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sessionGenerated009"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-009"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-010.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "apiGenerated010"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-010"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-011.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "workerGenerated011"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-011"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-012.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "webGenerated012"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-012"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-013.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sharedGenerated013"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-013"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-014.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "supportGenerated014"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-014"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-015.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "authGenerated015"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-015"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-016.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "sessionGenerated016"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-016"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-017.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "apiGenerated017"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-017"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-018.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "workerGenerated018"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-018"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-019.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": "webGenerated019"
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-019"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-001.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-001-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-001.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-001-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-002.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-002-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-002.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-002-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-003.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-003-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-003.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-003-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-004.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-004-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-004.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-004-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-005.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-005-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-005.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-005-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-006.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-006-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-006.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-006-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-007.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-007-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-007.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-007-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-008.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-008-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-008.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-008-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-009.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-009-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-009.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-009-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-010.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-010-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-010.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-010-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-011.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-011-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-011.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-011-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-012.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-012-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/web/src/generated/generated-012.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-web-generated-012-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-013.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-013-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/shared/src/generated/generated-013.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-shared-generated-013-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-014.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-014-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/support/src/generated/generated-014.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-support-generated-014-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-015.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-015-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/auth/src/generated/generated-015.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-auth-generated-015-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-016.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-016-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/session/src/generated/generated-016.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-session-generated-016-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-017.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-017-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/api/src/generated/generated-017.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-api-generated-017-dep-import"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-018.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-018-dep-const"
+    },
+    {
+      "expected_hits": [
+        {
+          "min_score": null,
+          "path": "packages/worker/src/generated/generated-018.ts",
+          "rank_max": 3,
+          "reason": "text",
+          "symbol": null
+        }
+      ],
+      "expected_top_hit": null,
+      "max_latency_ms": null,
+      "notes": null,
+      "query_id": "exact-worker-generated-018-dep-import"
+    }
+  ],
+  "golden_set_id": "synthetic-saas-medium-exact-goldens",
+  "query_pack_id": "synthetic-saas-medium-exact-pack",
+  "schema_version": "1"
+}

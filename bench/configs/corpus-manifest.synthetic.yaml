@@ -1,0 +1,24 @@
+schema_version: "1"
+corpus_id: synthetic-saas-medium
+display_name: Synthetic SaaS Medium
+kind: synthetic
+language: typescript
+repo_tier: M
+description: Deterministic synthetic TypeScript SaaS monorepo focused on session invalidation flows.
+deterministic: true
+synthetic_config_id: synthetic-saas-medium
+bootstrap_commands:
+  - hyperbench synth validate --config bench/configs/synthetic-corpus.yaml
+query_pack_ids:
+  - synthetic-saas-medium-exact-pack
+  - synthetic-saas-medium-symbol-pack
+  - synthetic-saas-medium-semantic-pack
+  - synthetic-saas-medium-impact-pack
+golden_set_ids:
+  - synthetic-saas-medium-exact-goldens
+  - synthetic-saas-medium-symbol-goldens
+  - synthetic-saas-medium-semantic-goldens
+  - synthetic-saas-medium-impact-goldens
+hardware_target_ids:
+  - mbp-m4-pro-24gb
+  - linux-8c-64gb-nvme
