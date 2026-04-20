@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use sha2::{Digest, Sha256};
 
 use hyperindex_protocol::semantic::{
@@ -28,6 +30,22 @@ pub trait EmbeddingCacheStore {
         &self,
         cache_key: &EmbeddingCacheKey,
     ) -> SemanticStoreResult<Option<StoredEmbeddingRecord>>;
+
+    fn load_embeddings(
+        &self,
+        cache_keys: &[EmbeddingCacheKey],
+    ) -> SemanticStoreResult<BTreeMap<EmbeddingCacheKey, StoredEmbeddingRecord>> {
+        let mut records = BTreeMap::new();
+        for cache_key in cache_keys {
+            if records.contains_key(cache_key) {
+                continue;
+            }
+            if let Some(record) = self.load_embedding(cache_key)? {
+                records.insert(record.cache_key.clone(), record);
+            }
+        }
+        Ok(records)
+    }
 
     fn persist_embeddings(&self, records: &[StoredEmbeddingRecord]) -> SemanticStoreResult<()>;
 

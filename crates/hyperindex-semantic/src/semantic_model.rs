@@ -10,7 +10,7 @@ use hyperindex_protocol::semantic::{
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use hyperindex_protocol::symbols::SymbolIndexBuildId;
-use hyperindex_semantic_store::{EmbeddingCacheStore, StoredChunkVector};
+use hyperindex_semantic_store::{EmbeddingCacheStore, SemanticBuildProfile, StoredChunkVector};
 use hyperindex_symbols::{FactsBatch, SymbolGraph};
 use tracing::info;
 
@@ -41,6 +41,7 @@ pub struct SemanticBuildDraft {
     pub indexed_file_count: usize,
     pub embedding_count: usize,
     pub embedding_stats: EmbeddingPipelineStats,
+    pub profile: Option<SemanticBuildProfile>,
     pub diagnostics: Vec<SemanticDiagnostic>,
     pub chunks: Vec<SemanticChunkRecord>,
     pub chunk_vectors: Vec<StoredChunkVector>,
@@ -112,6 +113,7 @@ impl SemanticScaffoldBuilder {
     ) -> SemanticResult<SemanticBuildDraft> {
         let started = Instant::now();
         let chunking = self.chunker.build(snapshot)?;
+        let chunk_materialization_ms = started.elapsed().as_millis() as u64;
         let files_touched = chunking
             .chunks
             .iter()
@@ -124,6 +126,11 @@ impl SemanticScaffoldBuilder {
             symbol_index_build_id,
             embedding_cache,
             chunking,
+            SemanticBuildProfile {
+                chunk_materialization_ms,
+                embedding_resolution_ms: 0,
+                vector_persist_ms: 0,
+            },
             "full_rebuild".to_string(),
             None,
             SemanticRefreshStats {
@@ -148,12 +155,18 @@ impl SemanticScaffoldBuilder {
     ) -> SemanticResult<SemanticBuildDraft> {
         let started = Instant::now();
         let chunking = self.chunker.build_from_index(snapshot, facts, graph)?;
+        let chunk_materialization_ms = started.elapsed().as_millis() as u64;
         let chunks_rebuilt = chunking.chunks.len() as u64;
         self.finish_build(
             snapshot,
             symbol_index_build_id,
             embedding_cache,
             chunking,
+            SemanticBuildProfile {
+                chunk_materialization_ms,
+                embedding_resolution_ms: 0,
+                vector_persist_ms: 0,
+            },
             "full_rebuild".to_string(),
             None,
             SemanticRefreshStats {
@@ -192,14 +205,32 @@ impl SemanticScaffoldBuilder {
         snapshot: &ComposedSnapshot,
         symbol_index_build_id: Option<SymbolIndexBuildId>,
         embedding_cache: &C,
-        chunking: crate::ChunkingPlan,
+        mut chunking: crate::ChunkingPlan,
+        mut profile: SemanticBuildProfile,
         refresh_mode: String,
         fallback_reason: Option<String>,
         mut refresh_stats: SemanticRefreshStats,
     ) -> SemanticResult<SemanticBuildDraft> {
         let provider = provider_from_config(&self.config)?;
+        let truncated = truncate_oversized_chunks(
+            &mut chunking.chunks,
+            provider.config().max_input_bytes as usize,
+        );
+        if truncated > 0 {
+            chunking.diagnostics.push(SemanticDiagnostic {
+                severity: SemanticDiagnosticSeverity::Warning,
+                code: "semantic_chunks_truncated".to_string(),
+                message: format!(
+                    "truncated {} semantic chunk(s) to respect embedding max_input_bytes={}",
+                    truncated,
+                    provider.config().max_input_bytes
+                ),
+            });
+        }
+        let embedding_started = Instant::now();
         let embedded = EmbeddingPipeline::new(provider.as_ref())
             .embed_chunk_documents(embedding_cache, &chunking.chunks)?;
+        profile.embedding_resolution_ms = embedding_started.elapsed().as_millis() as u64;
         let semantic_config_digest = self.config_digest();
         let symbol_build = symbol_index_build_id
             .as_ref()
@@ -257,9 +288,35 @@ impl SemanticScaffoldBuilder {
             indexed_file_count,
             embedding_count: embedded.chunks.len(),
             embedding_stats: embedded.stats,
+            profile: Some(profile),
             diagnostics,
             chunks: embedded.chunks,
             chunk_vectors: embedded.chunk_vectors,
         })
     }
+}
+
+pub(crate) fn truncate_oversized_chunks(
+    chunks: &mut [SemanticChunkRecord],
+    max_input_bytes: usize,
+) -> usize {
+    let mut truncated = 0usize;
+    for chunk in chunks {
+        if chunk.serialized_text.as_bytes().len() <= max_input_bytes {
+            continue;
+        }
+        let mut end = max_input_bytes.min(chunk.serialized_text.len());
+        while end > 0 && !chunk.serialized_text.is_char_boundary(end) {
+            end -= 1;
+        }
+        chunk.serialized_text.truncate(end);
+        chunk.metadata.text.text_digest =
+            crate::common::sha256_hex(chunk.serialized_text.as_bytes());
+        chunk.metadata.text.text_bytes = chunk.serialized_text.len() as u32;
+        chunk.metadata.text.token_count_estimate =
+            chunk.serialized_text.split_whitespace().count() as u32;
+        chunk.embedding_cache = None;
+        truncated += 1;
+    }
+    truncated
 }

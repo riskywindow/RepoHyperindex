@@ -8,12 +8,13 @@ use hyperindex_protocol::semantic::{
 };
 use hyperindex_protocol::snapshot::{ComposedSnapshot, SnapshotDiffResponse};
 use hyperindex_protocol::symbols::SymbolIndexBuildId;
-use hyperindex_semantic_store::{SemanticStore, StoredChunkVector};
+use hyperindex_semantic_store::{SemanticBuildProfile, SemanticStore, StoredChunkVector};
 use hyperindex_symbols::{FactsBatch, SymbolGraph};
 
 use crate::common::{stable_digest, unix_timestamp_string};
 use crate::embedding_pipeline::EmbeddingPipeline;
 use crate::embedding_provider::provider_from_config;
+use crate::semantic_model::truncate_oversized_chunks;
 use crate::{SemanticBuildDraft, SemanticResult, SemanticScaffoldBuilder};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -367,12 +368,31 @@ impl IncrementalSemanticIndexer {
             .filter_map(|path| current_files.get(path).copied())
             .cloned()
             .collect::<Vec<_>>();
-        let rebuilt = self
+        let chunk_materialization_started = Instant::now();
+        let mut rebuilt = self
             .builder
             .build_for_files(snapshot, &touched_files, graph)?;
+        let chunk_materialization_ms = chunk_materialization_started.elapsed().as_millis() as u64;
         let provider = provider_from_config(&self.config)?;
+        let truncated = truncate_oversized_chunks(
+            &mut rebuilt.chunks,
+            provider.config().max_input_bytes as usize,
+        );
+        if truncated > 0 {
+            rebuilt.diagnostics.push(SemanticDiagnostic {
+                severity: SemanticDiagnosticSeverity::Warning,
+                code: "semantic_chunks_truncated".to_string(),
+                message: format!(
+                    "truncated {} semantic chunk(s) to respect embedding max_input_bytes={}",
+                    truncated,
+                    provider.config().max_input_bytes
+                ),
+            });
+        }
+        let embedding_started = Instant::now();
         let embedded = EmbeddingPipeline::new(provider.as_ref())
             .embed_chunk_documents(store, &rebuilt.chunks)?;
+        let embedding_resolution_ms = embedding_started.elapsed().as_millis() as u64;
 
         let rebuilt_paths = touched_files
             .iter()
@@ -458,6 +478,12 @@ impl IncrementalSemanticIndexer {
         let mut diagnostics = self
             .builder
             .diagnostics_for_index(facts, graph, next_chunks.len());
+        diagnostics.extend(
+            rebuilt
+                .diagnostics
+                .into_iter()
+                .filter(|diagnostic| diagnostic.code == "semantic_chunks_truncated"),
+        );
         diagnostics.push(SemanticDiagnostic {
             severity: SemanticDiagnosticSeverity::Info,
             code: "semantic_embedding_provider_ready".to_string(),
@@ -505,6 +531,11 @@ impl IncrementalSemanticIndexer {
             indexed_file_count: current_files.len(),
             embedding_count: next_chunks.len(),
             embedding_stats: embedded.stats,
+            profile: Some(SemanticBuildProfile {
+                chunk_materialization_ms,
+                embedding_resolution_ms,
+                vector_persist_ms: 0,
+            }),
             diagnostics,
             chunks: next_chunks,
             chunk_vectors: next_vectors,
@@ -1124,6 +1155,7 @@ export function logout(sessionId: string): string {
             embedding_cache_misses: draft.embedding_stats.cache_misses,
             embedding_cache_writes: draft.embedding_stats.cache_writes,
             embedding_provider_batches: draft.embedding_stats.provider_batches,
+            profile: draft.profile.clone(),
             refresh_stats: draft.refresh_stats.clone(),
             fallback_reason: draft.fallback_reason.clone(),
             diagnostics: draft.diagnostics.clone(),
@@ -1193,6 +1225,7 @@ export function logout(sessionId: string): string {
             embedding_cache_misses: draft.embedding_stats.cache_misses,
             embedding_cache_writes: draft.embedding_stats.cache_writes,
             embedding_provider_batches: draft.embedding_stats.provider_batches,
+            profile: draft.profile.clone(),
             refresh_stats: draft.refresh_stats.clone(),
             fallback_reason: draft.fallback_reason.clone(),
             diagnostics: draft.diagnostics.clone(),

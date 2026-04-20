@@ -1,8 +1,9 @@
-# Repo Hyperindex Phase 6 Status
+# Repo Hyperindex Phase 6 Status: Complete
 
-Phase 6 status: deterministic semantic chunk materialization, embedding-cache materialization,
-flat vector retrieval, and transparent hybrid reranking are implemented; the Phase 1 harness
-adapter and incremental semantic refresh remain pending as of 2026-04-19.
+Phase 6 status: complete. Deterministic semantic chunk materialization, embedding-cache
+materialization, flat vector retrieval, transparent hybrid reranking, daemon-backed benchmarking,
+incremental semantic refresh, and the final readiness/closeout hardening pass are implemented as
+of 2026-04-20.
 
 Primary planning document:
 
@@ -11,6 +12,215 @@ Primary planning document:
 - [protocol.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase6/protocol.md)
 - [chunk-model.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase6/chunk-model.md)
 - [index-format.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase6/index-format.md)
+- [phase6-handoff.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase6/phase6-handoff.md)
+
+## 2026-04-20 Phase 6 Closeout Review And Phase 7 Handoff
+
+### What Was Completed
+
+- Performed a staff-level review of the complete Phase 6 deliverable across:
+  - architecture and preserved ownership boundaries
+  - chunk model and metadata filters
+  - embedding-provider/cache boundaries
+  - vector-index persistence and warm-load behavior
+  - hybrid reranking and explanation payloads
+  - daemon/CLI/harness integration
+  - docs and test coverage
+- Tightened the highest-leverage correctness/reliability gaps without reopening scope:
+  - `semantic_query` and `semantic_inspect_chunk` now reject requests when semantic retrieval is
+    disabled
+  - semantic daemon status now warm-loads the persisted vector index before reporting `ready`
+  - runtime aggregate semantic status now counts unloadable vector indexes as stale instead of
+    ready
+  - semantic manifests now keep `embedding_cache.entry_count` scoped to the build’s document
+    embeddings, so repeated query traffic does not mutate build metadata
+- Added focused regression coverage for the closeout fixes:
+  - disabled-query rejection
+  - unloadable-index status reporting
+  - unloadable-index aggregate runtime status
+  - build-scoped manifest cache counts
+- Added a focused Phase 7 handoff document:
+  - [phase6-handoff.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase6/phase6-handoff.md)
+
+### Key Decisions
+
+- Keep the Phase 6 architecture intact; tighten truthfulness, compatibility, and handoff clarity
+  instead of redesigning retrieval.
+- Preserve the checked-in exact-search boundary:
+  there is still no checked-in Phase 3 exact-search runtime, so semantic retrieval remains
+  additive and does not claim exact-text ownership.
+- Treat vector-index warm-loadability as part of semantic readiness, not as an operator-only
+  concern.
+- Keep the handoff Phase 7-focused:
+  document the seams another engineer should plug into instead of proposing a new planner or trust
+  layer.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-semantic-store -p hyperindex-daemon
+cargo test
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run pytest'
+bash scripts/phase2-smoke.sh
+bash bench/scripts/symbol-query-smoke.sh
+bash bench/scripts/impact-query-smoke.sh
+bash bench/scripts/semantic-query-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted semantic closeout `cargo test`
+  - passed
+  - new readiness/manifest regression coverage is green
+- full workspace `cargo test`
+  - passed
+  - validated Phase 2 runtime, Phase 4 symbol, Phase 5 impact, and Phase 6 semantic crates
+- full `pytest`
+  - passed with `67` tests green
+  - validated the Phase 1 harness plus daemon-backed semantic/symbol/impact adapter coverage
+- `bash scripts/phase2-smoke.sh`
+  - passed
+  - validated daemon/runtime snapshot, symbol, semantic, and impact flows together
+- `bash bench/scripts/symbol-query-smoke.sh`
+  - passed
+  - preserved the daemon-backed Phase 4 benchmark path
+- `bash bench/scripts/impact-query-smoke.sh`
+  - passed
+  - preserved the daemon-backed Phase 5 benchmark path
+- `bash bench/scripts/semantic-query-smoke.sh`
+  - passed
+  - preserved the Phase 6 daemon-backed semantic benchmark path and emitted fresh run/report/compare
+    artifacts
+
+### Compatibility Boundaries Confirmed
+
+- Phase 1 harness:
+  preserved and green through the checked-in Python suite plus daemon-backed symbol/impact/semantic
+  smoke runs
+- Phase 2 runtime:
+  preserved through full workspace tests plus `scripts/phase2-smoke.sh`
+- Phase 3 exact search:
+  still intentionally absent in the checked-in repo; the Phase 6 semantic system preserves this
+  ownership boundary and does not replace it
+- Phase 4 symbol system:
+  preserved through full Rust tests and `bench/scripts/symbol-query-smoke.sh`
+- Phase 5 impact system:
+  preserved through full Rust tests and `bench/scripts/impact-query-smoke.sh`
+
+### Remaining Risks / TODOs
+
+- Semantic retrieval quality is still the main open issue:
+  the runtime is coherent and benchmarkable, but the checked-in semantic pack hero path still
+  needs accuracy work.
+- The vector index remains a flat persisted scan.
+- Reranking still relies on local lexical/path/symbol evidence only; there is no exact-search
+  candidate source yet.
+- External-process/local-ONNX providers remain operator-configured rather than bundled.
+
+### Next Recommended Prompt
+
+- Start Phase 7 from the checked-in handoff:
+  improve semantic quality and next-step retrieval capability without widening into planner,
+  trust/orchestration, or answer-generation scope
+
+## 2026-04-19 Semantic Performance And Reliability Hardening
+
+### What Was Completed
+
+- Profiled and tightened the highest-value Phase 6 semantic hot paths without reopening the core
+  architecture:
+  - incremental chunk extraction now resolves only touched files instead of the full snapshot
+  - embedding cache lookups now batch on one SQLite connection instead of opening one lookup per
+    key
+  - flat-vector query execution now reuses a prepared scorer instead of recomputing cosine
+    normalization for every candidate
+- Added deterministic build-profile persistence on semantic builds so local operator flows can see:
+  - chunk materialization time
+  - embedding-resolution time
+  - vector-persist time
+- Added local operator/debug flows for durability and recovery:
+  - `hyperctl semantic doctor`
+  - richer `hyperctl semantic stats`
+  - `hyperctl semantic rebuild` local fallback when the daemon is not running
+- Hardened common failure modes:
+  - corrupted embedding-cache rows are treated as disposable cache misses and are deleted on read
+  - unavailable embedding providers now make semantic status/query readiness explicit
+  - empty, zero-limit, oversized-limit, and low-signal queries fail fast with validation errors
+  - oversized chunks/files are truncated deterministically to `max_input_bytes` instead of aborting
+    the whole build
+  - doctor/status flows now surface stale builds, missing vector metadata, unloadable vector
+    indexes, failed quick checks, and rebuild/cleanup actions
+
+### Measured Results
+
+- Validated with the daemon-backed semantic smoke benchmark at:
+  `bench/scripts/semantic-query-smoke.sh`
+- Current smoke numbers on the checked-in synthetic semantic pack:
+  - cold prepare semantic build latency: `57.98 ms`
+  - semantic query latency: `22.15 ms`
+  - incremental semantic build latency: `47.52-48.11 ms`
+  - incremental semantic query latency: `24.24-27.43 ms`
+  - incremental semantic refresh bookkeeping time: `11-12 ms`
+  - touched files per refresh: `1`
+  - regenerated embeddings per refresh: `1-2`
+  - rebuilt chunks per refresh: `1-3`
+- The fixture-vs-real compare still fails on retrieval quality rather than stability:
+  the smoke run remained at `semantic-pass-rate = 0.0` for the hero query while latency and
+  refresh behavior stayed stable and machine-reported.
+
+### Key Decisions
+
+- Prefer measurable wins over speculative optimization:
+  - no ANN work
+  - no provider architecture rewrite
+  - no reranker redesign
+- Keep corrupted semantic cache data rebuildable from snapshot-derived inputs instead of trying to
+  salvage bad rows.
+- Treat provider availability as part of semantic query readiness, not just build compatibility.
+- Keep chunk truncation deterministic and config-bound to the embedding provider instead of adding
+  a new semantic-only size policy.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-semantic-store -p hyperindex-semantic -p hyperindex-daemon -p hyperindex-cli
+bash bench/scripts/semantic-query-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - `92` tests green across semantic-store, semantic, daemon, and CLI crates
+- semantic smoke benchmark
+  - passed
+  - emitted fresh run/report/compare artifacts with current prepare/query/refresh timings
+
+### Known Limits
+
+- Retrieval quality is still the limiting issue:
+  the hero query in the checked-in semantic smoke pack still does not pass at top-1.
+- Query execution is still a persisted flat scan over the filtered candidate set:
+  good enough for current corpora, but not an ANN design.
+- External-process or local-ONNX providers still require an explicitly configured local command;
+  this pass surfaces that state clearly but does not bundle a new provider runtime.
+- Oversized chunks are now truncated safely to `semantic.embedding_provider.max_input_bytes`,
+  which protects reliability but can hide tail content from retrieval on very large files/symbols.
+- `hyperctl semantic doctor` is a local inspection/recovery surface:
+  it does not widen the public daemon API.
+
+### Next Recommended Prompt
+
+- Improve retrieval quality on top of the hardened runtime without widening scope:
+  - raise semantic top-1 accuracy on the checked-in hero query
+  - decide whether the next quality slice needs richer lexical candidate features before ANN
+  - add a small benchmark note or report view that surfaces the new semantic operator profile data
 
 ## 2026-04-19 Phase 6 Hybrid Reranking And Explanation Fields
 

@@ -406,6 +406,16 @@ enum SemanticSubcommand {
         #[arg(long)]
         json: bool,
     },
+    Doctor {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Args)]
@@ -729,6 +739,7 @@ impl Cli {
                 SemanticSubcommand::InspectChunk { json, .. } => *json,
                 SemanticSubcommand::InspectIndex { json, .. } => *json,
                 SemanticSubcommand::Stats { json, .. } => *json,
+                SemanticSubcommand::Doctor { json, .. } => *json,
             },
             Commands::Doctor { json } => *json,
             Commands::ResetRuntime { json } => *json,
@@ -1005,14 +1016,8 @@ fn dispatch(cli: Cli) -> Result<String> {
                 repo_id,
                 snapshot_id,
                 json,
-            } => commands::semantic::build(
-                config_path.as_deref(),
-                &repo_id,
-                &snapshot_id,
-                true,
-                json,
-            )
-            .map_err(|error| anyhow!(error.to_string()))?,
+            } => commands::semantic::rebuild(config_path.as_deref(), &repo_id, &snapshot_id, json)
+                .map_err(|error| anyhow!(error.to_string()))?,
             SemanticSubcommand::InspectChunk {
                 repo_id,
                 snapshot_id,
@@ -1042,6 +1047,12 @@ fn dispatch(cli: Cli) -> Result<String> {
                 snapshot_id,
                 json,
             } => commands::semantic::stats(config_path.as_deref(), &repo_id, &snapshot_id, json)
+                .map_err(|error| anyhow!(error.to_string()))?,
+            SemanticSubcommand::Doctor {
+                repo_id,
+                snapshot_id,
+                json,
+            } => commands::semantic::doctor(config_path.as_deref(), &repo_id, &snapshot_id, json)
                 .map_err(|error| anyhow!(error.to_string()))?,
         },
         Commands::Doctor { json } => commands::maintenance::doctor(config_path.as_deref(), json)

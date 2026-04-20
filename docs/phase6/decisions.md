@@ -1,5 +1,85 @@
 # Repo Hyperindex Phase 6 Decisions
 
+## 2026-04-20 Phase 6 Closeout Readiness Truthfulness
+
+### Decision
+
+- Tighten the delivered Phase 6 surface without widening scope:
+  - reject `semantic_query` and `semantic_inspect_chunk` when semantic retrieval is disabled
+  - make semantic status/runtime readiness depend on a real vector-index warm load, not only on
+    stored metadata rows
+  - keep `SemanticIndexManifest.embedding_cache.entry_count` scoped to the build’s document
+    embeddings instead of the mutable global cache size
+- Document the exact Phase 7 plug-in seams in a dedicated handoff doc instead of asking the next
+  engineer to recover them from status logs and implementation files.
+
+### Why
+
+- Phase 6 is only useful to Phase 7 if readiness, manifests, and public daemon behavior are
+  truthful under corruption, disabled config, and repeated query traffic.
+- The checked-in implementation already had the right architecture; the leverage was in removing a
+  few misleading states:
+  - a disabled semantic runtime still accepted query/inspect calls
+  - status could report `ready` even when the persisted vector index would not warm-load
+  - query traffic could change manifest cache counts even though the underlying build had not
+    changed
+
+### Consequences
+
+- Semantic status is now self-validating for the persisted flat-index path and reports unloadable
+  indexes as `not_ready`.
+- Aggregate runtime status no longer counts corrupt semantic builds as ready.
+- Build manifests stay stable across repeated query executions, which keeps benchmark artifacts and
+  Phase 7 inspection flows reproducible.
+- Phase 7 now has a single focused handoff document for semantic query, chunk inspection,
+  explanations, filters, snapshot access, daemon flow, and harness integration.
+
+## 2026-04-19 Semantic Performance And Durability Hardening
+
+### Decision
+
+- Keep the Phase 6 retrieval architecture intact and harden only the highest-leverage hot paths:
+  - touched-file chunk extraction only
+  - batched embedding-cache reads
+  - prepared query scoring over the persisted flat index
+- Treat corrupted embedding-cache rows as disposable:
+  delete the bad row and continue as a cache miss.
+- Treat embedding-provider availability as part of semantic query readiness.
+- Add local operator recovery surfaces instead of widening the public daemon contract:
+  - `hyperctl semantic doctor`
+  - richer `hyperctl semantic stats`
+  - `hyperctl semantic rebuild` local fallback when the daemon is down
+- Truncate oversized serialized chunks to the configured embedding-provider
+  `max_input_bytes` deterministically rather than failing the build.
+
+### Why
+
+- The user asked for a focused performance/reliability pass with measurable wins, clean recovery,
+  and no core-architecture rewrite.
+- The biggest avoidable costs were operational rather than architectural:
+  incremental rebuilds were still resolving every file, cache reuse still paid one SQLite lookup
+  per key, and flat-scan scoring was doing redundant norm work.
+- Corrupted semantic cache rows are fully rebuildable from snapshot-derived inputs, so fail-open
+  recovery is safer than treating the cache as authoritative.
+- A persisted semantic build is not genuinely query-ready if the configured query embedding
+  provider cannot start.
+
+### Consequences
+
+- Incremental single-file updates now avoid full-snapshot content resolution in the chunker.
+- Embedding generation and cache reuse now pay one prepared SQLite lookup loop per batch instead of
+  reopening the store for each key.
+- Semantic query latency now reflects the flat scan itself more closely instead of repeated cosine
+  setup work.
+- Local semantic operator flows can now diagnose:
+  - quick-check failures
+  - stale/schema-mismatched builds
+  - missing or unloadable vector indexes
+  - unavailable embedding providers
+  - current build-profile timings
+- Very large chunks no longer abort semantic builds, but retrieval quality for the truncated tail
+  remains a documented limit.
+
 ## 2026-04-19 Deterministic Hybrid Reranking And Evidence Fields
 
 ### Decision

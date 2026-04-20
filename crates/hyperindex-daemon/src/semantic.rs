@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use hyperindex_config::LoadedConfig;
 use hyperindex_core::HyperindexResult;
@@ -27,6 +28,13 @@ use hyperindex_symbols::{FactsBatch, SymbolGraph, SymbolGraphBuilder};
 
 #[derive(Debug, Default, Clone)]
 pub struct SemanticService;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SemanticIndexHealth {
+    Missing,
+    Unloadable(String),
+    Ready,
+}
 
 impl SemanticService {
     pub fn status(
@@ -58,14 +66,8 @@ impl SemanticService {
         let build = store
             .load_build(&params.snapshot_id)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
-        let index_metadata = if build.is_some() {
-            store
-                .load_vector_index_metadata(&params.snapshot_id)
-                .map_err(|error| ProtocolError::storage(error.to_string()))?
-        } else {
-            None
-        };
         let builder = SemanticScaffoldBuilder::from_config(semantic_config);
+        let provider_ready = provider_from_config(semantic_config).is_ok();
         let build = build.filter(|build| {
             params
                 .build_id
@@ -80,7 +82,12 @@ impl SemanticService {
                     || build.semantic_config_digest != builder.config_digest()
             })
             .unwrap_or(false);
-        let state = if build.is_none() || index_metadata.is_none() {
+        let index_health = semantic_index_health(&store, &params.snapshot_id, build.as_ref())
+            .map_err(|error| ProtocolError::storage(error.to_string()))?;
+        let state = if build.is_none()
+            || !matches!(index_health, SemanticIndexHealth::Ready)
+            || !provider_ready
+        {
             SemanticAnalysisState::NotReady
         } else if stale {
             SemanticAnalysisState::Stale
@@ -90,8 +97,10 @@ impl SemanticService {
         let diagnostics = status_diagnostics(
             symbol_ready,
             build.as_ref(),
-            index_metadata.is_some(),
+            &index_health,
             stale,
+            semantic_config,
+            provider_ready,
         );
         Ok(scaffold_status_response(
             &params.repo_id,
@@ -132,7 +141,7 @@ impl SemanticService {
         let maybe_symbol_index =
             load_symbol_index_materialization(symbol_store_root, &params.repo_id, snapshot)
                 .map_err(|error| ProtocolError::storage(error.to_string()))?;
-        let draft = if let Some((facts, graph, symbol_index_build_id)) = maybe_symbol_index {
+        let mut draft = if let Some((facts, graph, symbol_index_build_id)) = maybe_symbol_index {
             let indexer = IncrementalSemanticIndexer::new(semantic_config);
             if params.force {
                 indexer
@@ -190,12 +199,22 @@ impl SemanticService {
             embedding_cache_misses: draft.embedding_stats.cache_misses,
             embedding_cache_writes: draft.embedding_stats.cache_writes,
             embedding_provider_batches: draft.embedding_stats.provider_batches,
+            profile: draft.profile.clone(),
             refresh_stats: draft.refresh_stats.clone(),
             fallback_reason: draft.fallback_reason.clone(),
             diagnostics: draft.diagnostics.clone(),
         };
+        let persist_started = Instant::now();
         store
             .persist_build_with_chunks_and_vectors(&build, &draft.chunks, &draft.chunk_vectors)
+            .map_err(|error| ProtocolError::storage(error.to_string()))?;
+        if let Some(profile) = &mut draft.profile {
+            profile.vector_persist_ms = persist_started.elapsed().as_millis() as u64;
+        }
+        let mut build = build;
+        build.profile = draft.profile.clone();
+        store
+            .persist_build(&build)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
         Ok(SemanticBuildResponse {
             repo_id: params.repo_id.clone(),
@@ -211,11 +230,36 @@ impl SemanticService {
         semantic_config: &SemanticConfig,
         params: &SemanticQueryParams,
     ) -> Result<SemanticQueryResponse, ProtocolError> {
+        ensure_semantic_enabled(semantic_config, &params.repo_id, &params.snapshot_id)?;
         if params.query.text.trim().is_empty() {
             return Err(ProtocolError::invalid_field(
                 "query.text",
                 "semantic query text must not be empty",
                 Some("non-empty natural-language query".to_string()),
+            ));
+        }
+        if low_signal_query(&params.query.text) {
+            return Err(ProtocolError::invalid_field(
+                "query.text",
+                "semantic query text is too short or low-signal to execute reliably",
+                Some("use at least one specific term or identifier".to_string()),
+            ));
+        }
+        if params.limit == 0 {
+            return Err(ProtocolError::invalid_field(
+                "limit",
+                "semantic query limit must be at least 1",
+                Some("1..=semantic.query.max_search_limit".to_string()),
+            ));
+        }
+        if params.limit as usize > semantic_config.query.max_search_limit {
+            return Err(ProtocolError::invalid_field(
+                "limit",
+                format!(
+                    "semantic query limit exceeds max_search_limit={}",
+                    semantic_config.query.max_search_limit
+                ),
+                Some(semantic_config.query.max_search_limit.to_string()),
             ));
         }
 
@@ -235,8 +279,11 @@ impl SemanticService {
                 "semantic build is stale for the current config; rebuild required",
             ));
         }
-        let provider = provider_from_config(semantic_config)
-            .map_err(|error| ProtocolError::internal(error.to_string()))?;
+        let provider = provider_from_config(semantic_config).map_err(|error| {
+            ProtocolError::storage(format!(
+                "semantic embedding provider is unavailable for query execution: {error}"
+            ))
+        })?;
         let index = store
             .load_vector_index(&params.snapshot_id, &build)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
@@ -263,9 +310,10 @@ impl SemanticService {
     pub fn inspect_chunk(
         &self,
         semantic_store_root: &Path,
-        _semantic_config: &SemanticConfig,
+        semantic_config: &SemanticConfig,
         params: &SemanticInspectChunkParams,
     ) -> Result<SemanticInspectChunkResponse, ProtocolError> {
+        ensure_semantic_enabled(semantic_config, &params.repo_id, &params.snapshot_id)?;
         let store = SemanticStore::open_in_store_dir(semantic_store_root, &params.repo_id)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
         let build = store
@@ -366,7 +414,8 @@ pub fn scan_semantic_runtime_status(
                         && metadata
                             .as_ref()
                             .map(|metadata| metadata.semantic_build_id == build.semantic_build_id)
-                            .unwrap_or(false);
+                            .unwrap_or(false)
+                        && store.load_vector_index(&build.snapshot_id, &build).is_ok();
                     if ready {
                         ready_build_count += 1;
                     } else {
@@ -525,11 +574,30 @@ fn load_compatible_existing_build(
     Ok(Some(build))
 }
 
+fn semantic_index_health(
+    store: &SemanticStore,
+    snapshot_id: &str,
+    build: Option<&StoredSemanticBuild>,
+) -> hyperindex_semantic_store::SemanticStoreResult<SemanticIndexHealth> {
+    let Some(build) = build else {
+        return Ok(SemanticIndexHealth::Missing);
+    };
+    let Some(_) = store.load_vector_index_metadata(snapshot_id)? else {
+        return Ok(SemanticIndexHealth::Missing);
+    };
+    match store.load_vector_index(snapshot_id, build) {
+        Ok(_) => Ok(SemanticIndexHealth::Ready),
+        Err(error) => Ok(SemanticIndexHealth::Unloadable(error.to_string())),
+    }
+}
+
 fn status_diagnostics(
     symbol_ready: bool,
     build: Option<&StoredSemanticBuild>,
-    index_present: bool,
+    index_health: &SemanticIndexHealth,
     stale: bool,
+    semantic_config: &SemanticConfig,
+    provider_ready: bool,
 ) -> Vec<hyperindex_protocol::semantic::SemanticDiagnostic> {
     if build.is_none() {
         return vec![if !symbol_ready {
@@ -544,16 +612,33 @@ fn status_diagnostics(
             )
         }];
     }
-    if !index_present {
+    if matches!(index_health, SemanticIndexHealth::Missing) {
         return vec![warning_diagnostic(
             "semantic_vector_index_missing",
             "semantic build metadata exists but the persisted vector index is missing; rebuild is required",
+        )];
+    }
+    if let SemanticIndexHealth::Unloadable(error) = index_health {
+        return vec![warning_diagnostic(
+            "semantic_vector_index_unloadable",
+            format!(
+                "semantic vector index is present but could not be warm-loaded: {error}; rebuild is required"
+            ),
         )];
     }
     if stale {
         return vec![warning_diagnostic(
             "semantic_build_stale",
             "stored semantic build is stale for the current config; rebuild is required",
+        )];
+    }
+    if !provider_ready {
+        return vec![warning_diagnostic(
+            "semantic_provider_unavailable",
+            format!(
+                "semantic embedding provider {:?} is unavailable in the current runtime config; fix the provider command or switch providers before querying",
+                semantic_config.embedding_provider.provider_kind
+            ),
         )];
     }
     let mut diagnostics = vec![info_diagnostic(
@@ -567,6 +652,21 @@ fn status_diagnostics(
         ));
     }
     diagnostics
+}
+
+fn low_signal_query(query: &str) -> bool {
+    let mut alnum_chars = 0usize;
+    let mut has_meaningful_term = false;
+    for term in query
+        .split(|ch: char| !ch.is_ascii_alphanumeric())
+        .filter(|term| !term.is_empty())
+    {
+        alnum_chars += term.len();
+        if term.len() >= 2 {
+            has_meaningful_term = true;
+        }
+    }
+    alnum_chars < 3 || !has_meaningful_term
 }
 
 #[cfg(test)]
@@ -628,6 +728,61 @@ mod tests {
     }
 
     #[test]
+    fn query_rejects_low_signal_query() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let config = hyperindex_protocol::config::SemanticConfig::default();
+        let error = service
+            .query(
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &SemanticQueryParams {
+                    repo_id: "repo-123".to_string(),
+                    snapshot_id: "snap-123".to_string(),
+                    query: SemanticQueryText {
+                        text: "?".to_string(),
+                    },
+                    filters: SemanticQueryFilters::default(),
+                    limit: 10,
+                    rerank_mode: SemanticRerankMode::Hybrid,
+                },
+            )
+            .unwrap_err();
+        assert_eq!(error.message, "request validation failed");
+    }
+
+    #[test]
+    fn query_rejects_when_semantic_is_disabled() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let mut config = hyperindex_protocol::config::SemanticConfig::default();
+        config.enabled = false;
+        let error = service
+            .query(
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &SemanticQueryParams {
+                    repo_id: "repo-123".to_string(),
+                    snapshot_id: "snap-123".to_string(),
+                    query: SemanticQueryText {
+                        text: "invalidate sessions".to_string(),
+                    },
+                    filters: SemanticQueryFilters::default(),
+                    limit: 10,
+                    rerank_mode: SemanticRerankMode::Hybrid,
+                },
+            )
+            .unwrap_err();
+
+        assert_eq!(
+            error.code,
+            hyperindex_protocol::errors::ErrorCode::SemanticNotReady
+        );
+    }
+
+    #[test]
     fn disabled_status_reports_disabled_state() {
         let service = SemanticService;
         let tempdir = tempdir().unwrap();
@@ -649,6 +804,73 @@ mod tests {
             response.state,
             hyperindex_protocol::semantic::SemanticAnalysisState::Disabled
         ));
+    }
+
+    #[test]
+    fn status_diagnostics_report_provider_unavailable_when_other_state_is_clean() {
+        let diagnostics = super::status_diagnostics(
+            true,
+            Some(&super::StoredSemanticBuild {
+                repo_id: "repo-1".to_string(),
+                snapshot_id: "snap-1".to_string(),
+                semantic_build_id: hyperindex_protocol::semantic::SemanticBuildId(
+                    "semantic-build-1".to_string(),
+                ),
+                semantic_config_digest: "cfg".to_string(),
+                schema_version: 4,
+                chunk_schema_version: 1,
+                embedding_provider:
+                    hyperindex_protocol::semantic::SemanticEmbeddingProviderConfig {
+                        provider_kind:
+                            hyperindex_protocol::semantic::SemanticEmbeddingProviderKind::ExternalProcess,
+                        model_id: "missing".to_string(),
+                        model_digest: "missing-v1".to_string(),
+                        vector_dimensions: 384,
+                        normalized: true,
+                        max_input_bytes: 8192,
+                        max_batch_size: 32,
+                    },
+                chunk_text: hyperindex_protocol::semantic::SemanticChunkTextConfig {
+                    serializer_id: "phase6-structured-text".to_string(),
+                    format_version: 1,
+                    includes_path_header: true,
+                    includes_symbol_context: true,
+                    normalized_newlines: true,
+                },
+                symbol_index_build_id: None,
+                created_at: "1".to_string(),
+                refresh_mode: "full_rebuild".to_string(),
+                chunk_count: 1,
+                indexed_file_count: 1,
+                embedding_count: 1,
+                embedding_cache_hits: 0,
+                embedding_cache_misses: 0,
+                embedding_cache_writes: 1,
+                embedding_provider_batches: 1,
+                profile: None,
+                refresh_stats: None,
+                fallback_reason: None,
+                diagnostics: Vec::new(),
+            }),
+            &super::SemanticIndexHealth::Ready,
+            false,
+            &hyperindex_protocol::config::SemanticConfig {
+                embedding_provider: hyperindex_protocol::semantic::SemanticEmbeddingProviderConfig {
+                    provider_kind:
+                        hyperindex_protocol::semantic::SemanticEmbeddingProviderKind::ExternalProcess,
+                    model_id: "missing".to_string(),
+                    model_digest: "missing-v1".to_string(),
+                    vector_dimensions: 384,
+                    normalized: true,
+                    max_input_bytes: 8192,
+                    max_batch_size: 32,
+                },
+                ..hyperindex_protocol::config::SemanticConfig::default()
+            },
+            false,
+        );
+
+        assert_eq!(diagnostics[0].code, "semantic_provider_unavailable");
     }
 
     #[test]
@@ -886,6 +1108,62 @@ mod tests {
     }
 
     #[test]
+    fn status_reports_unloadable_vector_indexes_as_not_ready() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let config = hyperindex_protocol::config::SemanticConfig::default();
+        let snapshot = semantic_fixture_snapshot();
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        repo_store.persist_manifest(&snapshot).unwrap();
+
+        service
+            .build(
+                &repo_store,
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &snapshot,
+                &SemanticBuildParams {
+                    repo_id: "repo-123".to_string(),
+                    snapshot_id: "snap-123".to_string(),
+                    force: true,
+                },
+            )
+            .unwrap();
+
+        let store = SemanticStore::open_in_store_dir(tempdir.path(), "repo-123").unwrap();
+        let connection = rusqlite::Connection::open(&store.store_path).unwrap();
+        connection
+            .execute(
+                "UPDATE semantic_vector_index_metadata SET vector_dimensions = ?1 WHERE snapshot_id = ?2",
+                rusqlite::params![999u32, "snap-123"],
+            )
+            .unwrap();
+
+        let response = service
+            .status(
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &SemanticStatusParams {
+                    repo_id: "repo-123".to_string(),
+                    snapshot_id: "snap-123".to_string(),
+                    build_id: None,
+                },
+            )
+            .unwrap();
+
+        assert!(matches!(
+            response.state,
+            hyperindex_protocol::semantic::SemanticAnalysisState::NotReady
+        ));
+        assert_eq!(
+            response.diagnostics[0].code,
+            "semantic_vector_index_unloadable"
+        );
+    }
+
+    #[test]
     fn runtime_status_counts_stale_builds_when_vector_metadata_is_missing() {
         let service = SemanticService;
         let tempdir = tempdir().unwrap();
@@ -922,6 +1200,52 @@ mod tests {
             .execute(
                 "DELETE FROM semantic_vector_index_metadata WHERE snapshot_id = ?1",
                 rusqlite::params![snapshot.snapshot_id.as_str()],
+            )
+            .unwrap();
+
+        let status = scan_semantic_runtime_status(&loaded).unwrap();
+        assert_eq!(status.materialized_snapshot_count, 1);
+        assert_eq!(status.ready_build_count, 0);
+        assert_eq!(status.stale_build_count, 1);
+    }
+
+    #[test]
+    fn runtime_status_counts_unloadable_vector_indexes_as_stale() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let mut config = hyperindex_protocol::config::RuntimeConfig::default();
+        config.directories.runtime_root = tempdir.path().join(".hyperindex");
+        config.semantic.store_dir = config.directories.runtime_root.join("data/semantic");
+        let loaded = LoadedConfig {
+            config_path: tempdir.path().join("config.toml"),
+            config: config.clone(),
+        };
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        let snapshot = semantic_fixture_snapshot();
+        repo_store.persist_manifest(&snapshot).unwrap();
+
+        service
+            .build(
+                &repo_store,
+                &config.semantic.store_dir,
+                tempdir.path(),
+                &config.semantic,
+                &snapshot,
+                &SemanticBuildParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    force: false,
+                },
+            )
+            .unwrap();
+
+        let store = SemanticStore::open_in_store_dir(&config.semantic.store_dir, &snapshot.repo_id)
+            .unwrap();
+        let connection = rusqlite::Connection::open(&store.store_path).unwrap();
+        connection
+            .execute(
+                "UPDATE semantic_vector_index_metadata SET vector_dimensions = ?1 WHERE snapshot_id = ?2",
+                rusqlite::params![999u32, snapshot.snapshot_id.as_str()],
             )
             .unwrap();
 

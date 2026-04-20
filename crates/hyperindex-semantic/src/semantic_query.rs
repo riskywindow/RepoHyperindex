@@ -60,19 +60,17 @@ impl SemanticSearchEngine {
         );
 
         let mut diagnostics = scaffold.diagnostics.clone();
-        let filtered_chunks = scaffold
+        let reranker = SemanticReranker::default();
+        let scorer = scaffold.index.prepare_query(query_embedding)?;
+
+        let mut filtered_chunk_count = 0usize;
+        let mut hits = scaffold
             .chunks
             .iter()
             .filter(|chunk| matches_filters(&chunk.metadata, &params.filters))
-            .collect::<Vec<_>>();
-        let reranker = SemanticReranker::default();
-
-        let mut hits = filtered_chunks
-            .iter()
             .map(|chunk| {
-                let semantic_score = scaffold
-                    .index
-                    .score_chunk_id(query_embedding, &chunk.metadata.chunk_id.0)?;
+                filtered_chunk_count += 1;
+                let semantic_score = scorer.score_chunk_id(&chunk.metadata.chunk_id.0)?;
                 let mut hit = reranker.build_hit(
                     &params.query,
                     chunk,
@@ -101,7 +99,7 @@ impl SemanticSearchEngine {
             hit.rank = (index + 1) as u32;
         }
 
-        if filtered_chunks.is_empty() {
+        if filtered_chunk_count == 0 {
             diagnostics.push(SemanticDiagnostic {
                 severity: SemanticDiagnosticSeverity::Info,
                 code: "semantic_query_no_candidates".to_string(),
@@ -135,7 +133,7 @@ impl SemanticSearchEngine {
             stats: SemanticQueryStats {
                 limit_requested: params.limit,
                 candidate_chunk_count: scaffold.chunks.len() as u32,
-                filtered_chunk_count: filtered_chunks.len() as u32,
+                filtered_chunk_count: filtered_chunk_count as u32,
                 hits_returned: hits.len() as u32,
                 rerank_applied: !matches!(
                     params.rerank_mode,

@@ -1,5 +1,129 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-20 Phase 6 Closeout Compatibility Validation
+
+### What Was Completed
+
+- Re-validated the Phase 1 harness against the completed Phase 6 deliverable after a focused
+  closeout review.
+- Confirmed the checked-in harness still runs and compares:
+  - fixture baselines
+  - daemon-backed symbol benchmarks
+  - daemon-backed impact benchmarks
+  - daemon-backed semantic benchmarks
+- Added a Phase 7-focused semantic handoff doc so future semantic work can plug into the existing
+  Phase 1 adapter/runner/report seams without re-deriving them from the codebase.
+
+### Key Decisions
+
+- Keep the Phase 1 harness contract unchanged and document the preserved compatibility boundaries
+  explicitly.
+- Record the still-intentional Phase 3 exact-search gap instead of pretending the semantic engine
+  replaces it.
+
+### Commands Run
+
+```bash
+cargo test
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run pytest'
+bash scripts/phase2-smoke.sh
+bash bench/scripts/symbol-query-smoke.sh
+bash bench/scripts/impact-query-smoke.sh
+bash bench/scripts/semantic-query-smoke.sh
+```
+
+### Command Results
+
+- full workspace `cargo test`
+  - passed
+- full `pytest`
+  - passed with `67` tests green
+- Phase 2 daemon smoke
+  - passed
+- symbol smoke
+  - passed
+- impact smoke
+  - passed
+- semantic smoke
+  - passed
+
+### Remaining Risks / TODOs
+
+- The harness/runtime compatibility surface is healthy, but semantic retrieval quality still lags
+  the checked-in semantic fixture baseline on the hero path.
+- The repo still intentionally has no checked-in Phase 3 exact-search runtime; that boundary
+  remains documented rather than implemented.
+
+### Next Recommended Prompt
+
+- Use the Phase 6 handoff to start Phase 7 quality work while keeping the Phase 1 harness as the
+  regression gate for symbol, impact, and semantic behavior
+
+## 2026-04-19 Phase 6 Semantic Hardening Follow-Through
+
+### What Was Completed
+
+- Hardened the real Phase 6 semantic runtime used by the existing `daemon-semantic` harness path:
+  - touched-file-only chunk resolution for incremental semantic refresh
+  - batched embedding-cache reuse on one SQLite connection
+  - prepared flat-vector scoring without redundant cosine setup per candidate
+  - deterministic truncation for oversized chunks/files
+  - clearer query validation for empty or low-signal semantic prompts
+- Added operator/debug support that helps benchmark bring-up recover cleanly:
+  - `hyperctl semantic doctor`
+  - richer `hyperctl semantic stats`
+  - `hyperctl semantic rebuild` local fallback when the daemon is unavailable
+- Added readiness and durability safeguards for:
+  - corrupted embedding-cache rows
+  - missing or unloadable vector indexes
+  - stale semantic builds or schema/config mismatches
+  - unavailable embedding providers
+
+### Key Decisions
+
+- Keep the Phase 1 harness contract unchanged and improve the real semantic engine underneath it.
+- Favor recovery-by-rebuild over speculative repair for corrupted semantic cache/index state.
+- Keep the new operator flows local and additive instead of widening the daemon protocol again.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-semantic-store -p hyperindex-semantic -p hyperindex-daemon -p hyperindex-cli
+bash bench/scripts/semantic-query-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed with `92` tests green
+- daemon-backed semantic smoke benchmark
+  - passed
+  - current measured semantic smoke numbers:
+    - cold prepare semantic build latency: `57.98 ms`
+    - semantic query latency: `22.15 ms`
+    - incremental semantic build latency: `47.52-48.11 ms`
+    - incremental semantic query latency: `24.24-27.43 ms`
+    - incremental touched-file count: `1`
+    - incremental regenerated embeddings: `1-2`
+
+### Remaining Risks / TODOs
+
+- Benchmarked stability is ahead of benchmarked retrieval quality:
+  the hero semantic smoke query still fails the checked-in golden.
+- The Phase 6 engine still uses a flat persisted vector scan, not ANN.
+- Very large chunks now truncate safely, but retrieval quality on the truncated tail remains a
+  known limit.
+
+### Next Recommended Prompt
+
+- Improve semantic quality on top of the hardened runtime:
+  - raise hero-query top-1 accuracy on the checked-in semantic pack
+  - decide whether the next quality slice should add stronger lexical candidate features before ANN
+  - keep the new semantic operator profile/doctor outputs aligned with benchmark evidence
+
 ## 2026-04-19 Phase 1 Semantic Harness Integration
 
 ### What Was Completed

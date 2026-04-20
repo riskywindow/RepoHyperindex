@@ -126,6 +126,14 @@ impl<'a> EmbeddingPipeline<'a> {
         let mut vectors = vec![Vec::new(); inputs.len()];
         let mut cache_metadata = vec![None; inputs.len()];
         let mut misses = Vec::new();
+        let cached = cache
+            .load_embeddings(
+                &inputs
+                    .iter()
+                    .map(|input| input.cache_key.clone())
+                    .collect::<Vec<_>>(),
+            )
+            .map_err(SemanticError::from)?;
 
         for (index, input) in inputs.iter().enumerate() {
             if input.text.as_bytes().len() > self.provider.config().max_input_bytes as usize {
@@ -139,13 +147,10 @@ impl<'a> EmbeddingPipeline<'a> {
                     self.provider.config().max_input_bytes
                 )));
             }
-            if let Some(record) = cache
-                .load_embedding(&input.cache_key)
-                .map_err(SemanticError::from)?
-            {
+            if let Some(record) = cached.get(&input.cache_key) {
                 stats.cache_hits += 1;
                 vectors[index] = record.vector.clone();
-                cache_metadata[index] = Some(cache_metadata_for_record(&record));
+                cache_metadata[index] = Some(cache_metadata_for_record(record));
             } else {
                 stats.cache_misses += 1;
                 misses.push((index, input.clone()));

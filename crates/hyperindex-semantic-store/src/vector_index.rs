@@ -66,6 +66,14 @@ pub struct VectorSearchResult {
 pub struct FlatVectorIndex {
     metadata: StoredVectorIndexMetadata,
     vectors_by_chunk_id: BTreeMap<String, Vec<f32>>,
+    vector_norms_by_chunk_id: BTreeMap<String, f32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PreparedQueryScorer<'a> {
+    index: &'a FlatVectorIndex,
+    query_embedding: &'a [f32],
+    query_norm: f32,
 }
 
 impl FlatVectorIndex {
@@ -118,9 +126,19 @@ impl FlatVectorIndex {
             )));
         }
 
+        let vector_norms_by_chunk_id = if metadata.normalized {
+            BTreeMap::new()
+        } else {
+            vectors_by_chunk_id
+                .iter()
+                .map(|(chunk_id, vector)| (chunk_id.clone(), vector_norm(vector)))
+                .collect()
+        };
+
         Ok(Self {
             metadata,
             vectors_by_chunk_id,
+            vector_norms_by_chunk_id,
         })
     }
 
@@ -132,62 +150,83 @@ impl FlatVectorIndex {
         self.vectors_by_chunk_id.len()
     }
 
+    pub fn prepare_query<'a>(
+        &'a self,
+        query_embedding: &'a [f32],
+    ) -> Result<PreparedQueryScorer<'a>, SemanticStoreError> {
+        if query_embedding.len() as u32 != self.metadata.vector_dimensions {
+            return Err(SemanticStoreError::Compatibility(format!(
+                "query vector dimensions mismatch: expected {}, found {}",
+                self.metadata.vector_dimensions,
+                query_embedding.len()
+            )));
+        }
+        Ok(PreparedQueryScorer {
+            index: self,
+            query_embedding,
+            query_norm: if self.metadata.normalized {
+                1.0
+            } else {
+                vector_norm(query_embedding)
+            },
+        })
+    }
+
     pub fn score_chunk_id(
         &self,
         query_embedding: &[f32],
         chunk_id: &str,
     ) -> Result<u32, SemanticStoreError> {
-        let candidate = self.vectors_by_chunk_id.get(chunk_id).ok_or_else(|| {
-            SemanticStoreError::Compatibility(format!(
-                "vector index did not contain chunk {chunk_id}"
-            ))
-        })?;
-        score_cosine_similarity(query_embedding, candidate, self.metadata.vector_dimensions)
+        self.prepare_query(query_embedding)?
+            .score_chunk_id(chunk_id)
     }
 }
 
-fn score_cosine_similarity(
-    query_embedding: &[f32],
-    candidate_embedding: &[f32],
-    expected_dimensions: u32,
-) -> Result<u32, SemanticStoreError> {
-    if query_embedding.len() as u32 != expected_dimensions {
-        return Err(SemanticStoreError::Compatibility(format!(
-            "query vector dimensions mismatch: expected {}, found {}",
-            expected_dimensions,
-            query_embedding.len()
-        )));
+impl<'a> PreparedQueryScorer<'a> {
+    pub fn score_chunk_id(&self, chunk_id: &str) -> Result<u32, SemanticStoreError> {
+        let candidate = self
+            .index
+            .vectors_by_chunk_id
+            .get(chunk_id)
+            .ok_or_else(|| {
+                SemanticStoreError::Compatibility(format!(
+                    "vector index did not contain chunk {chunk_id}"
+                ))
+            })?;
+        if candidate.len() as u32 != self.index.metadata.vector_dimensions {
+            return Err(SemanticStoreError::Compatibility(format!(
+                "candidate vector dimensions mismatch: expected {}, found {}",
+                self.index.metadata.vector_dimensions,
+                candidate.len()
+            )));
+        }
+        let dot = self
+            .query_embedding
+            .iter()
+            .zip(candidate.iter())
+            .map(|(left, right)| left * right)
+            .sum::<f32>();
+        let denominator = if self.index.metadata.normalized {
+            1.0
+        } else {
+            self.query_norm
+                * self
+                    .index
+                    .vector_norms_by_chunk_id
+                    .get(chunk_id)
+                    .copied()
+                    .unwrap_or_else(|| vector_norm(candidate))
+        };
+        if denominator <= f32::EPSILON {
+            return Ok(0);
+        }
+        let cosine = (dot / denominator).clamp(-1.0, 1.0);
+        Ok(((cosine + 1.0) * 500_000.0).round() as u32)
     }
-    if candidate_embedding.len() as u32 != expected_dimensions {
-        return Err(SemanticStoreError::Compatibility(format!(
-            "candidate vector dimensions mismatch: expected {}, found {}",
-            expected_dimensions,
-            candidate_embedding.len()
-        )));
-    }
+}
 
-    let dot = query_embedding
-        .iter()
-        .zip(candidate_embedding.iter())
-        .map(|(left, right)| left * right)
-        .sum::<f32>();
-    let query_norm = query_embedding
-        .iter()
-        .map(|value| value * value)
-        .sum::<f32>()
-        .sqrt();
-    let candidate_norm = candidate_embedding
-        .iter()
-        .map(|value| value * value)
-        .sum::<f32>()
-        .sqrt();
-
-    if query_norm == 0.0 || candidate_norm == 0.0 {
-        return Ok(0);
-    }
-
-    let cosine = (dot / (query_norm * candidate_norm)).clamp(-1.0, 1.0);
-    Ok(((cosine + 1.0) * 500_000.0).round() as u32)
+fn vector_norm(values: &[f32]) -> f32 {
+    values.iter().map(|value| value * value).sum::<f32>().sqrt()
 }
 
 #[cfg(test)]

@@ -10,7 +10,9 @@ use thiserror::Error;
 pub use embedding_cache::{EmbeddingCacheStore, StoredEmbeddingRecord, build_embedding_cache_key};
 pub use hyperindex_protocol::semantic::EmbeddingCacheKey;
 pub use migrations::{SEMANTIC_STORE_SCHEMA_VERSION, SemanticStoreMigration, planned_migrations};
-pub use semantic_store::{SemanticStore, SemanticStoreStatus, StoredSemanticBuild};
+pub use semantic_store::{
+    SemanticBuildProfile, SemanticStore, SemanticStoreStatus, StoredSemanticBuild,
+};
 pub use vector_index::{
     FLAT_VECTOR_INDEX_KIND, FLAT_VECTOR_INDEX_SCHEMA_VERSION, FlatVectorIndex, StoredChunkVector,
     StoredVectorIndexMetadata, VectorSearchResult,

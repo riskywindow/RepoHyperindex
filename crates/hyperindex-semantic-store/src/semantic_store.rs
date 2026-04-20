@@ -1,3 +1,4 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +16,13 @@ use crate::{
     SemanticStoreResult, StoredChunkVector, StoredEmbeddingRecord, StoredVectorIndexMetadata,
     default_store_path, planned_migrations,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SemanticBuildProfile {
+    pub chunk_materialization_ms: u64,
+    pub embedding_resolution_ms: u64,
+    pub vector_persist_ms: u64,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StoredSemanticBuild {
@@ -40,6 +48,8 @@ pub struct StoredSemanticBuild {
     pub embedding_cache_writes: usize,
     #[serde(default)]
     pub embedding_provider_batches: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<SemanticBuildProfile>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refresh_stats: Option<SemanticRefreshStats>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -103,9 +113,7 @@ impl SemanticStore {
                 key_algorithm:
                     "sha256(input_kind + text_digest + provider_identity + provider_config_digest)"
                         .to_string(),
-                entry_count: self
-                    .embedding_entry_count()
-                    .unwrap_or(build.embedding_count) as u64,
+                entry_count: build.embedding_count as u64,
                 store_path: Some(self.store_path.display().to_string()),
             },
             indexed_chunk_count: build.chunk_count as u64,
@@ -376,57 +384,8 @@ impl SemanticStore {
         &self,
         cache_key: &EmbeddingCacheKey,
     ) -> SemanticStoreResult<Option<StoredEmbeddingRecord>> {
-        let connection = self.connect()?;
-        connection
-            .query_row(
-                r#"
-                SELECT
-                    cache_key,
-                    input_kind,
-                    provider_kind,
-                    provider_id,
-                    provider_version,
-                    model_id,
-                    model_digest,
-                    provider_config_digest,
-                    text_digest,
-                    dimensions,
-                    normalized,
-                    vector_json,
-                    stored_at
-                FROM embedding_cache
-                WHERE cache_key = ?1
-                "#,
-                [cache_key.0.as_str()],
-                |row| {
-                    let input_kind = parse_input_kind(row.get::<_, String>(1)?.as_str())?;
-                    let provider_kind = parse_provider_kind(row.get::<_, String>(2)?.as_str())?;
-                    let vector_json = row.get::<_, String>(11)?;
-                    Ok(StoredEmbeddingRecord {
-                        cache_key: EmbeddingCacheKey(row.get::<_, String>(0)?),
-                        input_kind,
-                        provider_kind,
-                        provider_id: row.get(3)?,
-                        provider_version: row.get(4)?,
-                        model_id: row.get(5)?,
-                        model_digest: row.get(6)?,
-                        provider_config_digest: row.get(7)?,
-                        text_digest: row.get(8)?,
-                        dimensions: row.get(9)?,
-                        normalized: row.get(10)?,
-                        vector: serde_json::from_str(&vector_json).map_err(|error| {
-                            rusqlite::Error::FromSqlConversionFailure(
-                                11,
-                                rusqlite::types::Type::Text,
-                                Box::new(error),
-                            )
-                        })?,
-                        stored_at: row.get(12)?,
-                    })
-                },
-            )
-            .optional()
-            .map_err(Into::into)
+        let mut loaded = self.load_embeddings(std::slice::from_ref(cache_key))?;
+        Ok(loaded.remove(cache_key))
     }
 
     pub fn persist_embeddings(&self, records: &[StoredEmbeddingRecord]) -> SemanticStoreResult<()> {
@@ -642,6 +601,14 @@ impl EmbeddingCacheStore for SemanticStore {
         self.load_embedding(cache_key)
     }
 
+    fn load_embeddings(
+        &self,
+        cache_keys: &[EmbeddingCacheKey],
+    ) -> SemanticStoreResult<BTreeMap<EmbeddingCacheKey, StoredEmbeddingRecord>> {
+        let connection = self.connect()?;
+        load_embeddings_with_connection(&connection, cache_keys)
+    }
+
     fn persist_embeddings(&self, records: &[StoredEmbeddingRecord]) -> SemanticStoreResult<()> {
         self.persist_embeddings(records)
     }
@@ -649,6 +616,107 @@ impl EmbeddingCacheStore for SemanticStore {
     fn embedding_entry_count(&self) -> SemanticStoreResult<usize> {
         self.embedding_entry_count()
     }
+}
+
+fn load_embeddings_with_connection(
+    connection: &Connection,
+    cache_keys: &[EmbeddingCacheKey],
+) -> SemanticStoreResult<BTreeMap<EmbeddingCacheKey, StoredEmbeddingRecord>> {
+    let mut statement = connection.prepare(
+        r#"
+        SELECT
+            cache_key,
+            input_kind,
+            provider_kind,
+            provider_id,
+            provider_version,
+            model_id,
+            model_digest,
+            provider_config_digest,
+            text_digest,
+            dimensions,
+            normalized,
+            vector_json,
+            stored_at
+        FROM embedding_cache
+        WHERE cache_key = ?1
+        "#,
+    )?;
+    let mut loaded = BTreeMap::new();
+    let mut seen = BTreeSet::new();
+    let mut corrupted = Vec::new();
+
+    for cache_key in cache_keys {
+        if !seen.insert(cache_key.0.clone()) {
+            continue;
+        }
+        match statement.query_row([cache_key.0.as_str()], stored_embedding_record_from_row) {
+            Ok(record) => {
+                loaded.insert(record.cache_key.clone(), record);
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => {}
+            Err(error) if is_corrupt_embedding_row_error(&error) => {
+                corrupted.push(cache_key.clone());
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    drop(statement);
+
+    if !corrupted.is_empty() {
+        delete_embedding_keys(connection, &corrupted)?;
+    }
+
+    Ok(loaded)
+}
+
+fn stored_embedding_record_from_row(
+    row: &rusqlite::Row<'_>,
+) -> rusqlite::Result<StoredEmbeddingRecord> {
+    let input_kind = parse_input_kind(row.get::<_, String>(1)?.as_str())?;
+    let provider_kind = parse_provider_kind(row.get::<_, String>(2)?.as_str())?;
+    let vector_json = row.get::<_, String>(11)?;
+    Ok(StoredEmbeddingRecord {
+        cache_key: EmbeddingCacheKey(row.get::<_, String>(0)?),
+        input_kind,
+        provider_kind,
+        provider_id: row.get(3)?,
+        provider_version: row.get(4)?,
+        model_id: row.get(5)?,
+        model_digest: row.get(6)?,
+        provider_config_digest: row.get(7)?,
+        text_digest: row.get(8)?,
+        dimensions: row.get(9)?,
+        normalized: row.get(10)?,
+        vector: serde_json::from_str(&vector_json).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                11,
+                rusqlite::types::Type::Text,
+                Box::new(error),
+            )
+        })?,
+        stored_at: row.get(12)?,
+    })
+}
+
+fn is_corrupt_embedding_row_error(error: &rusqlite::Error) -> bool {
+    matches!(
+        error,
+        rusqlite::Error::FromSqlConversionFailure(..)
+            | rusqlite::Error::InvalidColumnType(..)
+            | rusqlite::Error::IntegralValueOutOfRange(..)
+    )
+}
+
+fn delete_embedding_keys(
+    connection: &Connection,
+    cache_keys: &[EmbeddingCacheKey],
+) -> SemanticStoreResult<()> {
+    let mut statement = connection.prepare("DELETE FROM embedding_cache WHERE cache_key = ?1")?;
+    for cache_key in cache_keys {
+        statement.execute([cache_key.0.as_str()])?;
+    }
+    Ok(())
 }
 
 fn persist_build_row(
@@ -999,6 +1067,7 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 0,
             embedding_provider_batches: 0,
+            profile: None,
             refresh_stats: None,
             fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
@@ -1045,6 +1114,7 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 0,
             embedding_provider_batches: 0,
+            profile: None,
             refresh_stats: None,
             fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
@@ -1137,6 +1207,7 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 1,
             embedding_provider_batches: 1,
+            profile: None,
             refresh_stats: None,
             fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
@@ -1248,6 +1319,7 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 1,
             embedding_provider_batches: 1,
+            profile: None,
             refresh_stats: None,
             fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
@@ -1307,5 +1379,89 @@ mod tests {
 
         assert_eq!(loaded, record);
         assert_eq!(store.embedding_entry_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn manifest_uses_build_scoped_embedding_count() {
+        let tempdir = tempdir().unwrap();
+        let store = SemanticStore::open_in_store_dir(tempdir.path(), "repo-123").unwrap();
+        let build = StoredSemanticBuild {
+            repo_id: "repo-123".to_string(),
+            snapshot_id: "snap-123".to_string(),
+            semantic_build_id: SemanticBuildId("semantic-build-123".to_string()),
+            semantic_config_digest: "config-digest".to_string(),
+            schema_version: store.schema_version,
+            chunk_schema_version: 1,
+            embedding_provider: SemanticEmbeddingProviderConfig {
+                provider_kind: SemanticEmbeddingProviderKind::DeterministicFixture,
+                model_id: "fixture-model".to_string(),
+                model_digest: "model-v1".to_string(),
+                vector_dimensions: 3,
+                normalized: true,
+                max_input_bytes: 8192,
+                max_batch_size: 32,
+            },
+            chunk_text: SemanticChunkTextConfig {
+                serializer_id: "phase6-structured-text".to_string(),
+                format_version: 1,
+                includes_path_header: true,
+                includes_symbol_context: true,
+                normalized_newlines: true,
+            },
+            symbol_index_build_id: None,
+            created_at: "123".to_string(),
+            refresh_mode: "full_rebuild".to_string(),
+            chunk_count: 1,
+            indexed_file_count: 1,
+            embedding_count: 1,
+            embedding_cache_hits: 0,
+            embedding_cache_misses: 0,
+            embedding_cache_writes: 1,
+            embedding_provider_batches: 1,
+            profile: None,
+            refresh_stats: None,
+            fallback_reason: None,
+            diagnostics: Vec::<SemanticDiagnostic>::new(),
+        };
+        store.persist_build(&build).unwrap();
+        store
+            .persist_embeddings(&[
+                StoredEmbeddingRecord {
+                    cache_key: EmbeddingCacheKey("cache-doc-123".to_string()),
+                    input_kind: SemanticEmbeddingInputKind::Document,
+                    provider_kind: SemanticEmbeddingProviderKind::DeterministicFixture,
+                    provider_id: "deterministic-fixture".to_string(),
+                    provider_version: "v1".to_string(),
+                    model_id: "fixture-model".to_string(),
+                    model_digest: "model-v1".to_string(),
+                    provider_config_digest: "config-v1".to_string(),
+                    text_digest: "text-doc-v1".to_string(),
+                    dimensions: 3,
+                    normalized: true,
+                    vector: vec![0.1, 0.2, 0.3],
+                    stored_at: "123".to_string(),
+                },
+                StoredEmbeddingRecord {
+                    cache_key: EmbeddingCacheKey("cache-query-123".to_string()),
+                    input_kind: SemanticEmbeddingInputKind::Query,
+                    provider_kind: SemanticEmbeddingProviderKind::DeterministicFixture,
+                    provider_id: "deterministic-fixture".to_string(),
+                    provider_version: "v1".to_string(),
+                    model_id: "fixture-model".to_string(),
+                    model_digest: "model-v1".to_string(),
+                    provider_config_digest: "config-v1".to_string(),
+                    text_digest: "text-query-v1".to_string(),
+                    dimensions: 3,
+                    normalized: true,
+                    vector: vec![0.4, 0.5, 0.6],
+                    stored_at: "124".to_string(),
+                },
+            ])
+            .unwrap();
+
+        let manifest = store.manifest_for(&build);
+
+        assert_eq!(store.embedding_entry_count().unwrap(), 2);
+        assert_eq!(manifest.embedding_cache.entry_count, 1);
     }
 }

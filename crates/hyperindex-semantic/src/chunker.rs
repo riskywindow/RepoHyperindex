@@ -74,7 +74,10 @@ impl ScaffoldChunker {
         graph: &SymbolGraph,
     ) -> SemanticResult<ChunkingPlan> {
         let package_index = build_package_index(snapshot);
-        let file_contents = build_resolved_file_contents(snapshot);
+        let file_contents = build_resolved_file_contents_for_paths(
+            snapshot,
+            files.iter().map(|file| file.facts.path.as_str()),
+        );
         let mut chunks = Vec::new();
         let mut fallback_file_count = 0usize;
 
@@ -746,23 +749,15 @@ fn clean_comment_lines(lines: &[&str]) -> String {
         .join("\n")
 }
 
-fn build_resolved_file_contents(snapshot: &ComposedSnapshot) -> BTreeMap<String, String> {
+fn build_resolved_file_contents_for_paths<'a>(
+    snapshot: &ComposedSnapshot,
+    paths: impl IntoIterator<Item = &'a str>,
+) -> BTreeMap<String, String> {
     let assembler = SnapshotAssembler;
-    let mut paths = BTreeSet::new();
-    for file in &snapshot.base.files {
-        paths.insert(file.path.clone());
-    }
-    for entry in &snapshot.working_tree.entries {
-        paths.insert(entry.path.clone());
-    }
-    for buffer in &snapshot.buffers {
-        paths.insert(buffer.path.clone());
-    }
-
     let mut contents = BTreeMap::new();
     for path in paths {
-        if let Some(resolved) = assembler.resolve_file(snapshot, &path) {
-            contents.insert(path, resolved.contents);
+        if let Some(resolved) = assembler.resolve_file(snapshot, path) {
+            contents.insert(path.to_string(), resolved.contents);
         }
     }
     contents
