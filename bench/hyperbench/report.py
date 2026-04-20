@@ -120,6 +120,11 @@ def render_run_report_markdown(report: dict[str, object]) -> str:
         f"- Repo id: `{prepare_metadata.get('repo_id') or 'unavailable'}`",
         f"- Clean snapshot: `{prepare_metadata.get('clean_snapshot_id') or 'unavailable'}`",
         f"- Symbol refresh mode: `{_nested(prepare_metadata, 'symbol_build', 'refresh_mode')}`",
+        f"- Semantic refresh mode: `{_nested(prepare_metadata, 'semantic_build', 'refresh_mode')}`",
+        (
+            "- Semantic representative query: "
+            f"`{_nested(prepare_metadata, 'representative_query', 'query_id')}`"
+        ),
         (
             "- Impact refresh mode: "
             f"`{_nested_nested(prepare_metadata, 'impact_analyze', 'manifest', 'refresh_mode')}`"
@@ -134,6 +139,12 @@ def render_run_report_markdown(report: dict[str, object]) -> str:
         f"- Wall clock: `{_format_ms(instrumentation.get('wall_clock_ms'))}`",
         f"- Query latency p50: `{_format_ms(instrumentation.get('query_latency_p50_ms'))}`",
         f"- Query latency p95: `{_format_ms(instrumentation.get('query_latency_p95_ms'))}`",
+        f"- Semantic latency p50: `{_format_metric_summary(report, 'semantic-latency', 'p50')}`",
+        f"- Semantic latency p95: `{_format_metric_summary(report, 'semantic-latency', 'p95')}`",
+        (
+            "- Semantic build latency mean: "
+            f"`{_format_metric_summary(report, 'prepare-semantic-build-latency', 'mean')}`"
+        ),
         f"- Impact latency p50: `{_format_metric_summary(report, 'impact-latency', 'p50')}`",
         f"- Impact latency p95: `{_format_metric_summary(report, 'impact-latency', 'p95')}`",
         f"- Refresh latency p50: `{_format_ms(instrumentation.get('refresh_latency_p50_ms'))}`",

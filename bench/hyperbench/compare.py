@@ -123,6 +123,14 @@ def extract_compare_metrics(summary: dict[str, object]) -> dict[str, dict[str, o
             "ms",
             _summary_stat(metric_summaries, "impact-latency", "p95"),
         ),
+        "semantic-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "semantic-latency", "p50"),
+        ),
+        "semantic-latency-p95": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "semantic-latency", "p95"),
+        ),
         "refresh-latency-p50": _metric("ms", instrumentation.get("refresh_latency_p50_ms")),
         "refresh-latency-p95": _metric("ms", instrumentation.get("refresh_latency_p95_ms")),
         "wall-clock": _metric("ms", instrumentation.get("wall_clock_ms")),
@@ -145,6 +153,10 @@ def extract_compare_metrics(summary: dict[str, object]) -> dict[str, dict[str, o
             "ms",
             _summary_stat(metric_summaries, "prepare-impact-analyze-latency", "mean"),
         ),
+        "prepare-semantic-build-latency": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "prepare-semantic-build-latency", "mean"),
+        ),
         "refresh-parse-build-latency-p50": _metric(
             "ms",
             _summary_stat(metric_summaries, "refresh-parse-build-latency", "p50"),
@@ -157,9 +169,21 @@ def extract_compare_metrics(summary: dict[str, object]) -> dict[str, dict[str, o
             "ms",
             _summary_stat(metric_summaries, "refresh-impact-analyze-latency", "p50"),
         ),
+        "refresh-semantic-build-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-semantic-build-latency", "p50"),
+        ),
+        "refresh-semantic-query-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-semantic-query-latency", "p50"),
+        ),
         "refresh-impact-refresh-elapsed-ms-p50": _metric(
             "ms",
             _summary_stat(metric_summaries, "refresh-impact-refresh-elapsed-ms", "p50"),
+        ),
+        "refresh-semantic-refresh-elapsed-ms-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-semantic-refresh-elapsed-ms", "p50"),
         ),
     }
 

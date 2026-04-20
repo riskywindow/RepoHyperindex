@@ -54,6 +54,7 @@ def test_run_help_exits_cleanly(capsys: pytest.CaptureFixture[str]) -> None:
     assert exc_info.value.code == 0
     assert "hyperbench run" in captured.out
     assert "--adapter" in captured.out
+    assert "daemon-semantic" in captured.out
     assert "--daemon-build-temperature" in captured.out
 
 

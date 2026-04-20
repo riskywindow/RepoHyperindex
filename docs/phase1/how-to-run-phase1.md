@@ -7,7 +7,7 @@ This guide is the operator-facing walkthrough for the Phase 1 Hyperbench harness
 - Python `3.12+`
 - [`uv`](https://docs.astral.sh/uv/) available locally
 - a fresh clone of the repo
-- Rust toolchain with `cargo` for the real symbol and impact engine paths
+- Rust toolchain with `cargo` for the real symbol, impact, and semantic engine paths
 
 ## First-Time Setup
 
@@ -126,6 +126,40 @@ If the current daemon contract cannot resolve a checked-in impact target yet, th
 the run alive and records that gap as an empty query result with diagnostic notes in
 `query_results.csv` and `events.jsonl` instead of aborting the whole benchmark.
 
+## Real Semantic Smoke Run
+
+This runs the Phase 1 semantic query pack through the real Phase 6 semantic engine over the daemon
+protocol.
+
+```bash
+cargo build -p hyperindex-daemon
+
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench corpora generate-synth \
+  --config-path bench/configs/synthetic-corpus.yaml \
+  --output-dir /tmp/hyperbench-bundle-semantic
+
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
+  --adapter daemon-semantic \
+  --engine-bin "$(pwd)/target/debug/hyperd" \
+  --daemon-build-temperature cold \
+  --corpus-path /tmp/hyperbench-bundle-semantic \
+  --query-pack-id synthetic-saas-medium-semantic-pack \
+  --output-dir /tmp/hyperbench-run-semantic-smoke \
+  --mode smoke
+
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench report \
+  --run-dir /tmp/hyperbench-run-semantic-smoke \
+  --output-dir /tmp/hyperbench-report-semantic-smoke
+```
+
+The semantic adapter bootstraps its own temporary runtime workspace and does not require a manually
+started daemon, repo registration step, or hosted embedding service for the checked-in benchmark
+path.
+
+The current compare/golden flow remains useful even when the real semantic engine does not yet
+match the fixture baseline perfectly. `query_results.csv`, `summary.json`, `refresh_results.csv`,
+and `compare.json` still capture the machine-readable deltas needed for engine bring-up.
+
 ## Full Local Benchmark Run
 
 The full run can still use the `FixtureAdapter`, but symbol benchmarking now also supports the real
@@ -186,6 +220,33 @@ The full impact run emits:
   `impact_refresh_entities_recomputed`, and `impact_refresh_edges_refreshed`
 - query-type metric summaries that include `impact-latency`
 
+Real semantic-engine full run:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
+  --adapter daemon-semantic \
+  --engine-bin "$(pwd)/target/debug/hyperd" \
+  --daemon-build-temperature cold \
+  --corpus-path /tmp/hyperbench-bundle-full \
+  --query-pack-id synthetic-saas-medium-semantic-pack \
+  --output-dir /tmp/hyperbench-run-semantic-full \
+  --mode full
+```
+
+The full semantic run emits:
+
+- semantic query results for the whole checked-in semantic pack
+- clean-snapshot prerequisite build metadata plus semantic build metadata
+- refresh rows with additive semantic fields such as:
+  `semantic_build_latency_ms`, `semantic_query_latency_ms`,
+  `semantic_refresh_mode`, `semantic_refresh_elapsed_ms`,
+  `semantic_refresh_chunks_rebuilt`,
+  `semantic_refresh_embeddings_regenerated`,
+  `semantic_refresh_vector_entries_added`,
+  `semantic_refresh_vector_entries_updated`, and
+  `semantic_refresh_vector_entries_removed`
+- query-type metric summaries that include `semantic-latency`
+
 ## Baseline vs Candidate Compare
 
 Use two completed run directories and the default Phase 1 budgets:
@@ -243,6 +304,24 @@ Recommended impact-engine compare pairs:
   Those artifacts now expose whether the impact build reused a persisted baseline or performed a
   fresh full/incremental compute for each refresh scenario.
 
+Recommended semantic-engine compare pairs:
+
+- fixture baseline vs daemon candidate
+  Use the fixture semantic smoke or full run as the baseline and the daemon-backed semantic run as
+  the candidate. This is the fastest way to compare the fixture adapter against the real semantic
+  engine.
+- daemon cold vs daemon warm
+  Re-run the same `daemon-semantic` command with `--daemon-build-temperature warm` and compare the
+  two output directories. The compare artifact now includes semantic-specific metrics such as
+  `semantic-latency-p50`, `semantic-latency-p95`, and `prepare-semantic-build-latency` when those
+  metrics are present.
+- full compute vs incremental update behavior
+  Use a full `daemon-semantic` run and inspect:
+  `summary.json`, `metrics.jsonl`, `refresh_results.csv`, and `report.json`.
+  Those artifacts now expose whether the semantic build reused a persisted baseline or performed a
+  fresh full/incremental update for each refresh scenario, along with rebuilt-chunk and vector
+  update counts.
+
 ## Fixture Smoke Demo
 
 If you want a single scripted demo:
@@ -297,6 +376,23 @@ The script:
 2. generates a synthetic corpus bundle
 3. runs a fixture impact smoke baseline
 4. runs a daemon-backed impact smoke candidate
+5. renders a daemon report
+6. writes fixture-vs-daemon compare artifacts
+
+## Real Semantic Smoke Script
+
+For a no-manual-steps semantic benchmark demo:
+
+```bash
+bash bench/scripts/semantic-query-smoke.sh
+```
+
+The script:
+
+1. builds `hyperd`
+2. generates a synthetic corpus bundle
+3. runs a fixture semantic smoke baseline
+4. runs a daemon-backed semantic smoke candidate
 5. renders a daemon report
 6. writes fixture-vs-daemon compare artifacts
 

@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from hyperbench.adapter import (
     CorpusBundle,
     DaemonImpactAdapter,
+    DaemonSemanticAdapter,
     DaemonSymbolAdapter,
     EngineAdapter,
     FixtureAdapter,
@@ -90,6 +91,12 @@ def create_adapter(
         )
     if adapter_name == "daemon-impact":
         return DaemonImpactAdapter(
+            engine_bin=engine_bin,
+            build_temperature=daemon_build_temperature,
+            workspace_root=daemon_workspace_root,
+        )
+    if adapter_name == "daemon-semantic":
+        return DaemonSemanticAdapter(
             engine_bin=engine_bin,
             build_temperature=daemon_build_temperature,
             workspace_root=daemon_workspace_root,
@@ -389,6 +396,19 @@ def run_benchmark(
                 "impact_query_id",
                 "impact_query_target_type",
                 "impact_query_target",
+                "semantic_build_latency_ms",
+                "semantic_query_latency_ms",
+                "semantic_refresh_mode",
+                "semantic_fallback_reason",
+                "semantic_loaded_from_existing_build",
+                "semantic_refresh_elapsed_ms",
+                "semantic_refresh_files_touched",
+                "semantic_refresh_chunks_rebuilt",
+                "semantic_refresh_embeddings_regenerated",
+                "semantic_refresh_vector_entries_added",
+                "semantic_refresh_vector_entries_updated",
+                "semantic_refresh_vector_entries_removed",
+                "semantic_query_id",
                 "target_path",
                 "notes",
             ],
@@ -655,6 +675,29 @@ def _normalize_refresh_row(
         "impact_query_id": metadata.get("impact_query_id", ""),
         "impact_query_target_type": metadata.get("impact_query_target_type", ""),
         "impact_query_target": metadata.get("impact_query_target", ""),
+        "semantic_build_latency_ms": metadata.get("semantic_build_latency_ms", ""),
+        "semantic_query_latency_ms": metadata.get("semantic_query_latency_ms", ""),
+        "semantic_refresh_mode": metadata.get("semantic_refresh_mode", ""),
+        "semantic_fallback_reason": metadata.get("semantic_fallback_reason", ""),
+        "semantic_loaded_from_existing_build": metadata.get(
+            "semantic_loaded_from_existing_build", False
+        ),
+        "semantic_refresh_elapsed_ms": metadata.get("semantic_refresh_elapsed_ms", ""),
+        "semantic_refresh_files_touched": metadata.get("semantic_refresh_files_touched", ""),
+        "semantic_refresh_chunks_rebuilt": metadata.get("semantic_refresh_chunks_rebuilt", ""),
+        "semantic_refresh_embeddings_regenerated": metadata.get(
+            "semantic_refresh_embeddings_regenerated", ""
+        ),
+        "semantic_refresh_vector_entries_added": metadata.get(
+            "semantic_refresh_vector_entries_added", ""
+        ),
+        "semantic_refresh_vector_entries_updated": metadata.get(
+            "semantic_refresh_vector_entries_updated", ""
+        ),
+        "semantic_refresh_vector_entries_removed": metadata.get(
+            "semantic_refresh_vector_entries_removed", ""
+        ),
+        "semantic_query_id": metadata.get("semantic_query_id", ""),
         "target_path": metadata.get("target_path", ""),
         "notes": " | ".join(result.notes),
     }

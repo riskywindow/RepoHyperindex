@@ -150,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument(
         "--adapter",
-        choices=["fixture", "daemon", "daemon-impact", "shell"],
+        choices=["fixture", "daemon", "daemon-impact", "daemon-semantic", "shell"],
         default="fixture",
         help="Adapter boundary to use for this benchmark run.",
     )
@@ -188,8 +188,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--engine-bin",
         help=(
             "Optional path to the engine binary. "
-            "For --adapter daemon this should point to hyperd; otherwise the workspace "
-            "target/debug/hyperd binary or cargo run fallback is used."
+            "For --adapter daemon, daemon-impact, or daemon-semantic this should point to "
+            "hyperd; otherwise the workspace target/debug/hyperd binary or cargo run fallback "
+            "is used."
         ),
     )
     run_parser.add_argument(
@@ -197,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["cold", "warm"],
         default="cold",
         help=(
-            "For --adapter daemon, measure either the first clean parser/symbol build "
+            "For daemon-backed adapters, measure either the first clean build path "
             "or a warmed repeat build on the same clean snapshot."
         ),
     )

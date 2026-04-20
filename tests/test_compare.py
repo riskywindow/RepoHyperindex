@@ -81,6 +81,7 @@ def test_report_and_compare_commands_generate_reviewable_artifacts(tmp_path: Pat
         "symbol",
     ]
     assert "## Instrumentation" in report_md
+    assert "Semantic latency p50" in report_md
     assert "query-latency-p95" in compare_md
     assert compare_json["verdict"] in {"pass", "warn", "fail"}
     assert compare_json["budget_results"]

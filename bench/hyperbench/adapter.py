@@ -1575,6 +1575,506 @@ class DaemonImpactAdapter(DaemonSymbolAdapter):
         return response, latency_ms, notes
 
 
+class DaemonSemanticAdapter(DaemonSymbolAdapter):
+    """Daemon-protocol adapter for the real Phase 6 semantic engine."""
+
+    name = "daemon-semantic"
+
+    def prepare_corpus(self, bundle: CorpusBundle) -> PreparedCorpus:
+        repo_source = bundle.root_dir / "repo"
+        if not repo_source.exists():
+            raise AdapterError(f"Corpus bundle does not contain repo/: {repo_source}")
+        representative_query = _select_representative_semantic_query(bundle)
+        started_at = time.perf_counter()
+        self._ensure_daemon_started()
+        session = self._bootstrap_repo_copy(repo_source, label="semantic-query")
+        parse_build, parse_latency_ms = self._measure_request(
+            "parse_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+        symbol_build, symbol_latency_ms = self._measure_request(
+            "symbol_index_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+        status_before = self._request(
+            "semantic_status",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "build_id": None,
+            },
+        )
+        semantic_build, semantic_build_latency_ms = self._measure_request(
+            "semantic_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+        status_ready = self._request(
+            "semantic_status",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "build_id": None,
+            },
+        )
+        prime_parse_build = None
+        prime_symbol_build = None
+        prime_semantic_build = None
+        if self.build_temperature == "warm":
+            prime_parse_build = parse_build
+            prime_symbol_build = symbol_build
+            prime_semantic_build = semantic_build
+            parse_build, parse_latency_ms = self._measure_request(
+                "parse_build",
+                {
+                    "repo_id": session.repo_id,
+                    "snapshot_id": session.clean_snapshot_id,
+                    "force": False,
+                },
+            )
+            symbol_build, symbol_latency_ms = self._measure_request(
+                "symbol_index_build",
+                {
+                    "repo_id": session.repo_id,
+                    "snapshot_id": session.clean_snapshot_id,
+                    "force": False,
+                },
+            )
+            semantic_build, semantic_build_latency_ms = self._measure_request(
+                "semantic_build",
+                {
+                    "repo_id": session.repo_id,
+                    "snapshot_id": session.clean_snapshot_id,
+                    "force": False,
+                },
+            )
+        total_latency_ms = (time.perf_counter() - started_at) * 1000.0
+        self._query_session = session
+        self._prepare_metadata = {
+            "transport": (
+                "daemon_protocol"
+                if self._transport_mode == "unix_socket"
+                else "daemon_protocol_stdio"
+            ),
+            "engine_backend": "phase6-semantic-daemon",
+            "build_temperature": self.build_temperature,
+            "launcher": self._launcher_label(),
+            "transport_mode": self._transport_mode,
+            "workspace_root": str(self._workspace_root),
+            "runtime_root": str(self._runtime_root),
+            "socket_path": str(self._socket_path),
+            "log_path": str(self._log_path),
+            "repo_id": session.repo_id,
+            "clean_snapshot_id": session.clean_snapshot_id,
+            "parse_build": _compact_parse_build(parse_build),
+            "symbol_build": _compact_symbol_build(symbol_build),
+            "semantic_status_before": _compact_semantic_status(status_before),
+            "semantic_status_ready": _compact_semantic_status(status_ready),
+            "representative_query": {
+                "query_id": representative_query.query_id,
+                "text": representative_query.text,
+                "rerank_mode": representative_query.rerank_mode.value,
+                "path_globs": representative_query.path_globs,
+                "limit": representative_query.limit,
+            },
+            "semantic_build": _compact_semantic_build(semantic_build),
+        }
+        if prime_parse_build is not None:
+            self._prepare_metadata["prime_parse_build"] = _compact_parse_build(prime_parse_build)
+        if prime_symbol_build is not None:
+            self._prepare_metadata["prime_symbol_build"] = _compact_symbol_build(prime_symbol_build)
+        if prime_semantic_build is not None:
+            self._prepare_metadata["prime_semantic_build"] = _compact_semantic_build(
+                prime_semantic_build
+            )
+        notes = [
+            "Real Phase 6 semantic engine via daemon protocol.",
+            f"build_temperature={self.build_temperature}",
+            f"repo_id={session.repo_id}",
+            f"clean_snapshot_id={session.clean_snapshot_id}",
+            f"representative_query_id={representative_query.query_id}",
+        ]
+        semantic_build_record = dict(semantic_build.get("build", {}))
+        semantic_manifest = dict(semantic_build_record.get("manifest") or {})
+        metric_rows = [
+            _metric_row("prepare-latency", "latency", "ms", total_latency_ms),
+            _metric_row("prepare-parse-build-latency", "latency", "ms", parse_latency_ms),
+            _metric_row("prepare-symbol-build-latency", "latency", "ms", symbol_latency_ms),
+            _metric_row(
+                "prepare-semantic-build-latency",
+                "latency",
+                "ms",
+                semantic_build_latency_ms,
+            ),
+            _metric_row(
+                "prepare-parse-parsed-file-count",
+                "custom",
+                "count",
+                float(parse_build["build"]["counts"]["parsed_file_count"]),
+            ),
+            _metric_row(
+                "prepare-parse-reused-file-count",
+                "custom",
+                "count",
+                float(parse_build["build"]["counts"]["reused_file_count"]),
+            ),
+            _metric_row(
+                "prepare-symbol-file-count",
+                "custom",
+                "count",
+                float(symbol_build["build"]["stats"]["file_count"]),
+            ),
+            _metric_row(
+                "prepare-symbol-loaded-from-existing",
+                "custom",
+                "count",
+                1.0 if symbol_build["build"].get("loaded_from_existing_build") else 0.0,
+            ),
+            _metric_row(
+                "prepare-semantic-indexed-chunk-count",
+                "custom",
+                "count",
+                float(semantic_manifest.get("indexed_chunk_count") or 0.0),
+            ),
+            _metric_row(
+                "prepare-semantic-indexed-file-count",
+                "custom",
+                "count",
+                float(semantic_manifest.get("indexed_file_count") or 0.0),
+            ),
+            _metric_row(
+                "prepare-semantic-loaded-from-existing",
+                "custom",
+                "count",
+                1.0 if semantic_build_record.get("loaded_from_existing_build") else 0.0,
+            ),
+            _metric_row(
+                "prepare-semantic-full-compute-count",
+                "custom",
+                "count",
+                1.0 if semantic_build_record.get("refresh_mode") == "full_rebuild" else 0.0,
+            ),
+            _metric_row(
+                "prepare-semantic-incremental-count",
+                "custom",
+                "count",
+                1.0 if semantic_build_record.get("refresh_mode") == "incremental" else 0.0,
+            ),
+        ] + _semantic_refresh_metric_rows(
+            dict(semantic_build_record.get("refresh_stats") or {}),
+            prefix="prepare",
+        )
+        return PreparedCorpus(
+            corpus_id=bundle.manifest.corpus_id,
+            latency_ms=total_latency_ms,
+            notes=notes,
+            metadata=self._prepare_metadata,
+            metric_rows=metric_rows,
+        )
+
+    def execute_exact_query(
+        self,
+        bundle: CorpusBundle,
+        query: ExactQuery,
+    ) -> QueryExecutionResult:
+        raise AdapterError(
+            "DaemonSemanticAdapter currently supports semantic queries only. "
+            "Limit the run to the semantic query pack."
+        )
+
+    def execute_symbol_query(
+        self,
+        bundle: CorpusBundle,
+        query: SymbolQuery,
+    ) -> QueryExecutionResult:
+        raise AdapterError(
+            "DaemonSemanticAdapter currently supports semantic queries only. "
+            "Limit the run to the semantic query pack."
+        )
+
+    def execute_semantic_query(
+        self,
+        bundle: CorpusBundle,
+        query: SemanticQuery,
+    ) -> QueryExecutionResult:
+        session = self._require_query_session()
+        response, latency_ms, notes = self._measure_semantic_query(
+            session=session,
+            snapshot_id=session.clean_snapshot_id,
+            query=query,
+        )
+        diagnostics = response.get("diagnostics", [])
+        if diagnostics:
+            notes.append(f"diagnostics={len(diagnostics)}")
+        return QueryExecutionResult(
+            query_id=query.query_id,
+            query_type=QueryType.SEMANTIC,
+            latency_ms=latency_ms,
+            hits=_normalize_semantic_hits(response),
+            notes=notes,
+        )
+
+    def execute_impact_query(
+        self,
+        bundle: CorpusBundle,
+        query: ImpactQuery,
+    ) -> QueryExecutionResult:
+        raise AdapterError(
+            "DaemonSemanticAdapter currently supports semantic queries only. "
+            "Impact benchmarking remains out of scope for this slice."
+        )
+
+    def run_incremental_refresh(
+        self,
+        bundle: CorpusBundle,
+        scenario: dict[str, object],
+    ) -> RefreshExecutionResult:
+        scenario_id = _coerce_str(scenario.get("scenario_id"), "scenario_id")
+        session = self._bootstrap_repo_copy(
+            bundle.root_dir / "repo",
+            label=f"semantic-{scenario_id}",
+        )
+        self._request(
+            "parse_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+        self._request(
+            "symbol_index_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+        self._request(
+            "semantic_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": session.clean_snapshot_id,
+                "force": False,
+            },
+        )
+
+        target_path = _coerce_str(scenario.get("target_path"), "target_path")
+        before_snippet = _coerce_str(scenario.get("before_snippet"), "before_snippet")
+        after_snippet = _coerce_str(scenario.get("after_snippet"), "after_snippet")
+        target_file = session.repo_root / target_path
+        try:
+            original = target_file.read_text(encoding="utf-8")
+        except FileNotFoundError as exc:
+            raise AdapterError(f"Refresh target file does not exist: {target_file}") from exc
+        if before_snippet not in original:
+            raise AdapterError(
+                f"Refresh scenario '{scenario_id}' could not find the expected snippet in "
+                f"{target_path}."
+            )
+        target_file.write_text(original.replace(before_snippet, after_snippet, 1), encoding="utf-8")
+
+        dirty_snapshot = self._create_snapshot(session.repo_id)
+        parse_build, parse_latency_ms = self._measure_request(
+            "parse_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": dirty_snapshot,
+                "force": False,
+            },
+        )
+        symbol_build, symbol_latency_ms = self._measure_request(
+            "symbol_index_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": dirty_snapshot,
+                "force": False,
+            },
+        )
+        refresh_query = _refresh_semantic_query_for_scenario(bundle, scenario)
+        semantic_build, semantic_build_latency_ms = self._measure_request(
+            "semantic_build",
+            {
+                "repo_id": session.repo_id,
+                "snapshot_id": dirty_snapshot,
+                "force": False,
+            },
+        )
+        semantic_response, semantic_query_latency_ms, semantic_notes = self._measure_semantic_query(
+            session=session,
+            snapshot_id=dirty_snapshot,
+            query=refresh_query,
+        )
+        latency_ms = (
+            parse_latency_ms
+            + symbol_latency_ms
+            + semantic_build_latency_ms
+            + semantic_query_latency_ms
+        )
+        changed_queries = [
+            _coerce_str(query_id, "expected_changed_queries[]")
+            for query_id in scenario.get("expected_changed_queries", [])
+        ]
+        build_record = dict(semantic_build.get("build", {}))
+        parse_record = parse_build["build"]
+        refresh_stats = dict(build_record.get("refresh_stats") or {})
+        refresh_mode = build_record.get("refresh_mode")
+        notes = [
+            "Incremental semantic refresh measured against a fresh clean baseline repo copy.",
+            f"dirty_snapshot_id={dirty_snapshot}",
+            f"refresh_mode={refresh_mode or 'unknown'}",
+            f"refresh_query_id={refresh_query.query_id}",
+            *semantic_notes,
+        ]
+        if build_record.get("fallback_reason"):
+            notes.append(f"fallback_reason={build_record['fallback_reason']}")
+        return RefreshExecutionResult(
+            scenario_id=scenario_id,
+            latency_ms=latency_ms,
+            changed_queries=changed_queries,
+            notes=notes,
+            metadata={
+                "target_path": target_path,
+                "dirty_snapshot_id": dirty_snapshot,
+                "parse_build_latency_ms": parse_latency_ms,
+                "symbol_build_latency_ms": symbol_latency_ms,
+                "semantic_build_latency_ms": semantic_build_latency_ms,
+                "semantic_query_latency_ms": semantic_query_latency_ms,
+                "parse_build": _compact_parse_build(parse_build),
+                "symbol_build": _compact_symbol_build(symbol_build),
+                "semantic_build": _compact_semantic_build(semantic_build),
+                "semantic_query": _compact_semantic_query(response=semantic_response),
+                "refresh_mode": refresh_mode,
+                "fallback_reason": build_record.get("fallback_reason"),
+                "loaded_from_existing_build": bool(
+                    build_record.get("loaded_from_existing_build", False)
+                ),
+                "symbol_refresh_mode": symbol_build["build"].get("refresh_mode"),
+                "symbol_fallback_reason": symbol_build["build"].get("fallback_reason"),
+                "symbol_loaded_from_existing_build": bool(
+                    symbol_build["build"].get("loaded_from_existing_build", False)
+                ),
+                "semantic_refresh_mode": refresh_mode,
+                "semantic_fallback_reason": build_record.get("fallback_reason"),
+                "semantic_loaded_from_existing_build": bool(
+                    build_record.get("loaded_from_existing_build", False)
+                ),
+                "semantic_refresh_elapsed_ms": refresh_stats.get("elapsed_ms"),
+                "semantic_refresh_files_touched": refresh_stats.get("files_touched"),
+                "semantic_refresh_chunks_rebuilt": refresh_stats.get("chunks_rebuilt"),
+                "semantic_refresh_embeddings_regenerated": refresh_stats.get(
+                    "embeddings_regenerated"
+                ),
+                "semantic_refresh_vector_entries_added": refresh_stats.get(
+                    "vector_entries_added"
+                ),
+                "semantic_refresh_vector_entries_updated": refresh_stats.get(
+                    "vector_entries_updated"
+                ),
+                "semantic_refresh_vector_entries_removed": refresh_stats.get(
+                    "vector_entries_removed"
+                ),
+                "semantic_query_id": refresh_query.query_id,
+                "parsed_file_count": parse_record["counts"]["parsed_file_count"],
+                "reused_file_count": parse_record["counts"]["reused_file_count"],
+            },
+            metric_rows=[
+                _metric_row("refresh-parse-build-latency", "latency", "ms", parse_latency_ms),
+                _metric_row("refresh-symbol-build-latency", "latency", "ms", symbol_latency_ms),
+                _metric_row(
+                    "refresh-semantic-build-latency",
+                    "latency",
+                    "ms",
+                    semantic_build_latency_ms,
+                ),
+                _metric_row(
+                    "refresh-semantic-query-latency",
+                    "latency",
+                    "ms",
+                    semantic_query_latency_ms,
+                ),
+                _metric_row(
+                    "refresh-parse-parsed-file-count",
+                    "custom",
+                    "count",
+                    float(parse_record["counts"]["parsed_file_count"]),
+                ),
+                _metric_row(
+                    "refresh-parse-reused-file-count",
+                    "custom",
+                    "count",
+                    float(parse_record["counts"]["reused_file_count"]),
+                ),
+                _metric_row(
+                    "refresh-semantic-hit-count",
+                    "custom",
+                    "count",
+                    float(len(semantic_response.get("hits", []))),
+                ),
+                _metric_row(
+                    "refresh-semantic-incremental-count",
+                    "custom",
+                    "count",
+                    1.0 if refresh_mode == "incremental" else 0.0,
+                ),
+                _metric_row(
+                    "refresh-semantic-full-compute-count",
+                    "custom",
+                    "count",
+                    1.0 if refresh_mode == "full_rebuild" else 0.0,
+                ),
+                _metric_row(
+                    "refresh-symbol-incremental-count",
+                    "custom",
+                    "count",
+                    1.0 if symbol_build["build"].get("refresh_mode") == "incremental" else 0.0,
+                ),
+                _metric_row(
+                    "refresh-symbol-full-rebuild-count",
+                    "custom",
+                    "count",
+                    1.0 if symbol_build["build"].get("refresh_mode") == "full_rebuild" else 0.0,
+                ),
+            ]
+            + _semantic_refresh_metric_rows(refresh_stats, prefix="refresh"),
+        )
+
+    def _measure_semantic_query(
+        self,
+        *,
+        session: _DaemonRepoSession,
+        snapshot_id: str,
+        query: SemanticQuery,
+    ) -> tuple[dict[str, object], float, list[str]]:
+        params = _semantic_request_payload(query)
+        params["repo_id"] = session.repo_id
+        params["snapshot_id"] = snapshot_id
+        started_at = time.perf_counter()
+        response = self._request("semantic_query", params)
+        latency_ms = (time.perf_counter() - started_at) * 1000.0
+        stats = dict(response.get("stats", {}))
+        notes = [
+            "Served by the daemon-backed Phase 6 semantic search.",
+            f"snapshot_id={snapshot_id}",
+            f"rerank_mode={query.rerank_mode.value}",
+            f"candidate_chunk_count={stats.get('candidate_chunk_count', 'unknown')}",
+            f"filtered_chunk_count={stats.get('filtered_chunk_count', 'unknown')}",
+            f"hits_returned={stats.get('hits_returned', 'unknown')}",
+        ]
+        return response, latency_ms, notes
+
+
 def load_bundle_support_file(path: Path) -> dict[str, object]:
     """Load a JSON support file from a corpus bundle."""
     try:
@@ -1876,6 +2376,206 @@ def _impact_refresh_metric_rows(refresh_stats: dict[str, object]) -> list[dict[s
     return metric_rows
 
 
+def _semantic_request_payload(query: SemanticQuery) -> dict[str, object]:
+    return {
+        "query": {
+            "text": query.text,
+        },
+        "filters": {
+            "path_globs": query.path_globs,
+            "package_names": [],
+            "package_roots": [],
+            "workspace_roots": [],
+            "languages": [],
+            "extensions": [],
+            "symbol_kinds": [],
+        },
+        "limit": query.limit,
+        "rerank_mode": query.rerank_mode.value,
+    }
+
+
+def _normalize_semantic_hits(response: dict[str, object]) -> list[QueryHit]:
+    hits: list[QueryHit] = []
+    seen_paths: set[str] = set()
+    for raw_hit in response.get("hits", []):
+        if not isinstance(raw_hit, dict):
+            continue
+        chunk = raw_hit.get("chunk")
+        if not isinstance(chunk, dict):
+            continue
+        path = _coerce_optional_str(chunk.get("path"))
+        if not path or path in seen_paths:
+            continue
+        seen_paths.add(path)
+        hits.append(
+            QueryHit(
+                path=path,
+                symbol=_coerce_optional_str(chunk.get("symbol_display_name")),
+                rank=len(hits) + 1,
+                reason=_coerce_optional_str(raw_hit.get("reason")) or "semantic",
+                score=float(raw_hit.get("score", 0.0)),
+            )
+        )
+    return hits
+
+
+def _compact_semantic_status(response: dict[str, object]) -> dict[str, object]:
+    capabilities = dict(response.get("capabilities", {}))
+    builds = [entry for entry in response.get("builds", []) if isinstance(entry, dict)]
+    return {
+        "state": response.get("state"),
+        "capabilities": {
+            "status": capabilities.get("status"),
+            "build": capabilities.get("build"),
+            "query": capabilities.get("query"),
+            "inspect_chunk": capabilities.get("inspect_chunk"),
+        },
+        "build_count": len(builds),
+        "build": _compact_semantic_build_record(builds[0]) if builds else None,
+        "diagnostic_count": len(response.get("diagnostics", [])),
+    }
+
+
+def _compact_semantic_build(response: dict[str, object]) -> dict[str, object]:
+    return _compact_semantic_build_record(dict(response.get("build", {})))
+
+
+def _compact_semantic_build_record(build: dict[str, object]) -> dict[str, object]:
+    return {
+        "build_id": build.get("build_id"),
+        "state": build.get("state"),
+        "refresh_mode": build.get("refresh_mode"),
+        "fallback_reason": build.get("fallback_reason"),
+        "loaded_from_existing_build": build.get("loaded_from_existing_build", False),
+        "manifest": _compact_semantic_manifest(dict(build.get("manifest") or {})),
+        "refresh_stats": _compact_semantic_refresh_stats(dict(build.get("refresh_stats") or {})),
+        "diagnostic_count": len(build.get("diagnostics", [])),
+    }
+
+
+def _compact_semantic_manifest(manifest: dict[str, object]) -> dict[str, object]:
+    storage = dict(manifest.get("storage") or {})
+    embedding_provider = dict(manifest.get("embedding_provider") or {})
+    return {
+        "build_id": manifest.get("build_id"),
+        "snapshot_id": manifest.get("snapshot_id"),
+        "symbol_index_build_id": manifest.get("symbol_index_build_id"),
+        "indexed_chunk_count": manifest.get("indexed_chunk_count"),
+        "indexed_file_count": manifest.get("indexed_file_count"),
+        "created_at": manifest.get("created_at"),
+        "storage": {
+            "format": storage.get("format"),
+            "schema_version": storage.get("schema_version"),
+        },
+        "embedding_provider": {
+            "provider_kind": embedding_provider.get("provider_kind"),
+            "model_id": embedding_provider.get("model_id"),
+            "vector_dimensions": embedding_provider.get("vector_dimensions"),
+        },
+    }
+
+
+def _compact_semantic_refresh_stats(refresh_stats: dict[str, object]) -> dict[str, object]:
+    return {
+        "files_touched": refresh_stats.get("files_touched"),
+        "chunks_rebuilt": refresh_stats.get("chunks_rebuilt"),
+        "embeddings_regenerated": refresh_stats.get("embeddings_regenerated"),
+        "vector_entries_added": refresh_stats.get("vector_entries_added"),
+        "vector_entries_updated": refresh_stats.get("vector_entries_updated"),
+        "vector_entries_removed": refresh_stats.get("vector_entries_removed"),
+        "elapsed_ms": refresh_stats.get("elapsed_ms"),
+    }
+
+
+def _compact_semantic_query(response: dict[str, object]) -> dict[str, object]:
+    stats = dict(response.get("stats", {}))
+    hits = [entry for entry in response.get("hits", []) if isinstance(entry, dict)]
+    top_hit = hits[0] if hits else None
+    top_chunk = dict(top_hit.get("chunk") or {}) if isinstance(top_hit, dict) else {}
+    return {
+        "hit_count": len(hits),
+        "top_hit_path": top_chunk.get("path"),
+        "top_hit_symbol": top_chunk.get("symbol_display_name"),
+        "top_hit_reason": top_hit.get("reason") if isinstance(top_hit, dict) else None,
+        "stats": {
+            "candidate_chunk_count": stats.get("candidate_chunk_count"),
+            "filtered_chunk_count": stats.get("filtered_chunk_count"),
+            "hits_returned": stats.get("hits_returned"),
+            "rerank_applied": stats.get("rerank_applied"),
+            "elapsed_ms": stats.get("elapsed_ms"),
+        },
+        "diagnostic_count": len(response.get("diagnostics", [])),
+    }
+
+
+def _select_representative_semantic_query(bundle: CorpusBundle) -> SemanticQuery:
+    semantic_queries = [
+        query
+        for pack in bundle.query_packs
+        for query in pack.queries
+        if isinstance(query, SemanticQuery)
+    ]
+    if not semantic_queries:
+        raise AdapterError("Corpus bundle does not include any semantic queries.")
+    for query in semantic_queries:
+        if "hero" in query.tags:
+            return query
+    for query in semantic_queries:
+        if query.query_id == "semantic-hero-session-invalidation":
+            return query
+    return semantic_queries[0]
+
+
+def _refresh_semantic_query_for_scenario(
+    bundle: CorpusBundle,
+    scenario: dict[str, object],
+) -> SemanticQuery:
+    for query_id in scenario.get("expected_changed_queries", []):
+        if not isinstance(query_id, str):
+            continue
+        for pack in bundle.query_packs:
+            for query in pack.queries:
+                if isinstance(query, SemanticQuery) and query.query_id == query_id:
+                    return query
+    return _select_representative_semantic_query(bundle)
+
+
+def _semantic_refresh_metric_rows(
+    refresh_stats: dict[str, object],
+    *,
+    prefix: str,
+) -> list[dict[str, object]]:
+    metric_rows: list[dict[str, object]] = []
+    if refresh_stats.get("elapsed_ms") is not None:
+        metric_rows.append(
+            _metric_row(
+                f"{prefix}-semantic-refresh-elapsed-ms",
+                "latency",
+                "ms",
+                float(refresh_stats["elapsed_ms"]),
+            )
+        )
+    for field_name, metric_name in (
+        ("files_touched", f"{prefix}-semantic-files-touched"),
+        ("chunks_rebuilt", f"{prefix}-semantic-chunks-rebuilt"),
+        ("embeddings_regenerated", f"{prefix}-semantic-embeddings-regenerated"),
+        ("vector_entries_added", f"{prefix}-semantic-vector-entries-added"),
+        ("vector_entries_updated", f"{prefix}-semantic-vector-entries-updated"),
+        ("vector_entries_removed", f"{prefix}-semantic-vector-entries-removed"),
+    ):
+        if refresh_stats.get(field_name) is not None:
+            metric_rows.append(
+                _metric_row(
+                    metric_name,
+                    "custom",
+                    "count",
+                    float(refresh_stats[field_name]),
+                )
+            )
+    return metric_rows
+
+
 def _retryable_file_target(query: ImpactQuery, error_message: str) -> str | None:
     if "impact_target_not_found" not in error_message:
         return None
@@ -1944,6 +2644,7 @@ __all__ = [
     "AdapterError",
     "CorpusBundle",
     "DaemonImpactAdapter",
+    "DaemonSemanticAdapter",
     "DaemonSymbolAdapter",
     "EngineAdapter",
     "FixtureAdapter",

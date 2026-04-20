@@ -7,14 +7,14 @@ Phase 1 scope in this repo:
 - deterministic synthetic TypeScript corpora
 - typed query packs and goldens
 - corpus validation, bootstrap planning, and snapshot metadata
-- a fixture-backed benchmark runner plus real daemon-backed symbol and impact adapters
+- a fixture-backed benchmark runner plus real daemon-backed symbol, impact, and semantic adapters
 - machine-readable run outputs
 - report and compare commands
 - smoke CI coverage
 
 Still out of scope:
 
-- exact and semantic real-engine adapters
+- exact real-engine adapters
 - VS Code extension, UI, or cloud service
 
 ## Quick Start
@@ -84,6 +84,21 @@ UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
   --mode smoke
 ```
 
+Run the real semantic-engine smoke benchmark against the Phase 6 daemon path:
+
+```bash
+cargo build -p hyperindex-daemon
+
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
+  --adapter daemon-semantic \
+  --engine-bin "$(pwd)/target/debug/hyperd" \
+  --daemon-build-temperature cold \
+  --corpus-path /tmp/hyperbench-bundle \
+  --query-pack-id synthetic-saas-medium-semantic-pack \
+  --output-dir /tmp/hyperbench-run-semantic-smoke \
+  --mode smoke
+```
+
 Run the full local benchmark against the fixture adapter:
 
 ```bash
@@ -117,6 +132,19 @@ UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
   --corpus-path /tmp/hyperbench-bundle \
   --query-pack-id synthetic-saas-medium-impact-pack \
   --output-dir /tmp/hyperbench-run-impact-full \
+  --mode full
+```
+
+Run the full real semantic benchmark, including incremental semantic refresh scenarios:
+
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run \
+  --adapter daemon-semantic \
+  --engine-bin "$(pwd)/target/debug/hyperd" \
+  --daemon-build-temperature cold \
+  --corpus-path /tmp/hyperbench-bundle \
+  --query-pack-id synthetic-saas-medium-semantic-pack \
+  --output-dir /tmp/hyperbench-run-semantic-full \
   --mode full
 ```
 
@@ -162,6 +190,24 @@ Useful impact-engine compare pairs:
   run; the impact adapter now records `impact_refresh_mode`, `impact_analyze_latency_ms`, and
   additive persisted-build refresh stats
 
+Useful semantic-engine compare pairs:
+
+- fixture baseline vs daemon candidate:
+  compare a fixture semantic smoke or full run against the matching `daemon-semantic` run to
+  surface accuracy and latency deltas in one machine-readable compare artifact
+- daemon cold vs daemon warm:
+  rerun the same `daemon-semantic` command with `--daemon-build-temperature warm` and compare the
+  two run dirs to isolate semantic-build reuse on the same clean snapshot
+- full compute vs incremental update:
+  inspect `refresh_results.csv`, `metrics.jsonl`, and `summary.json` from a full
+  `daemon-semantic` run; the semantic adapter now records `semantic_build_latency_ms`,
+  `semantic_query_latency_ms`, `semantic_refresh_mode`, and additive refresh stats such as
+  rebuilt chunks and vector-entry deltas
+
+The current compare/golden flow remains useful even when the real semantic engine does not yet
+match the fixture baseline perfectly. The harness still emits stable `summary.json`,
+`query_results.csv`, `refresh_results.csv`, and `compare.json` artifacts for engine bring-up.
+
 When the current daemon contract cannot resolve a checked-in impact target yet, the harness records
 that as an empty impact query result with diagnostic notes instead of aborting the run. This keeps
 full-pack benchmarking and compare/report generation usable during engine bring-up.
@@ -181,6 +227,9 @@ Useful helper scripts:
   benchmarks, and writes report/compare artifacts without manual setup.
 - `bench/scripts/impact-query-smoke.sh`
   Builds `hyperd`, generates a synthetic bundle, runs fixture and daemon-backed impact smoke
+  benchmarks, and writes report/compare artifacts without manual setup.
+- `bench/scripts/semantic-query-smoke.sh`
+  Builds `hyperd`, generates a synthetic bundle, runs fixture and daemon-backed semantic smoke
   benchmarks, and writes report/compare artifacts without manual setup.
 - `bench/scripts/profile-harness.sh`
   Profiles the Python harness with `cProfile`.
@@ -205,6 +254,16 @@ For daemon-backed symbol or impact runs, those artifacts now also include:
 - adapter-specific refresh mode and fallback details for incremental daemon refresh scenarios
 - additive impact metrics such as `prepare-impact-analyze-latency` and
   `refresh-impact-analyze-latency` when `--adapter daemon-impact` is used
+
+For daemon-backed semantic runs, those artifacts also include:
+
+- semantic build metadata in `summary.json` and `events.jsonl`
+- semantic compare metrics such as `semantic-latency-p50`, `semantic-latency-p95`, and
+  `prepare-semantic-build-latency`
+- semantic refresh fields in `refresh_results.csv`, including:
+  `semantic_build_latency_ms`, `semantic_query_latency_ms`, `semantic_refresh_mode`,
+  `semantic_refresh_elapsed_ms`, `semantic_refresh_chunks_rebuilt`,
+  `semantic_refresh_embeddings_regenerated`, and vector-entry add/update/remove counts
 
 `hyperbench report` writes:
 

@@ -1,5 +1,33 @@
 # Repo Hyperindex Phase 1 Decisions
 
+## 2026-04-19 - Add a dedicated daemon-backed semantic adapter without changing Phase 1 artifacts
+
+### Decision
+
+Keep the existing `--adapter daemon` symbol path intact and add a separate `--adapter
+daemon-semantic` path for Phase 6 semantic-query benchmarking.
+
+### Why
+
+- The real Phase 6 semantic engine is now stable behind the existing daemon contract, but its
+  lifecycle and metrics are different enough from symbol and impact benchmarking that overloading
+  another adapter would make operator output ambiguous.
+- The checked-in Phase 1 semantic pack already matches the daemon contract directly:
+  `SemanticQuery { text, path_globs, rerank_mode, limit }`. The missing piece was a harness-owned
+  bridge for daemon bootstrap, clean-build measurement, and incremental refresh reporting.
+- Adding semantic-specific metadata as additive fields keeps run/report/compare artifacts stable
+  while still making fixture-vs-real, cold-vs-warm, and full-vs-incremental comparisons
+  machine-readable.
+
+### Consequence
+
+- `hyperbench run --adapter daemon-semantic` now benchmarks the real Phase 6 semantic engine
+  through the daemon protocol.
+- `summary.json`, `metrics.jsonl`, `metric_summaries.csv`, and `refresh_results.csv` may now carry
+  additive semantic fields such as `prepare-semantic-build-latency`,
+  `semantic_refresh_mode`, `semantic_query_latency_ms`, and semantic refresh stats.
+- Existing fixture, daemon-symbol, and daemon-impact flows remain valid and unchanged.
+
 ## 2026-04-19 - Allow daemon-backed semantic runtime integration without changing Phase 1 artifacts
 
 ### Decision

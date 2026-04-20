@@ -1,5 +1,100 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-19 Phase 1 Semantic Harness Integration
+
+### What Was Completed
+
+- Added a real `daemon-semantic` adapter to `hyperbench` so the Phase 1 harness can run the Phase
+  6 semantic engine through the existing daemon protocol.
+- Wired the adapter to the checked-in semantic query pack and preserved the existing normalized
+  `QueryHit` result contract.
+- Extended run/report/compare outputs with additive semantic benchmarking data, including:
+  - `prepare-semantic-build-latency`
+  - `semantic-latency`
+  - `semantic_build_latency_ms`
+  - `semantic_query_latency_ms`
+  - `semantic_refresh_mode`
+  - semantic refresh stats for files touched, rebuilt chunks, regenerated embeddings, and vector
+    entry add/update/remove counts
+- Added a no-manual-steps semantic smoke script at `bench/scripts/semantic-query-smoke.sh`.
+- Added automated Python integration coverage for fixture-vs-real semantic smoke benchmarking and
+  compare/report artifact generation.
+- Updated benchmark operator docs for:
+  - semantic smoke benchmarks
+  - semantic full benchmarks
+  - baseline vs candidate compare flows
+  - cold vs warm semantic build comparisons
+  - full compute vs incremental update artifact inspection
+
+### Key Decisions
+
+- Keep the new real semantic path on a dedicated `--adapter daemon-semantic` surface instead of
+  overloading the existing symbol or impact adapters.
+- Keep the Phase 1 contract backward-compatible:
+  additive semantic metadata lands in `summary.json`, `metrics.jsonl`, `metric_summaries.csv`, and
+  `refresh_results.csv`, while existing fixture/symbol/impact flows remain unchanged.
+- Keep the harness daemon-backed and local-only:
+  no manual daemon start, no repo registration step, and no hosted embedding service required for
+  the checked-in semantic benchmark path.
+
+### Commands Run
+
+```bash
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run ruff check bench/hyperbench/adapter.py bench/hyperbench/runner.py bench/hyperbench/cli.py bench/hyperbench/report.py bench/hyperbench/compare.py tests/test_cli.py tests/test_compare.py tests/test_daemon_semantic_adapter.py'
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_cli.py tests/test_compare.py tests/test_runner.py tests/test_daemon_semantic_adapter.py -q'
+bash bench/scripts/semantic-query-smoke.sh
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench corpora generate-synth --config-path bench/configs/synthetic-corpus.yaml --output-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/bundle'
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run --adapter daemon-semantic --engine-bin "$(pwd)/target/debug/hyperd" --daemon-build-temperature cold --corpus-path /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/bundle --query-pack-id synthetic-saas-medium-semantic-pack --output-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/daemon-semantic-full-cold --mode full'
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench run --adapter daemon-semantic --engine-bin "$(pwd)/target/debug/hyperd" --daemon-build-temperature warm --corpus-path /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/bundle --query-pack-id synthetic-saas-medium-semantic-pack --output-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/daemon-semantic-full-warm --mode full'
+/bin/zsh -lc 'UV_CACHE_DIR=/tmp/uv-cache uv run hyperbench compare --baseline-run-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/daemon-semantic-full-cold --candidate-run-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/daemon-semantic-full-warm --budgets-path bench/configs/budgets.yaml --output-dir /var/folders/6p/mx_9010d5t72qm6b08mznnq80000gn/T/hyperbench-semantic-full.6jxfu8/compare-cold-vs-warm'
+```
+
+### Command Results
+
+- targeted `ruff check`
+  - passed
+- targeted `pytest`
+  - passed with `16` tests green
+- `bash bench/scripts/semantic-query-smoke.sh`
+  - passed
+  - produced fixture-vs-daemon semantic smoke run, report, and compare artifacts with no manual
+    daemon setup
+- semantic full cold run
+  - passed with `30` semantic queries and `4` refresh scenarios
+  - `query_pass_count = 21`, `query_pass_rate = 0.7`
+  - clean prepare semantic build used `refresh_mode = full_rebuild`
+  - refresh artifact summary recorded `mode_counts = {"incremental": 4}`
+- semantic full warm run
+  - passed with `30` semantic queries and `4` refresh scenarios
+  - `query_pass_count = 21`, `query_pass_rate = 0.7`
+  - clean prepare semantic build reused persisted state with
+    `loaded_from_existing_build = true`
+- cold vs warm compare
+  - passed and emitted compare artifacts with semantic-specific deltas including:
+    `prepare-semantic-build-latency`,
+    `semantic-latency-p50`,
+    `semantic-latency-p95`,
+    `refresh-semantic-build-latency-p50`,
+    `refresh-semantic-query-latency-p50`, and
+    `refresh-semantic-refresh-elapsed-ms-p50`
+
+### Remaining Risks / TODOs
+
+- The real semantic engine does not yet match the checked-in fixture baseline perfectly:
+  the validated smoke run had `query_pass_rate = 0.0` for the hero semantic query, and the full
+  run had `query_pass_rate = 0.7`.
+- Phase 1 compare budgets are still generic, so semantic bring-up currently relies on the emitted
+  machine-readable deltas more than semantic-specific pass/fail budget thresholds.
+- The harness now benchmarks semantic-query execution only; global planner benchmarking remains out
+  of scope.
+
+### Next Recommended Prompt
+
+- improve the real semantic engine until the checked-in semantic smoke hero query passes at top-1
+- decide whether Phase 1 compare budgets should add semantic-specific regression thresholds
+- add CI coverage for the daemon-backed semantic smoke path if the extra Rust runtime cost is
+  acceptable
+
 ## 2026-04-19 Phase 2 Semantic Daemon Integration Compatibility Note
 
 ### What Was Completed
