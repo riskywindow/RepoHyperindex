@@ -301,6 +301,10 @@ mod tests {
         ImpactStatusParams, ImpactTargetRef,
     };
     use hyperindex_protocol::repo::ReposAddParams;
+    use hyperindex_protocol::semantic::{
+        SemanticBuildParams, SemanticQueryFilters, SemanticQueryParams, SemanticQueryText,
+        SemanticRerankMode,
+    };
     use hyperindex_protocol::snapshot::{
         SnapshotCreateParams, SnapshotDiffParams, SnapshotReadFileParams,
         SnapshotResolvedFileSourceKind,
@@ -773,6 +777,243 @@ mod tests {
                 result: SuccessPayload::Shutdown(ShutdownResponse { accepted, .. }),
             } => assert!(accepted),
             other => panic!("unexpected shutdown response: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn daemon_semantic_build_uses_incremental_buffer_overlays() {
+        let tempdir = tempdir().unwrap();
+        let config_path = write_test_config(tempdir.path());
+        let repo_root = tempdir.path().join("repo");
+        init_repo(&repo_root);
+        fs::write(
+            repo_root.join("src/util.ts"),
+            "export function helper() {\n  return \"helper\";\n}\n",
+        )
+        .unwrap();
+        run_git(&repo_root, &["add", "."]);
+        commit_all(&repo_root, "add-util");
+
+        let mut config = hyperindex_config::load_or_default(Some(&config_path))
+            .unwrap()
+            .config;
+        config.transport.kind = hyperindex_protocol::config::TransportKind::Stdio;
+        fs::write(&config_path, toml::to_string_pretty(&config).unwrap()).unwrap();
+
+        let runtime = RuntimeState::bootstrap(Some(&config_path)).unwrap();
+        let server = DaemonServer::new(runtime);
+
+        let added = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-add",
+                RequestBody::ReposAdd(ReposAddParams {
+                    repo_root: repo_root.display().to_string(),
+                    display_name: Some("Semantic Repo".to_string()),
+                    notes: Vec::new(),
+                    ignore_patterns: Vec::new(),
+                    watch_on_add: true,
+                }),
+            ),
+        )
+        .await;
+        let repo_id = match added.body {
+            ResponseBody::Success {
+                result: SuccessPayload::ReposAdd(response),
+            } => response.repo.repo_id,
+            other => panic!("unexpected add response: {other:?}"),
+        };
+
+        let snapshot_clean = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-snapshot-clean",
+                RequestBody::SnapshotsCreate(SnapshotCreateParams {
+                    repo_id: repo_id.clone(),
+                    include_working_tree: true,
+                    buffer_ids: Vec::new(),
+                }),
+            ),
+        )
+        .await;
+        let clean_snapshot_id = match snapshot_clean.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SnapshotsCreate(response),
+            } => response.snapshot.snapshot_id,
+            other => panic!("unexpected clean snapshot response: {other:?}"),
+        };
+
+        let symbol_build = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-symbol-build-clean",
+                RequestBody::SymbolIndexBuild(SymbolIndexBuildParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    force: false,
+                }),
+            ),
+        )
+        .await;
+        match symbol_build.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SymbolIndexBuild(response),
+            } => assert_eq!(response.build.refresh_mode.as_deref(), Some("full_rebuild")),
+            other => panic!("unexpected clean symbol build response: {other:?}"),
+        }
+
+        let semantic_build = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-build-clean",
+                RequestBody::SemanticBuild(SemanticBuildParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    force: false,
+                }),
+            ),
+        )
+        .await;
+        match semantic_build.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticBuild(response),
+            } => {
+                assert_eq!(response.build.refresh_mode.as_deref(), Some("full_rebuild"));
+                assert!(
+                    response
+                        .build
+                        .refresh_stats
+                        .as_ref()
+                        .unwrap()
+                        .chunks_rebuilt
+                        > 0
+                );
+            }
+            other => panic!("unexpected clean semantic build response: {other:?}"),
+        }
+
+        let buffer_set = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-buffer",
+                RequestBody::BuffersSet(BufferSetParams {
+                    repo_id: repo_id.clone(),
+                    buffer_id: "buffer-1".to_string(),
+                    path: "src/app.ts".to_string(),
+                    version: 1,
+                    language: Some("typescript".to_string()),
+                    contents: "export function createBufferedSession() {\n  return \"buffer\";\n}\n\nexport function run() {\n  return createBufferedSession();\n}\n".to_string(),
+                }),
+            ),
+        )
+        .await;
+        match buffer_set.body {
+            ResponseBody::Success {
+                result: SuccessPayload::BuffersSet(response),
+            } => assert_eq!(response.buffer.buffer_id, "buffer-1"),
+            other => panic!("unexpected buffer response: {other:?}"),
+        }
+
+        let snapshot_buffered = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-snapshot-buffered",
+                RequestBody::SnapshotsCreate(SnapshotCreateParams {
+                    repo_id: repo_id.clone(),
+                    include_working_tree: true,
+                    buffer_ids: vec!["buffer-1".to_string()],
+                }),
+            ),
+        )
+        .await;
+        let buffered_snapshot_id = match snapshot_buffered.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SnapshotsCreate(response),
+            } => response.snapshot.snapshot_id,
+            other => panic!("unexpected buffered snapshot response: {other:?}"),
+        };
+
+        let symbol_build_buffered = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-symbol-build-buffered",
+                RequestBody::SymbolIndexBuild(SymbolIndexBuildParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: buffered_snapshot_id.clone(),
+                    force: false,
+                }),
+            ),
+        )
+        .await;
+        match symbol_build_buffered.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SymbolIndexBuild(response),
+            } => assert_eq!(response.build.refresh_mode.as_deref(), Some("incremental")),
+            other => panic!("unexpected buffered symbol build response: {other:?}"),
+        }
+
+        let semantic_build_buffered = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-build-buffered",
+                RequestBody::SemanticBuild(SemanticBuildParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: buffered_snapshot_id.clone(),
+                    force: false,
+                }),
+            ),
+        )
+        .await;
+        match semantic_build_buffered.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticBuild(response),
+            } => {
+                let stats = response.build.refresh_stats.unwrap();
+                assert_eq!(response.build.refresh_mode.as_deref(), Some("incremental"));
+                assert_eq!(stats.files_touched, 1);
+                assert!(stats.chunks_rebuilt > 0);
+                assert!(
+                    stats.chunks_rebuilt
+                        < response
+                            .build
+                            .manifest
+                            .as_ref()
+                            .unwrap()
+                            .indexed_chunk_count
+                );
+            }
+            other => panic!("unexpected buffered semantic build response: {other:?}"),
+        }
+
+        let semantic_query = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-query-buffered",
+                RequestBody::SemanticQuery(SemanticQueryParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: buffered_snapshot_id.clone(),
+                    query: SemanticQueryText {
+                        text: "buffered session".to_string(),
+                    },
+                    filters: SemanticQueryFilters::default(),
+                    limit: 5,
+                    rerank_mode: SemanticRerankMode::Hybrid,
+                }),
+            ),
+        )
+        .await;
+        match semantic_query.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticQuery(response),
+            } => {
+                let top_hit = response.hits.first().expect("expected semantic hit");
+                assert_eq!(top_hit.chunk.path, "src/app.ts");
+                assert_eq!(
+                    top_hit.chunk.symbol_display_name.as_deref(),
+                    Some("createBufferedSession")
+                );
+            }
+            other => panic!("unexpected buffered semantic query response: {other:?}"),
         }
     }
 

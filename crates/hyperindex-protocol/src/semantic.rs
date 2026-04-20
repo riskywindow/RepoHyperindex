@@ -227,6 +227,17 @@ pub struct SemanticQueryStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SemanticRefreshStats {
+    pub files_touched: u64,
+    pub chunks_rebuilt: u64,
+    pub embeddings_regenerated: u64,
+    pub vector_entries_added: u64,
+    pub vector_entries_updated: u64,
+    pub vector_entries_removed: u64,
+    pub elapsed_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SemanticIndexStorage {
     pub format: SemanticStorageFormat,
     pub path: String,
@@ -267,6 +278,12 @@ pub struct SemanticBuildRecord {
     pub started_at: Option<String>,
     pub finished_at: Option<String>,
     pub manifest: Option<SemanticIndexManifest>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_stats: Option<SemanticRefreshStats>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback_reason: Option<String>,
     #[serde(default)]
     pub diagnostics: Vec<SemanticDiagnostic>,
     #[serde(default)]

@@ -1,5 +1,78 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-19 Phase 6 Incremental Semantic Refresh Compatibility Note
+
+### What Was Completed
+
+- Implemented the user-requested Phase 6 incremental semantic refresh path while keeping the
+  checked-in Phase 1 harness artifact contract unchanged.
+- Added a diff-driven semantic update flow that:
+  - reuses prior chunk and vector state for unchanged files
+  - rebuilds only touched semantic chunks for added, modified, deleted, and buffer-overlay
+    snapshot changes
+  - falls back to full rebuilds on schema/config/provider/corruption consistency failures
+- Added machine-readable semantic refresh stats and fallback metadata on stored builds, daemon
+  responses, and local CLI reporting.
+- Added targeted coverage proving:
+  - single-file edits do not trigger a full semantic rebuild
+  - buffer overlays change semantic query results before save
+  - add/delete/modify refresh flows are correct
+  - incremental and full semantic rebuild outputs are equivalent for the same final snapshot
+
+### Key Decisions
+
+- Treat this as additive runtime work outside the default Phase 1 scope because the user requested
+  the Phase 6 semantic slice explicitly.
+- Prefer correctness and debuggability over aggressive invalidation:
+  - unchanged files reuse persisted chunks and vectors directly
+  - touched files recompute deterministically from current symbol facts
+  - incompatible or suspicious prior state falls back to a full rebuild with an explicit reason
+- Reuse the existing Phase 2 snapshot diff and Phase 4 symbol-facts seams instead of adding new
+  watcher automation or semantic-only snapshot state.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-semantic-store -- --nocapture
+cargo test -p hyperindex-semantic -- --nocapture
+cargo test -p hyperindex-daemon semantic::tests:: -- --nocapture
+cargo test -p hyperindex-daemon daemon_semantic_build_uses_incremental_buffer_overlays -- --nocapture
+cargo test -p hyperindex-cli --no-run
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-semantic-store -- --nocapture`
+  - passed with `12` tests green
+- `cargo test -p hyperindex-semantic -- --nocapture`
+  - passed with `30` tests green
+- `cargo test -p hyperindex-daemon semantic::tests:: -- --nocapture`
+  - passed with `6` tests green
+- `cargo test -p hyperindex-daemon daemon_semantic_build_uses_incremental_buffer_overlays -- --nocapture`
+  - passed with `1` test green
+- `cargo test -p hyperindex-cli --no-run`
+  - passed
+
+### Remaining Risks / TODOs
+
+- The semantic daemon build path still depends on Phase 4 symbol facts being present to take the
+  incremental path; otherwise it correctly falls back to the existing full rebuild.
+- Incremental semantic persistence still writes a complete snapshot-scoped materialization for the
+  new snapshot even though unchanged chunks/vectors are reused in memory; there is no in-place row
+  mutation path yet.
+- The Phase 1 harness still does not have the real `daemon-semantic` adapter path.
+
+### Next Recommended Prompt
+
+- Build the next semantic operator slice on top of the new refresh path:
+  - add semantic status/build reporting for refresh-mode and refresh-stats in any remaining
+    consumer surfaces
+  - wire the real `daemon-semantic` adapter into `hyperbench`
+  - benchmark incremental-vs-full semantic refresh on a checked-in synthetic corpus
+
 ## 2026-04-19 Phase 6 Semantic Hybrid Reranking Compatibility Note
 
 ### What Was Completed

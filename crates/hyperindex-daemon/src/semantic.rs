@@ -12,14 +12,18 @@ use hyperindex_protocol::semantic::{
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use hyperindex_protocol::status::SemanticRuntimeStatus;
+use hyperindex_repo_store::RepoStore;
 use hyperindex_semantic::daemon_integration::{
     info_diagnostic, scaffold_status_response, warning_diagnostic,
 };
 use hyperindex_semantic::{
-    SemanticScaffoldBuilder, SemanticSearchEngine, SemanticSearchScaffold, provider_from_config,
+    IncrementalSemanticIndexer, SemanticScaffoldBuilder, SemanticSearchEngine,
+    SemanticSearchScaffold, provider_from_config,
 };
 use hyperindex_semantic_store::{SemanticStore, StoredSemanticBuild};
+use hyperindex_snapshot::SnapshotAssembler;
 use hyperindex_symbol_store::SymbolStore;
+use hyperindex_symbols::{FactsBatch, SymbolGraph, SymbolGraphBuilder};
 
 #[derive(Debug, Default, Clone)]
 pub struct SemanticService;
@@ -104,6 +108,7 @@ impl SemanticService {
 
     pub fn build(
         &self,
+        repo_store: &RepoStore,
         semantic_store_root: &Path,
         symbol_store_root: &Path,
         semantic_config: &SemanticConfig,
@@ -111,21 +116,50 @@ impl SemanticService {
         params: &SemanticBuildParams,
     ) -> Result<SemanticBuildResponse, ProtocolError> {
         ensure_semantic_enabled(semantic_config, &params.repo_id, &params.snapshot_id)?;
-        let symbol_index_build_id =
-            load_symbol_state(symbol_store_root, &params.repo_id, &params.snapshot_id)
-                .map_err(|error| ProtocolError::storage(error.to_string()))?
-                .map(|state| {
-                    hyperindex_protocol::symbols::SymbolIndexBuildId(format!(
-                        "symbol-index-scaffold-{}",
-                        state.snapshot_id
-                    ))
-                });
-        let builder = SemanticScaffoldBuilder::from_config(semantic_config);
         let store = SemanticStore::open_in_store_dir(semantic_store_root, &params.repo_id)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
-        let draft = builder
-            .build(snapshot, symbol_index_build_id, &store)
-            .map_err(|error| ProtocolError::internal(error.to_string()))?;
+        let maybe_symbol_index =
+            load_symbol_index_materialization(symbol_store_root, &params.repo_id, snapshot)
+                .map_err(|error| ProtocolError::storage(error.to_string()))?;
+        let draft = if let Some((facts, graph, symbol_index_build_id)) = maybe_symbol_index {
+            let indexer = IncrementalSemanticIndexer::new(semantic_config);
+            if params.force {
+                indexer
+                    .full_rebuild(
+                        &store,
+                        snapshot,
+                        &facts,
+                        &graph,
+                        Some(symbol_index_build_id),
+                    )
+                    .map(|result| result.build)
+            } else {
+                let previous_snapshot = load_previous_semantic_snapshot(
+                    repo_store,
+                    &store,
+                    &params.repo_id,
+                    &params.snapshot_id,
+                )
+                .map_err(|error| ProtocolError::storage(error.to_string()))?;
+                let diff = previous_snapshot
+                    .as_ref()
+                    .map(|previous| SnapshotAssembler.diff(previous, snapshot));
+                indexer
+                    .refresh(
+                        &store,
+                        previous_snapshot.as_ref(),
+                        snapshot,
+                        diff.as_ref(),
+                        &facts,
+                        &graph,
+                        Some(symbol_index_build_id),
+                    )
+                    .map(|result| result.build)
+            }
+        } else {
+            SemanticScaffoldBuilder::from_config(semantic_config).build(snapshot, None, &store)
+        }
+        .map_err(|error| ProtocolError::internal(error.to_string()))?;
         let build = StoredSemanticBuild {
             repo_id: draft.repo_id.clone(),
             snapshot_id: draft.snapshot_id.clone(),
@@ -145,6 +179,8 @@ impl SemanticService {
             embedding_cache_misses: draft.embedding_stats.cache_misses,
             embedding_cache_writes: draft.embedding_stats.cache_writes,
             embedding_provider_batches: draft.embedding_stats.provider_batches,
+            refresh_stats: draft.refresh_stats.clone(),
+            fallback_reason: draft.fallback_reason.clone(),
             diagnostics: draft.diagnostics.clone(),
         };
         store
@@ -327,6 +363,9 @@ fn build_record(store: &SemanticStore, build: &StoredSemanticBuild) -> SemanticB
         started_at: Some(build.created_at.clone()),
         finished_at: Some(build.created_at.clone()),
         manifest: Some(store.manifest_for(build)),
+        refresh_stats: build.refresh_stats.clone(),
+        refresh_mode: Some(build.refresh_mode.clone()),
+        fallback_reason: build.fallback_reason.clone(),
         diagnostics: build.diagnostics.clone(),
         loaded_from_existing_build: true,
     }
@@ -351,6 +390,65 @@ fn load_symbol_state(
 {
     let store = SymbolStore::open(symbol_store_root, repo_id)?;
     store.load_indexed_snapshot_state(snapshot_id)
+}
+
+fn load_symbol_index_materialization(
+    symbol_store_root: &Path,
+    repo_id: &str,
+    snapshot: &ComposedSnapshot,
+) -> hyperindex_symbol_store::SymbolStoreResult<
+    Option<(
+        FactsBatch,
+        SymbolGraph,
+        hyperindex_protocol::symbols::SymbolIndexBuildId,
+    )>,
+> {
+    let Some(state) = load_symbol_state(symbol_store_root, repo_id, &snapshot.snapshot_id)? else {
+        return Ok(None);
+    };
+    let store = SymbolStore::open(symbol_store_root, repo_id)?;
+    let extracted = store.load_snapshot_facts(&snapshot.snapshot_id)?;
+    let facts = FactsBatch {
+        files: extracted.files,
+    };
+    let graph = SymbolGraphBuilder.build_with_snapshot(&facts, snapshot);
+    Ok(Some((
+        facts,
+        graph,
+        hyperindex_protocol::symbols::SymbolIndexBuildId(format!(
+            "symbol-index-scaffold-{}",
+            state.snapshot_id
+        )),
+    )))
+}
+
+fn load_previous_semantic_snapshot(
+    repo_store: &RepoStore,
+    semantic_store: &SemanticStore,
+    repo_id: &str,
+    current_snapshot_id: &str,
+) -> hyperindex_semantic_store::SemanticStoreResult<Option<ComposedSnapshot>> {
+    let summaries = repo_store.list_manifests(repo_id, 32).map_err(|error| {
+        hyperindex_semantic_store::SemanticStoreError::Compatibility(error.to_string())
+    })?;
+    for summary in summaries {
+        if summary.snapshot_id == current_snapshot_id {
+            continue;
+        }
+        if semantic_store.load_build(&summary.snapshot_id)?.is_none() {
+            continue;
+        }
+        let Some(snapshot) = repo_store
+            .load_manifest(&summary.snapshot_id)
+            .map_err(|error| {
+                hyperindex_semantic_store::SemanticStoreError::Compatibility(error.to_string())
+            })?
+        else {
+            continue;
+        };
+        return Ok(Some(snapshot));
+    }
+    Ok(None)
 }
 
 fn status_diagnostics(
@@ -410,6 +508,7 @@ mod tests {
         BaseSnapshot, BaseSnapshotKind, ComposedSnapshot, SnapshotFile, WorkingTreeOverlay,
     };
     use hyperindex_protocol::{PROTOCOL_VERSION, STORAGE_VERSION};
+    use hyperindex_repo_store::RepoStore;
     use hyperindex_semantic_store::SemanticStore;
 
     use super::{SemanticService, scan_semantic_runtime_status};
@@ -484,9 +583,12 @@ mod tests {
         let tempdir = tempdir().unwrap();
         let config = hyperindex_protocol::config::SemanticConfig::default();
         let snapshot = semantic_fixture_snapshot();
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        repo_store.persist_manifest(&snapshot).unwrap();
 
         service
             .build(
+                &repo_store,
                 tempdir.path(),
                 tempdir.path(),
                 &config,
@@ -525,9 +627,12 @@ mod tests {
         let tempdir = tempdir().unwrap();
         let config = hyperindex_protocol::config::SemanticConfig::default();
         let snapshot = semantic_fixture_snapshot();
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        repo_store.persist_manifest(&snapshot).unwrap();
 
         service
             .build(
+                &repo_store,
                 tempdir.path(),
                 tempdir.path(),
                 &config,
@@ -615,9 +720,12 @@ mod tests {
         let tempdir = tempdir().unwrap();
         let config = hyperindex_protocol::config::SemanticConfig::default();
         let snapshot = semantic_fixture_snapshot();
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        repo_store.persist_manifest(&snapshot).unwrap();
 
         service
             .build(
+                &repo_store,
                 tempdir.path(),
                 tempdir.path(),
                 &config,

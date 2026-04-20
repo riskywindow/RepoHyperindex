@@ -4,6 +4,7 @@ pub mod common;
 pub mod daemon_integration;
 pub mod embedding_pipeline;
 pub mod embedding_provider;
+pub mod incremental;
 pub mod semantic_model;
 pub mod semantic_query;
 pub mod semantic_rerank;
@@ -19,6 +20,10 @@ pub use embedding_pipeline::{
 pub use embedding_provider::{
     DeterministicFixtureEmbeddingProvider, EmbeddingProvider, EmbeddingProviderIdentity,
     ExternalProcessEmbeddingProvider, provider_from_config,
+};
+pub use incremental::{
+    IncrementalSemanticIndexer, SemanticRebuildFallbackReason, SemanticRefreshMode,
+    SemanticRefreshResult, SemanticRefreshTrigger,
 };
 pub use semantic_model::{SemanticBuildDraft, SemanticScaffoldBuilder};
 pub use semantic_query::{SemanticSearchEngine, SemanticSearchScaffold};

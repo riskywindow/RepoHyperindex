@@ -10,7 +10,9 @@ use hyperindex_protocol::semantic::{
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use hyperindex_protocol::symbols::{SourceSpan, SymbolKind, SymbolRecord};
 use hyperindex_snapshot::SnapshotAssembler;
-use hyperindex_symbols::{ExtractedFileFacts, SymbolGraph, SymbolVisibility, SymbolWorkspace};
+use hyperindex_symbols::{
+    ExtractedFileFacts, FactsBatch, SymbolGraph, SymbolVisibility, SymbolWorkspace,
+};
 use tracing::info;
 
 use crate::SemanticResult;
@@ -53,18 +55,36 @@ impl ScaffoldChunker {
     pub fn build(&self, snapshot: &ComposedSnapshot) -> SemanticResult<ChunkingPlan> {
         let mut workspace = SymbolWorkspace::default();
         let prepared = workspace.prepare_snapshot(snapshot)?;
+        self.build_from_index(snapshot, &prepared.facts, &prepared.graph)
+    }
+
+    pub fn build_from_index(
+        &self,
+        snapshot: &ComposedSnapshot,
+        facts: &FactsBatch,
+        graph: &SymbolGraph,
+    ) -> SemanticResult<ChunkingPlan> {
+        self.build_for_files(snapshot, &facts.files, graph)
+    }
+
+    pub fn build_for_files(
+        &self,
+        snapshot: &ComposedSnapshot,
+        files: &[ExtractedFileFacts],
+        graph: &SymbolGraph,
+    ) -> SemanticResult<ChunkingPlan> {
         let package_index = build_package_index(snapshot);
         let file_contents = build_resolved_file_contents(snapshot);
         let mut chunks = Vec::new();
         let mut fallback_file_count = 0usize;
 
-        for file in &prepared.facts.files {
+        for file in files {
             let package = package_metadata_for(&package_index, &file.facts.path);
             let contents = file_contents
                 .get(&file.facts.path)
                 .map(String::as_str)
                 .unwrap_or_default();
-            let symbols = major_symbols_for_file(file, &prepared.graph);
+            let symbols = major_symbols_for_file(file, graph);
             if symbols.is_empty() {
                 fallback_file_count += 1;
                 chunks.push(self.file_chunk(file, contents, &package));
@@ -72,34 +92,11 @@ impl ScaffoldChunker {
             }
 
             for symbol in symbols {
-                chunks.push(self.symbol_chunk(file, contents, &prepared.graph, symbol, &package));
+                chunks.push(self.symbol_chunk(file, contents, graph, symbol, &package));
             }
         }
 
-        let diagnostics = if chunks.is_empty() {
-            vec![SemanticDiagnostic {
-                severity: SemanticDiagnosticSeverity::Info,
-                code: "semantic_chunks_empty".to_string(),
-                message: "no semantic chunks were materialized for the snapshot".to_string(),
-            }]
-        } else {
-            let mut diagnostics = vec![SemanticDiagnostic {
-                severity: SemanticDiagnosticSeverity::Info,
-                code: "semantic_chunks_materialized".to_string(),
-                message: format!("materialized {} semantic chunks", chunks.len()),
-            }];
-            if fallback_file_count > 0 {
-                diagnostics.push(SemanticDiagnostic {
-                    severity: SemanticDiagnosticSeverity::Info,
-                    code: "semantic_file_fallbacks_used".to_string(),
-                    message: format!(
-                        "used file-level fallback chunking for {} files without major symbols",
-                        fallback_file_count
-                    ),
-                });
-            }
-            diagnostics
-        };
+        let diagnostics = self.diagnostics_for_fallback_count(chunks.len(), fallback_file_count);
 
         info!(
             snapshot_id = %snapshot.snapshot_id,
@@ -114,6 +111,51 @@ impl ScaffoldChunker {
             chunks,
             diagnostics,
         })
+    }
+
+    pub fn diagnostics_for_index(
+        &self,
+        facts: &FactsBatch,
+        graph: &SymbolGraph,
+        chunk_count: usize,
+    ) -> Vec<SemanticDiagnostic> {
+        let fallback_file_count = facts
+            .files
+            .iter()
+            .filter(|file| major_symbols_for_file(file, graph).is_empty())
+            .count();
+        self.diagnostics_for_fallback_count(chunk_count, fallback_file_count)
+    }
+
+    fn diagnostics_for_fallback_count(
+        &self,
+        chunk_count: usize,
+        fallback_file_count: usize,
+    ) -> Vec<SemanticDiagnostic> {
+        if chunk_count == 0 {
+            return vec![SemanticDiagnostic {
+                severity: SemanticDiagnosticSeverity::Info,
+                code: "semantic_chunks_empty".to_string(),
+                message: "no semantic chunks were materialized for the snapshot".to_string(),
+            }];
+        }
+
+        let mut diagnostics = vec![SemanticDiagnostic {
+            severity: SemanticDiagnosticSeverity::Info,
+            code: "semantic_chunks_materialized".to_string(),
+            message: format!("materialized {} semantic chunks", chunk_count),
+        }];
+        if fallback_file_count > 0 {
+            diagnostics.push(SemanticDiagnostic {
+                severity: SemanticDiagnosticSeverity::Info,
+                code: "semantic_file_fallbacks_used".to_string(),
+                message: format!(
+                    "used file-level fallback chunking for {} files without major symbols",
+                    fallback_file_count
+                ),
+            });
+        }
+        diagnostics
     }
 
     fn symbol_chunk(

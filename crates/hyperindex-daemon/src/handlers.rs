@@ -555,6 +555,7 @@ impl HandlerRegistry {
         params: &hyperindex_protocol::semantic::SemanticBuildParams,
     ) -> Result<SemanticBuildResponse, ProtocolError> {
         let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
+        let repo_store = self.open_store()?;
         let semantic_store_root = &self.state_manager.loaded_config().config.semantic.store_dir;
         let symbol_store_root = &self
             .state_manager
@@ -563,6 +564,7 @@ impl HandlerRegistry {
             .symbol_index
             .store_dir;
         SemanticService.build(
+            &repo_store,
             semantic_store_root,
             symbol_store_root,
             &self.state_manager.loaded_config().config.semantic,

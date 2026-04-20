@@ -1,5 +1,30 @@
 # Repo Hyperindex Phase 1 Decisions
 
+## 2026-04-19 - Allow incremental semantic refresh over snapshot diffs without changing Phase 1 artifacts
+
+### Decision
+
+Permit the explicit user-requested Phase 6 incremental semantic refresh work in the runtime
+crates as long as it remains additive to the checked-in Phase 1 harness contract.
+
+### Why
+
+- The semantic runtime already had real chunking, embedding, vector retrieval, and reranking
+  paths, so the next requested correctness slice was changed-file refresh rather than a new public
+  benchmark artifact shape.
+- Phase 2 snapshot diffs and Phase 4 persisted symbol facts already provide the right seams for a
+  debuggable incremental implementation without inventing semantic-only watcher machinery.
+- The benchmark harness still lacks the real `daemon-semantic` adapter, so the runtime can grow
+  refresh metadata and reuse behavior first while `bench/` stays stable.
+
+### Consequence
+
+- Phase 6 semantic builds may now reuse unchanged chunk/vector state, rebuild only touched files,
+  and expose refresh stats plus fallback reasons under `crates/` and `docs/phase6/` while `bench/`
+  schemas and Phase 1 run artifacts remain unchanged.
+- Full rebuild remains the compatibility fallback whenever the prior semantic state is stale,
+  incompatible, or corrupted.
+
 ## 2026-04-19 - Allow additive semantic hybrid reranking and explanation fields without changing Phase 1 artifacts
 
 ### Decision

@@ -1,15 +1,17 @@
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::time::Instant;
 
 use hyperindex_protocol::config::SemanticConfig;
 use hyperindex_protocol::semantic::{
     SemanticBuildId, SemanticChunkRecord, SemanticDiagnostic, SemanticDiagnosticSeverity,
     SemanticEmbeddingCacheManifest, SemanticEmbeddingProviderConfig, SemanticIndexManifest,
-    SemanticIndexStorage, SemanticStorageFormat,
+    SemanticIndexStorage, SemanticRefreshStats, SemanticStorageFormat,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use hyperindex_protocol::symbols::SymbolIndexBuildId;
 use hyperindex_semantic_store::{EmbeddingCacheStore, StoredChunkVector};
+use hyperindex_symbols::{FactsBatch, SymbolGraph};
 use tracing::info;
 
 use crate::EmbeddingPipeline;
@@ -33,6 +35,8 @@ pub struct SemanticBuildDraft {
     pub symbol_index_build_id: Option<SymbolIndexBuildId>,
     pub created_at: String,
     pub refresh_mode: String,
+    pub fallback_reason: Option<String>,
+    pub refresh_stats: Option<SemanticRefreshStats>,
     pub chunk_count: usize,
     pub indexed_file_count: usize,
     pub embedding_count: usize,
@@ -106,7 +110,93 @@ impl SemanticScaffoldBuilder {
         symbol_index_build_id: Option<SymbolIndexBuildId>,
         embedding_cache: &C,
     ) -> SemanticResult<SemanticBuildDraft> {
+        let started = Instant::now();
         let chunking = self.chunker.build(snapshot)?;
+        let files_touched = chunking
+            .chunks
+            .iter()
+            .map(|chunk| chunk.metadata.path.clone())
+            .collect::<BTreeSet<_>>()
+            .len() as u64;
+        let chunks_rebuilt = chunking.chunks.len() as u64;
+        self.finish_build(
+            snapshot,
+            symbol_index_build_id,
+            embedding_cache,
+            chunking,
+            "full_rebuild".to_string(),
+            None,
+            SemanticRefreshStats {
+                files_touched,
+                chunks_rebuilt,
+                embeddings_regenerated: 0,
+                vector_entries_added: chunks_rebuilt,
+                vector_entries_updated: 0,
+                vector_entries_removed: 0,
+                elapsed_ms: started.elapsed().as_millis() as u64,
+            },
+        )
+    }
+
+    pub fn build_from_symbol_index<C: EmbeddingCacheStore>(
+        &self,
+        snapshot: &ComposedSnapshot,
+        facts: &FactsBatch,
+        graph: &SymbolGraph,
+        symbol_index_build_id: Option<SymbolIndexBuildId>,
+        embedding_cache: &C,
+    ) -> SemanticResult<SemanticBuildDraft> {
+        let started = Instant::now();
+        let chunking = self.chunker.build_from_index(snapshot, facts, graph)?;
+        let chunks_rebuilt = chunking.chunks.len() as u64;
+        self.finish_build(
+            snapshot,
+            symbol_index_build_id,
+            embedding_cache,
+            chunking,
+            "full_rebuild".to_string(),
+            None,
+            SemanticRefreshStats {
+                files_touched: facts.files.len() as u64,
+                chunks_rebuilt,
+                embeddings_regenerated: 0,
+                vector_entries_added: chunks_rebuilt,
+                vector_entries_updated: 0,
+                vector_entries_removed: 0,
+                elapsed_ms: started.elapsed().as_millis() as u64,
+            },
+        )
+    }
+
+    pub(crate) fn build_for_files(
+        &self,
+        snapshot: &ComposedSnapshot,
+        files: &[hyperindex_symbols::ExtractedFileFacts],
+        graph: &SymbolGraph,
+    ) -> SemanticResult<crate::ChunkingPlan> {
+        self.chunker.build_for_files(snapshot, files, graph)
+    }
+
+    pub(crate) fn diagnostics_for_index(
+        &self,
+        facts: &FactsBatch,
+        graph: &SymbolGraph,
+        chunk_count: usize,
+    ) -> Vec<SemanticDiagnostic> {
+        self.chunker
+            .diagnostics_for_index(facts, graph, chunk_count)
+    }
+
+    pub(crate) fn finish_build<C: EmbeddingCacheStore>(
+        &self,
+        snapshot: &ComposedSnapshot,
+        symbol_index_build_id: Option<SymbolIndexBuildId>,
+        embedding_cache: &C,
+        chunking: crate::ChunkingPlan,
+        refresh_mode: String,
+        fallback_reason: Option<String>,
+        mut refresh_stats: SemanticRefreshStats,
+    ) -> SemanticResult<SemanticBuildDraft> {
         let provider = provider_from_config(&self.config)?;
         let embedded = EmbeddingPipeline::new(provider.as_ref())
             .embed_chunk_documents(embedding_cache, &chunking.chunks)?;
@@ -142,6 +232,7 @@ impl SemanticScaffoldBuilder {
             .map(|chunk| chunk.metadata.path.clone())
             .collect::<BTreeSet<_>>()
             .len();
+        refresh_stats.embeddings_regenerated = embedded.stats.cache_writes as u64;
         info!(
             repo_id = %snapshot.repo_id,
             snapshot_id = %snapshot.snapshot_id,
@@ -159,7 +250,9 @@ impl SemanticScaffoldBuilder {
             chunk_schema_version: self.config.chunk_schema_version,
             symbol_index_build_id,
             created_at: unix_timestamp_string(),
-            refresh_mode: "full_rebuild".to_string(),
+            refresh_mode,
+            fallback_reason,
+            refresh_stats: Some(refresh_stats),
             chunk_count: embedded.chunks.len(),
             indexed_file_count,
             embedding_count: embedded.chunks.len(),

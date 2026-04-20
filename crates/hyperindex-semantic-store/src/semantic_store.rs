@@ -5,7 +5,7 @@ use hyperindex_protocol::semantic::{
     EmbeddingCacheKey, SemanticBuildId, SemanticChunkId, SemanticChunkRecord,
     SemanticChunkTextConfig, SemanticDiagnostic, SemanticEmbeddingCacheManifest,
     SemanticEmbeddingInputKind, SemanticEmbeddingProviderConfig, SemanticEmbeddingProviderKind,
-    SemanticIndexManifest, SemanticIndexStorage, SemanticStorageFormat,
+    SemanticIndexManifest, SemanticIndexStorage, SemanticRefreshStats, SemanticStorageFormat,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use tracing::info;
@@ -40,6 +40,10 @@ pub struct StoredSemanticBuild {
     pub embedding_cache_writes: usize,
     #[serde(default)]
     pub embedding_provider_batches: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refresh_stats: Option<SemanticRefreshStats>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback_reason: Option<String>,
     pub diagnostics: Vec<SemanticDiagnostic>,
 }
 
@@ -995,6 +999,8 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 0,
             embedding_provider_batches: 0,
+            refresh_stats: None,
+            fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
         };
         store.persist_build(&build).unwrap();
@@ -1039,6 +1045,8 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 0,
             embedding_provider_batches: 0,
+            refresh_stats: None,
+            fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
         };
         let chunk = SemanticChunkRecord {
@@ -1129,6 +1137,8 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 1,
             embedding_provider_batches: 1,
+            refresh_stats: None,
+            fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
         };
         let chunk = SemanticChunkRecord {
@@ -1238,6 +1248,8 @@ mod tests {
             embedding_cache_misses: 0,
             embedding_cache_writes: 1,
             embedding_provider_batches: 1,
+            refresh_stats: None,
+            fallback_reason: None,
             diagnostics: Vec::<SemanticDiagnostic>::new(),
         };
         store

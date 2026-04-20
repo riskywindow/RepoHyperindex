@@ -109,6 +109,8 @@ pub fn rebuild(
         embedding_cache_misses: draft.embedding_stats.cache_misses,
         embedding_cache_writes: draft.embedding_stats.cache_writes,
         embedding_provider_batches: draft.embedding_stats.provider_batches,
+        refresh_stats: draft.refresh_stats.clone(),
+        fallback_reason: draft.fallback_reason.clone(),
         diagnostics: draft.diagnostics.clone(),
     };
     store
@@ -119,11 +121,48 @@ pub fn rebuild(
         snapshot_id: snapshot_id.to_string(),
         store_path: store.store_path.display().to_string(),
         semantic_build_id: build.semantic_build_id.0.clone(),
+        refresh_mode: build.refresh_mode.clone(),
+        fallback_reason: build.fallback_reason.clone(),
         chunk_count: build.chunk_count,
         embedding_count: build.embedding_count,
         cache_hits: build.embedding_cache_hits,
         cache_misses: build.embedding_cache_misses,
         cache_writes: build.embedding_cache_writes,
+        files_touched: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.files_touched)
+            .unwrap_or(0),
+        chunks_rebuilt: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.chunks_rebuilt)
+            .unwrap_or(0),
+        embeddings_regenerated: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.embeddings_regenerated)
+            .unwrap_or(0),
+        vector_entries_added: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.vector_entries_added)
+            .unwrap_or(0),
+        vector_entries_updated: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.vector_entries_updated)
+            .unwrap_or(0),
+        vector_entries_removed: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.vector_entries_removed)
+            .unwrap_or(0),
+        elapsed_ms: build
+            .refresh_stats
+            .as_ref()
+            .map(|stats| stats.elapsed_ms)
+            .unwrap_or(0),
         diagnostics: build
             .diagnostics
             .iter()
@@ -137,11 +176,26 @@ pub fn rebuild(
             format!("repo_id: {}", report.repo_id),
             format!("store_path: {}", report.store_path),
             format!("semantic_build_id: {}", report.semantic_build_id),
+            format!("refresh_mode: {}", report.refresh_mode),
+            format!(
+                "fallback_reason: {}",
+                report
+                    .fallback_reason
+                    .clone()
+                    .unwrap_or_else(|| "-".to_string())
+            ),
             format!("chunk_count: {}", report.chunk_count),
             format!("embedding_count: {}", report.embedding_count),
             format!("cache_hits: {}", report.cache_hits),
             format!("cache_misses: {}", report.cache_misses),
             format!("cache_writes: {}", report.cache_writes),
+            format!("files_touched: {}", report.files_touched),
+            format!("chunks_rebuilt: {}", report.chunks_rebuilt),
+            format!("embeddings_regenerated: {}", report.embeddings_regenerated),
+            format!("vector_entries_added: {}", report.vector_entries_added),
+            format!("vector_entries_updated: {}", report.vector_entries_updated),
+            format!("vector_entries_removed: {}", report.vector_entries_removed),
+            format!("elapsed_ms: {}", report.elapsed_ms),
             format!(
                 "diagnostics: {}",
                 if report.diagnostics.is_empty() {
@@ -269,6 +323,68 @@ pub fn stats(
             .as_ref()
             .map(|build| build.embedding_cache_writes)
             .unwrap_or(0),
+        refresh_mode: build.as_ref().map(|build| build.refresh_mode.clone()),
+        fallback_reason: build
+            .as_ref()
+            .and_then(|build| build.fallback_reason.clone()),
+        files_touched: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.files_touched)
+            })
+            .unwrap_or(0),
+        chunks_rebuilt: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.chunks_rebuilt)
+            })
+            .unwrap_or(0),
+        embeddings_regenerated: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.embeddings_regenerated)
+            })
+            .unwrap_or(0),
+        vector_entries_added: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.vector_entries_added)
+            })
+            .unwrap_or(0),
+        vector_entries_updated: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.vector_entries_updated)
+            })
+            .unwrap_or(0),
+        vector_entries_removed: build
+            .as_ref()
+            .and_then(|build| {
+                build
+                    .refresh_stats
+                    .as_ref()
+                    .map(|stats| stats.vector_entries_removed)
+            })
+            .unwrap_or(0),
+        elapsed_ms: build
+            .as_ref()
+            .and_then(|build| build.refresh_stats.as_ref().map(|stats| stats.elapsed_ms))
+            .unwrap_or(0),
         vector_index_present: index_metadata.is_some(),
         vector_index_schema_version: index_metadata
             .as_ref()
@@ -302,6 +418,27 @@ pub fn stats(
             format!("cache_hits: {}", report.cache_hits),
             format!("cache_misses: {}", report.cache_misses),
             format!("cache_writes: {}", report.cache_writes),
+            format!(
+                "refresh_mode: {}",
+                report
+                    .refresh_mode
+                    .clone()
+                    .unwrap_or_else(|| "-".to_string())
+            ),
+            format!(
+                "fallback_reason: {}",
+                report
+                    .fallback_reason
+                    .clone()
+                    .unwrap_or_else(|| "-".to_string())
+            ),
+            format!("files_touched: {}", report.files_touched),
+            format!("chunks_rebuilt: {}", report.chunks_rebuilt),
+            format!("embeddings_regenerated: {}", report.embeddings_regenerated),
+            format!("vector_entries_added: {}", report.vector_entries_added),
+            format!("vector_entries_updated: {}", report.vector_entries_updated),
+            format!("vector_entries_removed: {}", report.vector_entries_removed),
+            format!("elapsed_ms: {}", report.elapsed_ms),
             format!("vector_index_present: {}", report.vector_index_present),
             format!(
                 "vector_index_schema_version: {}",
@@ -331,11 +468,20 @@ struct LocalSemanticRebuildReport {
     snapshot_id: String,
     store_path: String,
     semantic_build_id: String,
+    refresh_mode: String,
+    fallback_reason: Option<String>,
     chunk_count: usize,
     embedding_count: usize,
     cache_hits: usize,
     cache_misses: usize,
     cache_writes: usize,
+    files_touched: u64,
+    chunks_rebuilt: u64,
+    embeddings_regenerated: u64,
+    vector_entries_added: u64,
+    vector_entries_updated: u64,
+    vector_entries_removed: u64,
+    elapsed_ms: u64,
     diagnostics: Vec<String>,
 }
 
@@ -354,6 +500,15 @@ struct LocalSemanticStatsReport {
     cache_hits: usize,
     cache_misses: usize,
     cache_writes: usize,
+    refresh_mode: Option<String>,
+    fallback_reason: Option<String>,
+    files_touched: u64,
+    chunks_rebuilt: u64,
+    embeddings_regenerated: u64,
+    vector_entries_added: u64,
+    vector_entries_updated: u64,
+    vector_entries_removed: u64,
+    elapsed_ms: u64,
     vector_index_present: bool,
     vector_index_schema_version: Option<u32>,
     vector_dimensions: Option<u32>,
