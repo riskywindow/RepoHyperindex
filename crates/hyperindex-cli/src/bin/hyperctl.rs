@@ -327,7 +327,8 @@ enum SemanticSubcommand {
         #[arg(long)]
         json: bool,
     },
-    Search {
+    #[command(alias = "search")]
+    Query {
         #[arg(long)]
         repo_id: String,
 
@@ -349,7 +350,19 @@ enum SemanticSubcommand {
         #[arg(long)]
         json: bool,
     },
-    #[command(alias = "build")]
+    Build {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        force: bool,
+
+        #[arg(long)]
+        json: bool,
+    },
     Rebuild {
         #[arg(long)]
         repo_id: String,
@@ -710,7 +723,8 @@ impl Cli {
             },
             Commands::Semantic(command) => match &command.command {
                 SemanticSubcommand::Status { json, .. } => *json,
-                SemanticSubcommand::Search { json, .. } => *json,
+                SemanticSubcommand::Query { json, .. } => *json,
+                SemanticSubcommand::Build { json, .. } => *json,
                 SemanticSubcommand::Rebuild { json, .. } => *json,
                 SemanticSubcommand::InspectChunk { json, .. } => *json,
                 SemanticSubcommand::InspectIndex { json, .. } => *json,
@@ -955,7 +969,7 @@ fn dispatch(cli: Cli) -> Result<String> {
                 json,
             } => commands::semantic::status(config_path.as_deref(), &repo_id, &snapshot_id, json)
                 .map_err(|error| anyhow!(error.to_string()))?,
-            SemanticSubcommand::Search {
+            SemanticSubcommand::Query {
                 repo_id,
                 snapshot_id,
                 query,
@@ -963,7 +977,7 @@ fn dispatch(cli: Cli) -> Result<String> {
                 path_globs,
                 rerank_mode,
                 json,
-            } => commands::semantic::search(
+            } => commands::semantic::query(
                 config_path.as_deref(),
                 &repo_id,
                 &snapshot_id,
@@ -974,12 +988,31 @@ fn dispatch(cli: Cli) -> Result<String> {
                 json,
             )
             .map_err(|error| anyhow!(error.to_string()))?,
+            SemanticSubcommand::Build {
+                repo_id,
+                snapshot_id,
+                force,
+                json,
+            } => commands::semantic::build(
+                config_path.as_deref(),
+                &repo_id,
+                &snapshot_id,
+                force,
+                json,
+            )
+            .map_err(|error| anyhow!(error.to_string()))?,
             SemanticSubcommand::Rebuild {
                 repo_id,
                 snapshot_id,
                 json,
-            } => commands::semantic::rebuild(config_path.as_deref(), &repo_id, &snapshot_id, json)
-                .map_err(|error| anyhow!(error.to_string()))?,
+            } => commands::semantic::build(
+                config_path.as_deref(),
+                &repo_id,
+                &snapshot_id,
+                true,
+                json,
+            )
+            .map_err(|error| anyhow!(error.to_string()))?,
             SemanticSubcommand::InspectChunk {
                 repo_id,
                 snapshot_id,

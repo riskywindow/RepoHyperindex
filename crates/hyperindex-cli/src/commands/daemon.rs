@@ -342,6 +342,14 @@ fn render_lifecycle_result(
                 .unwrap_or_else(|| "-".to_string())
         ),
         format!(
+            "semantic_stale_build_count: {}",
+            status
+                .semantic
+                .as_ref()
+                .map(|semantic| semantic.stale_build_count.to_string())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
             "log_path: {}",
             log_path
                 .as_ref()
@@ -441,6 +449,14 @@ fn render_status_report(
                 .semantic
                 .as_ref()
                 .map(|semantic| semantic.ready_build_count.to_string())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "semantic_stale_build_count: {}",
+            status
+                .semantic
+                .as_ref()
+                .map(|semantic| semantic.stale_build_count.to_string())
                 .unwrap_or_else(|| "-".to_string())
         ),
         format!("connected_clients: {}", status.transport.connected_clients),

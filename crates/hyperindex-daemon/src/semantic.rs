@@ -99,7 +99,7 @@ impl SemanticService {
             state,
             build
                 .as_ref()
-                .map(|build| build_record(&store, build))
+                .map(|build| build_record(&store, build, true))
                 .into_iter()
                 .collect(),
             diagnostics,
@@ -118,6 +118,17 @@ impl SemanticService {
         ensure_semantic_enabled(semantic_config, &params.repo_id, &params.snapshot_id)?;
         let store = SemanticStore::open_in_store_dir(semantic_store_root, &params.repo_id)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
+        if !params.force {
+            if let Some(existing_build) =
+                load_compatible_existing_build(&store, semantic_config, &params.snapshot_id)?
+            {
+                return Ok(SemanticBuildResponse {
+                    repo_id: params.repo_id.clone(),
+                    snapshot_id: params.snapshot_id.clone(),
+                    build: build_record(&store, &existing_build, true),
+                });
+            }
+        }
         let maybe_symbol_index =
             load_symbol_index_materialization(symbol_store_root, &params.repo_id, snapshot)
                 .map_err(|error| ProtocolError::storage(error.to_string()))?;
@@ -186,12 +197,10 @@ impl SemanticService {
         store
             .persist_build_with_chunks_and_vectors(&build, &draft.chunks, &draft.chunk_vectors)
             .map_err(|error| ProtocolError::storage(error.to_string()))?;
-        let mut record = build_record(&store, &build);
-        record.loaded_from_existing_build = false;
         Ok(SemanticBuildResponse {
             repo_id: params.repo_id.clone(),
             snapshot_id: params.snapshot_id.clone(),
-            build: record,
+            build: build_record(&store, &build, false),
         })
     }
 
@@ -316,8 +325,11 @@ pub fn scan_semantic_runtime_status(
         });
     }
 
+    let builder = SemanticScaffoldBuilder::from_config(config);
     let mut repo_count = 0usize;
     let mut materialized_snapshot_count = 0usize;
+    let mut ready_build_count = 0usize;
+    let mut stale_build_count = 0usize;
     let entries = fs::read_dir(&config.store_dir)
         .map_err(|error| hyperindex_core::HyperindexError::Message(error.to_string()))?;
     for entry in entries {
@@ -336,11 +348,34 @@ pub fn scan_semantic_runtime_status(
         }
         let store = SemanticStore::open_at_path(store_path)
             .map_err(|error| hyperindex_core::HyperindexError::Message(error.to_string()))?;
-        let status = store
-            .status()
-            .map_err(|error| hyperindex_core::HyperindexError::Message(error.to_string()))?;
         repo_count += 1;
-        materialized_snapshot_count += status.build_count;
+        match store.list_builds() {
+            Ok(builds) => {
+                materialized_snapshot_count += builds.len();
+                for build in builds {
+                    let metadata = store
+                        .load_vector_index_metadata(&build.snapshot_id)
+                        .map_err(|error| {
+                            hyperindex_core::HyperindexError::Message(error.to_string())
+                        })?;
+                    let ready = build.schema_version == store.schema_version
+                        && build.chunk_schema_version == config.chunk_schema_version
+                        && build.embedding_provider == config.embedding_provider
+                        && build.chunk_text == config.chunk_text
+                        && build.semantic_config_digest == builder.config_digest()
+                        && metadata
+                            .as_ref()
+                            .map(|metadata| metadata.semantic_build_id == build.semantic_build_id)
+                            .unwrap_or(false);
+                    if ready {
+                        ready_build_count += 1;
+                    } else {
+                        stale_build_count += 1;
+                    }
+                }
+            }
+            Err(_) => stale_build_count += 1,
+        }
     }
 
     Ok(SemanticRuntimeStatus {
@@ -350,12 +385,16 @@ pub fn scan_semantic_runtime_status(
         chunk_schema_version: config.chunk_schema_version,
         repo_count,
         materialized_snapshot_count,
-        ready_build_count: materialized_snapshot_count,
-        stale_build_count: 0,
+        ready_build_count,
+        stale_build_count,
     })
 }
 
-fn build_record(store: &SemanticStore, build: &StoredSemanticBuild) -> SemanticBuildRecord {
+fn build_record(
+    store: &SemanticStore,
+    build: &StoredSemanticBuild,
+    loaded_from_existing_build: bool,
+) -> SemanticBuildRecord {
     SemanticBuildRecord {
         build_id: build.semantic_build_id.clone(),
         state: SemanticBuildState::Succeeded,
@@ -367,7 +406,7 @@ fn build_record(store: &SemanticStore, build: &StoredSemanticBuild) -> SemanticB
         refresh_mode: Some(build.refresh_mode.clone()),
         fallback_reason: build.fallback_reason.clone(),
         diagnostics: build.diagnostics.clone(),
-        loaded_from_existing_build: true,
+        loaded_from_existing_build,
     }
 }
 
@@ -449,6 +488,41 @@ fn load_previous_semantic_snapshot(
         return Ok(Some(snapshot));
     }
     Ok(None)
+}
+
+fn load_compatible_existing_build(
+    store: &SemanticStore,
+    semantic_config: &SemanticConfig,
+    snapshot_id: &str,
+) -> Result<Option<StoredSemanticBuild>, ProtocolError> {
+    let Some(build) = store
+        .load_build(snapshot_id)
+        .map_err(|error| ProtocolError::storage(error.to_string()))?
+    else {
+        return Ok(None);
+    };
+    let builder = SemanticScaffoldBuilder::from_config(semantic_config);
+    if build.schema_version != store.schema_version
+        || build.chunk_schema_version != semantic_config.chunk_schema_version
+        || build.embedding_provider != semantic_config.embedding_provider
+        || build.chunk_text != semantic_config.chunk_text
+        || build.semantic_config_digest != builder.config_digest()
+    {
+        return Ok(None);
+    }
+    let Some(index_metadata) = store
+        .load_vector_index_metadata(snapshot_id)
+        .map_err(|error| ProtocolError::storage(error.to_string()))?
+    else {
+        return Ok(None);
+    };
+    if index_metadata.semantic_build_id != build.semantic_build_id {
+        return Ok(None);
+    }
+    if store.load_vector_index(snapshot_id, &build).is_err() {
+        return Ok(None);
+    }
+    Ok(Some(build))
 }
 
 fn status_diagnostics(
@@ -622,6 +696,49 @@ mod tests {
     }
 
     #[test]
+    fn build_reuses_compatible_existing_snapshot_materialization() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let config = hyperindex_protocol::config::SemanticConfig::default();
+        let snapshot = semantic_fixture_snapshot();
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        repo_store.persist_manifest(&snapshot).unwrap();
+
+        let first = service
+            .build(
+                &repo_store,
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &snapshot,
+                &SemanticBuildParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    force: false,
+                },
+            )
+            .unwrap();
+        let second = service
+            .build(
+                &repo_store,
+                tempdir.path(),
+                tempdir.path(),
+                &config,
+                &snapshot,
+                &SemanticBuildParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    force: false,
+                },
+            )
+            .unwrap();
+
+        assert!(!first.build.loaded_from_existing_build);
+        assert!(second.build.loaded_from_existing_build);
+        assert_eq!(first.build.build_id, second.build.build_id);
+    }
+
+    #[test]
     fn query_returns_filtered_hits_with_stable_ordering() {
         let service = SemanticService;
         let tempdir = tempdir().unwrap();
@@ -766,6 +883,52 @@ mod tests {
             .unwrap_err();
 
         assert!(error.message.contains("vector index dimensions mismatch"));
+    }
+
+    #[test]
+    fn runtime_status_counts_stale_builds_when_vector_metadata_is_missing() {
+        let service = SemanticService;
+        let tempdir = tempdir().unwrap();
+        let mut config = hyperindex_protocol::config::RuntimeConfig::default();
+        config.directories.runtime_root = tempdir.path().join(".hyperindex");
+        config.semantic.store_dir = config.directories.runtime_root.join("data/semantic");
+        let loaded = LoadedConfig {
+            config_path: tempdir.path().join("config.toml"),
+            config: config.clone(),
+        };
+        let repo_store = RepoStore::open_in_memory().unwrap();
+        let snapshot = semantic_fixture_snapshot();
+        repo_store.persist_manifest(&snapshot).unwrap();
+
+        service
+            .build(
+                &repo_store,
+                &config.semantic.store_dir,
+                tempdir.path(),
+                &config.semantic,
+                &snapshot,
+                &SemanticBuildParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    force: false,
+                },
+            )
+            .unwrap();
+
+        let store = SemanticStore::open_in_store_dir(&config.semantic.store_dir, &snapshot.repo_id)
+            .unwrap();
+        let connection = rusqlite::Connection::open(&store.store_path).unwrap();
+        connection
+            .execute(
+                "DELETE FROM semantic_vector_index_metadata WHERE snapshot_id = ?1",
+                rusqlite::params![snapshot.snapshot_id.as_str()],
+            )
+            .unwrap();
+
+        let status = scan_semantic_runtime_status(&loaded).unwrap();
+        assert_eq!(status.materialized_snapshot_count, 1);
+        assert_eq!(status.ready_build_count, 0);
+        assert_eq!(status.stale_build_count, 1);
     }
 
     fn semantic_fixture_snapshot() -> ComposedSnapshot {

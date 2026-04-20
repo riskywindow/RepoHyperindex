@@ -1,5 +1,96 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-19 Phase 2 Semantic Daemon Integration Compatibility Note
+
+### What Was Completed
+
+- Integrated the existing semantic engine into the local daemon/runtime path without changing the
+  checked-in Phase 1 harness artifacts.
+- Added daemon-backed semantic operator flows for:
+  - `hyperctl semantic status`
+  - `hyperctl semantic build`
+  - `hyperctl semantic query`
+  - `hyperctl semantic inspect-chunk`
+- Kept `semantic rebuild` as a CLI/operator alias over the existing `semantic_build(force)` path
+  instead of widening the public daemon contract with a new rebuild method.
+- Made semantic warm behavior truthful:
+  - `semantic_build` now reuses a compatible persisted build for the same snapshot
+  - daemon status now reports semantic ready vs stale aggregate counts instead of treating every
+    materialized build as ready
+- Extended the real Phase 2 smoke flow to prove:
+  - daemon start
+  - repo register
+  - snapshot create
+  - symbol prerequisite build
+  - semantic readiness transition from `not_ready` to `ready`
+  - hero semantic query for `where do we invalidate sessions?`
+  - top-hit chunk inspection
+  - buffer-overlay edit on a relevant file
+  - incremental semantic rebuild and refreshed grounded semantic results
+- Added targeted automated Rust coverage for:
+  - semantic build reuse on the same snapshot
+  - semantic runtime stale-count reporting
+  - daemon north-star semantic refresh after a buffer overlay
+
+### Key Decisions
+
+- Treat this as additive runtime work outside the default Phase 1 scope because the user
+  explicitly requested daemon/runtime semantic integration.
+- Keep the public daemon API constrained to the existing semantic contract:
+  - `semantic_status`
+  - `semantic_build`
+  - `semantic_query`
+  - `semantic_inspect_chunk`
+- Keep `inspect-index` and `stats` as local operator/debug commands while making the main user path
+  daemon-backed and JSON-first.
+- Prove semantic refresh in the smoke script with both:
+  - the unfiltered north-star query for the user-visible top result
+  - an API-scoped query that shows the edited grounded chunk changed after the overlay
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-daemon semantic::tests:: -- --nocapture
+cargo test -p hyperindex-daemon daemon_semantic_north_star_query_refreshes_after_overlay -- --nocapture
+cargo test -p hyperindex-cli commands::semantic::tests:: -- --nocapture
+bash scripts/phase2-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-daemon semantic::tests:: -- --nocapture`
+  - passed with `8` semantic daemon tests green
+- `cargo test -p hyperindex-daemon daemon_semantic_north_star_query_refreshes_after_overlay -- --nocapture`
+  - passed with `1` daemon north-star semantic refresh test green
+- `cargo test -p hyperindex-cli commands::semantic::tests:: -- --nocapture`
+  - passed with `2` semantic CLI tests green
+- `bash scripts/phase2-smoke.sh`
+  - passed
+  - validated the real Unix-socket daemon path for semantic readiness, build/query/inspect
+    behavior, overlay-driven semantic refresh, and the existing impact flow in the same local-only
+    runtime
+
+### Remaining Risks / TODOs
+
+- Large pretty-printed semantic query payloads can still grow quickly when callers request many
+  hits plus full explanations; the checked-in smoke flow now scopes semantic JSON queries to the
+  top grounded results.
+- `repo status` still does not inline repo-scoped semantic readiness; operators still use
+  `hyperctl semantic status` and `daemon status` for that view.
+- The Phase 1 harness still does not have the real `daemon-semantic` adapter path.
+
+### Next Recommended Prompt
+
+- wire the real `daemon-semantic` adapter into `hyperbench` without changing the checked-in Phase
+  1 result schema
+- decide whether semantic query responses need an operator-controlled verbosity knob for large JSON
+  payloads
+- surface repo-scoped semantic readiness directly in `repo status` if operators want a single
+  summary view
+
 ## 2026-04-19 Phase 6 Incremental Semantic Refresh Compatibility Note
 
 ### What Was Completed

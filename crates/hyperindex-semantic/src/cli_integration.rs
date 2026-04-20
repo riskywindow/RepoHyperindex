@@ -47,7 +47,7 @@ pub fn render_search_response(
         return serde_json::to_string_pretty(response);
     }
     Ok([
-        format!("semantic search {}", response.snapshot_id),
+        format!("semantic query {}", response.snapshot_id),
         format!("repo_id: {}", response.repo_id),
         format!("query: {}", response.query.text),
         format!("hit_count: {}", response.hits.len()),

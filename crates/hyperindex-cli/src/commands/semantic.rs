@@ -4,16 +4,16 @@ use hyperindex_config::load_or_default;
 use hyperindex_core::{HyperindexError, HyperindexResult};
 use hyperindex_protocol::api::{RequestBody, SuccessPayload};
 use hyperindex_protocol::semantic::{
-    SemanticChunkRecord, SemanticQueryFilters, SemanticQueryParams, SemanticQueryText,
-    SemanticRerankMode, SemanticStatusParams,
+    SemanticBuildParams, SemanticBuildRecord, SemanticBuildResponse, SemanticBuildState,
+    SemanticChunkRecord, SemanticInspectChunkParams, SemanticInspectChunkResponse,
+    SemanticQueryFilters, SemanticQueryParams, SemanticQueryText, SemanticRerankMode,
+    SemanticStatusParams,
 };
 use hyperindex_repo_store::RepoStore;
-use hyperindex_semantic::SemanticScaffoldBuilder;
 use hyperindex_semantic::cli_integration::{
     render_local_report, render_search_response, render_status_response,
 };
-use hyperindex_semantic_store::{SemanticStore, StoredSemanticBuild, StoredVectorIndexMetadata};
-use hyperindex_symbol_store::SymbolStore;
+use hyperindex_semantic_store::{SemanticStore, StoredVectorIndexMetadata};
 use serde::Serialize;
 
 use crate::client::DaemonClient;
@@ -37,7 +37,7 @@ pub fn status(
     }
 }
 
-pub fn search(
+pub fn query(
     config_path: Option<&Path>,
     repo_id: &str,
     snapshot_id: &str,
@@ -68,146 +68,22 @@ pub fn search(
     }
 }
 
-pub fn rebuild(
+pub fn build(
     config_path: Option<&Path>,
     repo_id: &str,
     snapshot_id: &str,
+    force: bool,
     json_output: bool,
 ) -> HyperindexResult<String> {
-    let context = LocalSemanticContext::load(config_path, repo_id, snapshot_id)?;
-    let symbol_build_id = context
-        .symbol_store()?
-        .load_indexed_snapshot_state(snapshot_id)
-        .map_err(store_error)?
-        .map(|state| {
-            hyperindex_protocol::symbols::SymbolIndexBuildId(format!(
-                "symbol-index-scaffold-{}",
-                state.snapshot_id
-            ))
-        });
-    let builder = SemanticScaffoldBuilder::from_config(&context.loaded.config.semantic);
-    let store = context.semantic_store()?;
-    let draft = builder
-        .build(&context.snapshot, symbol_build_id, &store)
-        .map_err(store_error)?;
-    let build = StoredSemanticBuild {
-        repo_id: draft.repo_id.clone(),
-        snapshot_id: draft.snapshot_id.clone(),
-        semantic_build_id: draft.semantic_build_id.clone(),
-        semantic_config_digest: draft.semantic_config_digest.clone(),
-        schema_version: store.schema_version,
-        chunk_schema_version: draft.chunk_schema_version,
-        embedding_provider: draft.embedding_provider.clone(),
-        chunk_text: draft.chunk_text.clone(),
-        symbol_index_build_id: draft.symbol_index_build_id.clone(),
-        created_at: draft.created_at.clone(),
-        refresh_mode: draft.refresh_mode.clone(),
-        chunk_count: draft.chunk_count,
-        indexed_file_count: draft.indexed_file_count,
-        embedding_count: draft.embedding_count,
-        embedding_cache_hits: draft.embedding_stats.cache_hits,
-        embedding_cache_misses: draft.embedding_stats.cache_misses,
-        embedding_cache_writes: draft.embedding_stats.cache_writes,
-        embedding_provider_batches: draft.embedding_stats.provider_batches,
-        refresh_stats: draft.refresh_stats.clone(),
-        fallback_reason: draft.fallback_reason.clone(),
-        diagnostics: draft.diagnostics.clone(),
-    };
-    store
-        .persist_build_with_chunks_and_vectors(&build, &draft.chunks, &draft.chunk_vectors)
-        .map_err(store_error)?;
-    let report = LocalSemanticRebuildReport {
+    let client = DaemonClient::load(config_path)?;
+    match client.send(RequestBody::SemanticBuild(SemanticBuildParams {
         repo_id: repo_id.to_string(),
         snapshot_id: snapshot_id.to_string(),
-        store_path: store.store_path.display().to_string(),
-        semantic_build_id: build.semantic_build_id.0.clone(),
-        refresh_mode: build.refresh_mode.clone(),
-        fallback_reason: build.fallback_reason.clone(),
-        chunk_count: build.chunk_count,
-        embedding_count: build.embedding_count,
-        cache_hits: build.embedding_cache_hits,
-        cache_misses: build.embedding_cache_misses,
-        cache_writes: build.embedding_cache_writes,
-        files_touched: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.files_touched)
-            .unwrap_or(0),
-        chunks_rebuilt: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.chunks_rebuilt)
-            .unwrap_or(0),
-        embeddings_regenerated: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.embeddings_regenerated)
-            .unwrap_or(0),
-        vector_entries_added: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.vector_entries_added)
-            .unwrap_or(0),
-        vector_entries_updated: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.vector_entries_updated)
-            .unwrap_or(0),
-        vector_entries_removed: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.vector_entries_removed)
-            .unwrap_or(0),
-        elapsed_ms: build
-            .refresh_stats
-            .as_ref()
-            .map(|stats| stats.elapsed_ms)
-            .unwrap_or(0),
-        diagnostics: build
-            .diagnostics
-            .iter()
-            .map(|diagnostic| diagnostic.code.clone())
-            .collect(),
-    };
-    render_local_report(
-        &report,
-        &format!("semantic rebuild {snapshot_id}"),
-        &[
-            format!("repo_id: {}", report.repo_id),
-            format!("store_path: {}", report.store_path),
-            format!("semantic_build_id: {}", report.semantic_build_id),
-            format!("refresh_mode: {}", report.refresh_mode),
-            format!(
-                "fallback_reason: {}",
-                report
-                    .fallback_reason
-                    .clone()
-                    .unwrap_or_else(|| "-".to_string())
-            ),
-            format!("chunk_count: {}", report.chunk_count),
-            format!("embedding_count: {}", report.embedding_count),
-            format!("cache_hits: {}", report.cache_hits),
-            format!("cache_misses: {}", report.cache_misses),
-            format!("cache_writes: {}", report.cache_writes),
-            format!("files_touched: {}", report.files_touched),
-            format!("chunks_rebuilt: {}", report.chunks_rebuilt),
-            format!("embeddings_regenerated: {}", report.embeddings_regenerated),
-            format!("vector_entries_added: {}", report.vector_entries_added),
-            format!("vector_entries_updated: {}", report.vector_entries_updated),
-            format!("vector_entries_removed: {}", report.vector_entries_removed),
-            format!("elapsed_ms: {}", report.elapsed_ms),
-            format!(
-                "diagnostics: {}",
-                if report.diagnostics.is_empty() {
-                    "-".to_string()
-                } else {
-                    report.diagnostics.join(", ")
-                }
-            ),
-        ],
-        json_output,
-    )
-    .map_err(render_error)
+        force,
+    }))? {
+        SuccessPayload::SemanticBuild(response) => render_build_response(&response, json_output),
+        other => Err(unexpected_response("semantic_build", other)),
+    }
 }
 
 pub fn inspect_chunk(
@@ -217,33 +93,20 @@ pub fn inspect_chunk(
     chunk_id: &str,
     json_output: bool,
 ) -> HyperindexResult<String> {
-    let context = LocalSemanticContext::load(config_path, repo_id, snapshot_id)?;
-    let store = context.semantic_store()?;
-    let build = store
-        .load_build(snapshot_id)
-        .map_err(store_error)?
-        .ok_or_else(|| {
-            HyperindexError::Message(format!("semantic build for {snapshot_id} was not found"))
-        })?;
-    let chunk = store
-        .load_chunk(
-            snapshot_id,
-            &hyperindex_protocol::semantic::SemanticChunkId(chunk_id.to_string()),
-        )
-        .map_err(store_error)?
-        .ok_or_else(|| {
-            HyperindexError::Message(format!("semantic chunk {chunk_id} was not found"))
-        })?;
-    let report = LocalSemanticInspectReport {
-        repo_id: repo_id.to_string(),
-        snapshot_id: snapshot_id.to_string(),
-        semantic_build_id: build.semantic_build_id.0.clone(),
-        chunk,
-    };
-    if json_output {
-        return serde_json::to_string_pretty(&report).map_err(render_error);
+    let client = DaemonClient::load(config_path)?;
+    match client.send(RequestBody::SemanticInspectChunk(
+        SemanticInspectChunkParams {
+            repo_id: repo_id.to_string(),
+            snapshot_id: snapshot_id.to_string(),
+            chunk_id: hyperindex_protocol::semantic::SemanticChunkId(chunk_id.to_string()),
+            build_id: None,
+        },
+    ))? {
+        SuccessPayload::SemanticInspectChunk(response) => {
+            render_inspect_chunk_response(&response, json_output)
+        }
+        other => Err(unexpected_response("semantic_inspect_chunk", other)),
     }
-    Ok(render_local_inspect_report(&report))
 }
 
 pub fn inspect_index(
@@ -463,29 +326,6 @@ pub fn stats(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct LocalSemanticRebuildReport {
-    repo_id: String,
-    snapshot_id: String,
-    store_path: String,
-    semantic_build_id: String,
-    refresh_mode: String,
-    fallback_reason: Option<String>,
-    chunk_count: usize,
-    embedding_count: usize,
-    cache_hits: usize,
-    cache_misses: usize,
-    cache_writes: usize,
-    files_touched: u64,
-    chunks_rebuilt: u64,
-    embeddings_regenerated: u64,
-    vector_entries_added: u64,
-    vector_entries_updated: u64,
-    vector_entries_removed: u64,
-    elapsed_ms: u64,
-    diagnostics: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct LocalSemanticStatsReport {
     repo_id: String,
     snapshot_id: String,
@@ -564,14 +404,6 @@ impl LocalSemanticContext {
         )
         .map_err(store_error)
     }
-
-    fn symbol_store(&self) -> HyperindexResult<SymbolStore> {
-        SymbolStore::open(
-            &self.loaded.config.symbol_index.store_dir,
-            &self.snapshot.repo_id,
-        )
-        .map_err(store_error)
-    }
 }
 
 fn parse_rerank_mode(raw: &str) -> HyperindexResult<SemanticRerankMode> {
@@ -592,8 +424,73 @@ fn store_error(error: impl std::fmt::Display) -> HyperindexError {
     HyperindexError::Message(error.to_string())
 }
 
+fn render_json<T: Serialize>(response: &T) -> HyperindexResult<String> {
+    serde_json::to_string_pretty(response)
+        .map_err(|error| HyperindexError::Message(format!("failed to render json: {error}")))
+}
+
 fn unexpected_response(method: &str, payload: SuccessPayload) -> HyperindexError {
     HyperindexError::Message(format!("unexpected {method} response: {payload:?}"))
+}
+
+fn render_build_response(
+    response: &SemanticBuildResponse,
+    json_output: bool,
+) -> HyperindexResult<String> {
+    if json_output {
+        return render_json(response);
+    }
+    Ok(render_build_summary("semantic build", &response.build))
+}
+
+fn render_inspect_chunk_response(
+    response: &SemanticInspectChunkResponse,
+    json_output: bool,
+) -> HyperindexResult<String> {
+    if json_output {
+        return render_json(response);
+    }
+    Ok(render_local_inspect_report(&LocalSemanticInspectReport {
+        repo_id: response.repo_id.clone(),
+        snapshot_id: response.snapshot_id.clone(),
+        semantic_build_id: response
+            .manifest
+            .as_ref()
+            .map(|manifest| manifest.build_id.0.clone())
+            .unwrap_or_else(|| "-".to_string()),
+        chunk: response.chunk.clone(),
+    }))
+}
+
+fn render_build_summary(title: &str, build: &SemanticBuildRecord) -> String {
+    format!(
+        "{title} {}\nstate: {}\nchunk_count: {}\nindexed_file_count: {}\nembedding_count: {}\nrefresh_mode: {}\nfallback_reason: {}\nloaded_from_existing_build: {}",
+        build.build_id.0,
+        match build.state {
+            SemanticBuildState::Queued => "queued",
+            SemanticBuildState::Running => "running",
+            SemanticBuildState::Succeeded => "succeeded",
+            SemanticBuildState::Failed => "failed",
+        },
+        build
+            .manifest
+            .as_ref()
+            .map(|manifest| manifest.indexed_chunk_count.to_string())
+            .unwrap_or_else(|| "-".to_string()),
+        build
+            .manifest
+            .as_ref()
+            .map(|manifest| manifest.indexed_file_count.to_string())
+            .unwrap_or_else(|| "-".to_string()),
+        build
+            .manifest
+            .as_ref()
+            .map(|manifest| manifest.embedding_cache.entry_count.to_string())
+            .unwrap_or_else(|| "-".to_string()),
+        build.refresh_mode.as_deref().unwrap_or("-"),
+        build.fallback_reason.as_deref().unwrap_or("-"),
+        build.loaded_from_existing_build,
+    )
 }
 
 fn render_local_inspect_report(report: &LocalSemanticInspectReport) -> String {
@@ -647,7 +544,11 @@ fn render_local_inspect_index_report(report: &LocalSemanticInspectIndexReport) -
 
 #[cfg(test)]
 mod tests {
-    use super::parse_rerank_mode;
+    use hyperindex_protocol::semantic::{
+        SemanticBuildId, SemanticBuildRecord, SemanticBuildState, SemanticIndexManifest,
+    };
+
+    use super::{parse_rerank_mode, render_build_summary};
 
     #[test]
     fn rerank_mode_parser_accepts_phase6_values() {
@@ -659,5 +560,68 @@ mod tests {
             parse_rerank_mode("hybrid").unwrap(),
             hyperindex_protocol::semantic::SemanticRerankMode::Hybrid
         ));
+    }
+
+    #[test]
+    fn build_summary_reports_reused_builds() {
+        let rendered = render_build_summary(
+            "semantic build",
+            &SemanticBuildRecord {
+                build_id: SemanticBuildId("semantic-build-1".to_string()),
+                state: SemanticBuildState::Succeeded,
+                requested_at: "epoch-ms:1".to_string(),
+                started_at: Some("epoch-ms:1".to_string()),
+                finished_at: Some("epoch-ms:2".to_string()),
+                manifest: Some(SemanticIndexManifest {
+                    build_id: SemanticBuildId("semantic-build-1".to_string()),
+                    repo_id: "repo-1".to_string(),
+                    snapshot_id: "snap-1".to_string(),
+                    semantic_config_digest: "cfg".to_string(),
+                    chunk_schema_version: 1,
+                    symbol_index_build_id: None,
+                    embedding_provider:
+                        hyperindex_protocol::semantic::SemanticEmbeddingProviderConfig {
+                            provider_kind:
+                                hyperindex_protocol::semantic::SemanticEmbeddingProviderKind::DeterministicFixture,
+                            model_id: "fixture".to_string(),
+                            model_digest: "fixture".to_string(),
+                            vector_dimensions: 384,
+                            normalized: true,
+                            max_input_bytes: 8192,
+                            max_batch_size: 32,
+                        },
+                    chunk_text: hyperindex_protocol::semantic::SemanticChunkTextConfig {
+                        serializer_id: "phase6-structured-text".to_string(),
+                        format_version: 1,
+                        includes_path_header: true,
+                        includes_symbol_context: true,
+                        normalized_newlines: true,
+                    },
+                    storage: hyperindex_protocol::semantic::SemanticIndexStorage {
+                        format: hyperindex_protocol::semantic::SemanticStorageFormat::Sqlite,
+                        path: "/tmp/semantic.sqlite3".to_string(),
+                        schema_version: 1,
+                        manifest_sha256: None,
+                    },
+                    embedding_cache:
+                        hyperindex_protocol::semantic::SemanticEmbeddingCacheManifest {
+                            key_algorithm: "sha256".to_string(),
+                            entry_count: 7,
+                            store_path: Some("/tmp/semantic.sqlite3".to_string()),
+                        },
+                    indexed_chunk_count: 7,
+                    indexed_file_count: 3,
+                    created_at: "epoch-ms:2".to_string(),
+                }),
+                refresh_stats: None,
+                refresh_mode: Some("warm_load".to_string()),
+                fallback_reason: None,
+                diagnostics: Vec::new(),
+                loaded_from_existing_build: true,
+            },
+        );
+
+        assert!(rendered.contains("loaded_from_existing_build: true"));
+        assert!(rendered.contains("chunk_count: 7"));
     }
 }

@@ -1,5 +1,31 @@
 # Repo Hyperindex Phase 1 Decisions
 
+## 2026-04-19 - Allow daemon-backed semantic runtime integration without changing Phase 1 artifacts
+
+### Decision
+
+Permit the explicit user-requested Phase 2/Phase 6 semantic daemon/runtime integration work as
+long as it stays additive to the checked-in Phase 1 harness and artifact contracts.
+
+### Why
+
+- The semantic engine already had real chunking, embedding, vector retrieval, reranking, and
+  incremental refresh logic, so the next requested slice was making that behavior reachable
+  end-to-end through the local daemon and CLI rather than inventing a new engine surface.
+- The public semantic contract already exists as `semantic_status`, `semantic_build`,
+  `semantic_query`, and `semantic_inspect_chunk`; the gap was truthful daemon lifecycle behavior,
+  operator ergonomics, and smoke coverage.
+- Keeping the integration local-only and retrieval-only preserves the current repo boundary:
+  no UI, no answer-generation surface, and no Phase 1 schema rewrite.
+
+### Consequence
+
+- The daemon and `hyperctl` may now expose real semantic readiness/build/query/inspect behavior
+  under `crates/` and `scripts/phase2-smoke.sh` while `bench/` schemas and checked-in Phase 1
+  run artifacts remain unchanged.
+- `semantic_build` may reuse a compatible persisted build for warm behavior, and daemon status may
+  report semantic ready/stale aggregate counts.
+
 ## 2026-04-19 - Allow incremental semantic refresh over snapshot diffs without changing Phase 1 artifacts
 
 ### Decision

@@ -302,8 +302,8 @@ mod tests {
     };
     use hyperindex_protocol::repo::ReposAddParams;
     use hyperindex_protocol::semantic::{
-        SemanticBuildParams, SemanticQueryFilters, SemanticQueryParams, SemanticQueryText,
-        SemanticRerankMode,
+        SemanticBuildParams, SemanticInspectChunkParams, SemanticQueryFilters, SemanticQueryParams,
+        SemanticQueryText, SemanticRerankMode, SemanticStatusParams,
     };
     use hyperindex_protocol::snapshot::{
         SnapshotCreateParams, SnapshotDiffParams, SnapshotReadFileParams,
@@ -781,18 +781,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn daemon_semantic_build_uses_incremental_buffer_overlays() {
+    async fn daemon_semantic_north_star_query_refreshes_after_overlay() {
         let tempdir = tempdir().unwrap();
         let config_path = write_test_config(tempdir.path());
         let repo_root = tempdir.path().join("repo");
-        init_repo(&repo_root);
-        fs::write(
-            repo_root.join("src/util.ts"),
-            "export function helper() {\n  return \"helper\";\n}\n",
-        )
-        .unwrap();
-        run_git(&repo_root, &["add", "."]);
-        commit_all(&repo_root, "add-util");
+        init_impact_repo(&repo_root);
 
         let mut config = hyperindex_config::load_or_default(Some(&config_path))
             .unwrap()
@@ -843,6 +836,28 @@ mod tests {
             other => panic!("unexpected clean snapshot response: {other:?}"),
         };
 
+        let semantic_status_before = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-status-before",
+                RequestBody::SemanticStatus(SemanticStatusParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    build_id: None,
+                }),
+            ),
+        )
+        .await;
+        match semantic_status_before.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticStatus(response),
+            } => assert!(matches!(
+                response.state,
+                hyperindex_protocol::semantic::SemanticAnalysisState::NotReady
+            )),
+            other => panic!("unexpected semantic status response: {other:?}"),
+        }
+
         let symbol_build = send_request(
             &server,
             DaemonRequest::new(
@@ -879,6 +894,7 @@ mod tests {
                 result: SuccessPayload::SemanticBuild(response),
             } => {
                 assert_eq!(response.build.refresh_mode.as_deref(), Some("full_rebuild"));
+                assert!(!response.build.loaded_from_existing_build);
                 assert!(
                     response
                         .build
@@ -892,6 +908,99 @@ mod tests {
             other => panic!("unexpected clean semantic build response: {other:?}"),
         }
 
+        let semantic_status_ready = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-status-ready",
+                RequestBody::SemanticStatus(SemanticStatusParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    build_id: None,
+                }),
+            ),
+        )
+        .await;
+        match semantic_status_ready.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticStatus(response),
+            } => assert!(matches!(
+                response.state,
+                hyperindex_protocol::semantic::SemanticAnalysisState::Ready
+            )),
+            other => panic!("unexpected semantic ready status response: {other:?}"),
+        }
+
+        let semantic_query_clean = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-query-clean",
+                RequestBody::SemanticQuery(SemanticQueryParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    query: SemanticQueryText {
+                        text: "where do we invalidate sessions?".to_string(),
+                    },
+                    filters: SemanticQueryFilters::default(),
+                    limit: 4,
+                    rerank_mode: SemanticRerankMode::Hybrid,
+                }),
+            ),
+        )
+        .await;
+        let (top_clean_chunk_id, clean_hit_signature) = match semantic_query_clean.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticQuery(response),
+            } => {
+                let top_hit = response.hits.first().expect("expected semantic hit");
+                assert_eq!(top_hit.chunk.path, "packages/auth/src/session/service.ts");
+                assert_eq!(
+                    top_hit.chunk.symbol_display_name.as_deref(),
+                    Some("invalidateSession")
+                );
+                assert!(
+                    response
+                        .hits
+                        .iter()
+                        .any(|hit| hit.chunk.path == "packages/api/src/routes/logout.ts")
+                );
+                (
+                    top_hit.chunk.chunk_id.clone(),
+                    response
+                        .hits
+                        .iter()
+                        .map(|hit| format!("{}:{}", hit.chunk.path, hit.chunk.chunk_id.0))
+                        .collect::<Vec<_>>(),
+                )
+            }
+            other => panic!("unexpected clean semantic query response: {other:?}"),
+        };
+
+        let inspect_clean = send_request(
+            &server,
+            DaemonRequest::new(
+                "req-semantic-inspect-clean",
+                RequestBody::SemanticInspectChunk(SemanticInspectChunkParams {
+                    repo_id: repo_id.clone(),
+                    snapshot_id: clean_snapshot_id.clone(),
+                    chunk_id: top_clean_chunk_id,
+                    build_id: None,
+                }),
+            ),
+        )
+        .await;
+        match inspect_clean.body {
+            ResponseBody::Success {
+                result: SuccessPayload::SemanticInspectChunk(response),
+            } => {
+                assert!(response.chunk.serialized_text.contains("invalidateSession"));
+                assert_eq!(
+                    response.chunk.metadata.path,
+                    "packages/auth/src/session/service.ts"
+                );
+            }
+            other => panic!("unexpected semantic inspect response: {other:?}"),
+        }
+
         let buffer_set = send_request(
             &server,
             DaemonRequest::new(
@@ -899,10 +1008,12 @@ mod tests {
                 RequestBody::BuffersSet(BufferSetParams {
                     repo_id: repo_id.clone(),
                     buffer_id: "buffer-1".to_string(),
-                    path: "src/app.ts".to_string(),
+                    path: "packages/api/src/routes/logout.ts".to_string(),
                     version: 1,
                     language: Some("typescript".to_string()),
-                    contents: "export function createBufferedSession() {\n  return \"buffer\";\n}\n\nexport function run() {\n  return createBufferedSession();\n}\n".to_string(),
+                    contents:
+                        "export function logout(userId: string) {\n  return `local:${userId}`;\n}\n"
+                            .to_string(),
                 }),
             ),
         )
@@ -970,6 +1081,7 @@ mod tests {
             } => {
                 let stats = response.build.refresh_stats.unwrap();
                 assert_eq!(response.build.refresh_mode.as_deref(), Some("incremental"));
+                assert!(!response.build.loaded_from_existing_build);
                 assert_eq!(stats.files_touched, 1);
                 assert!(stats.chunks_rebuilt > 0);
                 assert!(
@@ -993,10 +1105,10 @@ mod tests {
                     repo_id: repo_id.clone(),
                     snapshot_id: buffered_snapshot_id.clone(),
                     query: SemanticQueryText {
-                        text: "buffered session".to_string(),
+                        text: "where do we invalidate sessions?".to_string(),
                     },
                     filters: SemanticQueryFilters::default(),
-                    limit: 5,
+                    limit: 4,
                     rerank_mode: SemanticRerankMode::Hybrid,
                 }),
             ),
@@ -1007,11 +1119,23 @@ mod tests {
                 result: SuccessPayload::SemanticQuery(response),
             } => {
                 let top_hit = response.hits.first().expect("expected semantic hit");
-                assert_eq!(top_hit.chunk.path, "src/app.ts");
+                assert_eq!(top_hit.chunk.path, "packages/auth/src/session/service.ts");
                 assert_eq!(
                     top_hit.chunk.symbol_display_name.as_deref(),
-                    Some("createBufferedSession")
+                    Some("invalidateSession")
                 );
+                assert!(
+                    response
+                        .hits
+                        .iter()
+                        .any(|hit| hit.chunk.path == "packages/auth/src/session/service.ts")
+                );
+                let buffered_hit_signature = response
+                    .hits
+                    .iter()
+                    .map(|hit| format!("{}:{}", hit.chunk.path, hit.chunk.chunk_id.0))
+                    .collect::<Vec<_>>();
+                assert_ne!(buffered_hit_signature, clean_hit_signature);
             }
             other => panic!("unexpected buffered semantic query response: {other:?}"),
         }

@@ -15,7 +15,10 @@ import sys
 
 value = json.loads(os.environ["JSON_INPUT"])
 for part in sys.argv[1].split("."):
-    value = value[part]
+    if isinstance(value, list):
+        value = value[int(part)]
+    else:
+        value = value[part]
 
 if isinstance(value, bool):
     print("true" if value else "false")
@@ -40,6 +43,38 @@ for group in value.get("groups", []):
             raise SystemExit(0)
 
 print("false")
+PY
+}
+
+semantic_has_path() {
+  JSON_INPUT="$(cat)" python3 - "$1" <<'PY'
+import json
+import os
+import sys
+
+target_path = sys.argv[1]
+value = json.loads(os.environ["JSON_INPUT"])
+for hit in value.get("hits", []):
+    chunk = hit.get("chunk", {})
+    if chunk.get("path") == target_path:
+        print("true")
+        raise SystemExit(0)
+
+print("false")
+PY
+}
+
+semantic_hit_signature() {
+  JSON_INPUT="$(cat)" python3 - <<'PY'
+import json
+import os
+
+value = json.loads(os.environ["JSON_INPUT"])
+parts = []
+for hit in value.get("hits", []):
+    chunk = hit.get("chunk", {})
+    parts.append(f"{chunk.get('path')}:{chunk.get('chunk_id')}")
+print("|".join(parts))
 PY
 }
 
@@ -150,6 +185,82 @@ printf '\n== symbol build (impact prerequisite) ==\n'
   --snapshot-id "$snapshot_clean_id" \
   --json
 
+printf '\n== semantic status (before build) ==\n'
+semantic_status_before_json="$("$hyperctl" --config-path "$config_path" semantic status \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --json)"
+printf '%s\n' "$semantic_status_before_json"
+
+if [[ "$(printf '%s' "$semantic_status_before_json" | json_field 'state')" != "not_ready" ]]; then
+  printf 'expected clean semantic status to report not_ready before semantic build\n' >&2
+  exit 1
+fi
+
+printf '\n== semantic build (clean) ==\n'
+semantic_build_clean_json="$("$hyperctl" --config-path "$config_path" semantic build \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --json)"
+printf '%s\n' "$semantic_build_clean_json"
+
+printf '\n== semantic status (ready) ==\n'
+semantic_status_ready_json="$("$hyperctl" --config-path "$config_path" semantic status \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --json)"
+printf '%s\n' "$semantic_status_ready_json"
+
+if [[ "$(printf '%s' "$semantic_status_ready_json" | json_field 'state')" != "ready" ]]; then
+  printf 'expected clean semantic status to report ready after semantic build\n' >&2
+  exit 1
+fi
+
+printf '\n== semantic query (north-star clean) ==\n'
+semantic_clean_json="$("$hyperctl" --config-path "$config_path" semantic query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "where do we invalidate sessions?" \
+  --limit 2 \
+  --json)"
+printf '%s\n' "$semantic_clean_json"
+
+semantic_clean_top_chunk_id="$(printf '%s' "$semantic_clean_json" | json_field 'hits.0.chunk.chunk_id')"
+
+if [[ "$(printf '%s' "$semantic_clean_json" | semantic_has_path "packages/auth/src/session/service.ts")" != "true" ]]; then
+  printf 'expected clean semantic results to include packages/auth/src/session/service.ts\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$semantic_clean_json" | json_field 'hits.0.chunk.path')" != "packages/auth/src/session/service.ts" ]]; then
+  printf 'expected clean semantic top hit to be packages/auth/src/session/service.ts\n' >&2
+  exit 1
+fi
+
+printf '\n== semantic inspect-chunk (top clean hit) ==\n'
+"$hyperctl" --config-path "$config_path" semantic inspect-chunk \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --chunk-id "$semantic_clean_top_chunk_id" \
+  --json
+
+printf '\n== semantic query (north-star clean, api scope) ==\n'
+semantic_clean_api_json="$("$hyperctl" --config-path "$config_path" semantic query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "where do we invalidate sessions?" \
+  --path-glob "packages/api/**" \
+  --limit 1 \
+  --json)"
+printf '%s\n' "$semantic_clean_api_json"
+
+semantic_clean_api_chunk_id="$(printf '%s' "$semantic_clean_api_json" | json_field 'hits.0.chunk.chunk_id')"
+
+if [[ "$(printf '%s' "$semantic_clean_api_json" | json_field 'hits.0.chunk.path')" != "packages/api/src/routes/logout.ts" ]]; then
+  printf 'expected clean api-scoped semantic hit to be packages/api/src/routes/logout.ts\n' >&2
+  exit 1
+fi
+
 printf '\n== impact status (ready) ==\n'
 "$hyperctl" --config-path "$config_path" impact status \
   --repo-id "$repo_id" \
@@ -222,6 +333,58 @@ printf '\n== symbol build (buffer overlay refresh) ==\n'
   --repo-id "$repo_id" \
   --snapshot-id "$snapshot_buffer_id" \
   --json
+
+printf '\n== semantic build (buffer overlay refresh) ==\n'
+semantic_build_buffer_json="$("$hyperctl" --config-path "$config_path" semantic build \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_buffer_id" \
+  --json)"
+printf '%s\n' "$semantic_build_buffer_json"
+
+printf '\n== semantic query (north-star buffered) ==\n'
+semantic_buffer_json="$("$hyperctl" --config-path "$config_path" semantic query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_buffer_id" \
+  --query "where do we invalidate sessions?" \
+  --limit 2 \
+  --json)"
+printf '%s\n' "$semantic_buffer_json"
+
+semantic_buffer_top_chunk_id="$(printf '%s' "$semantic_buffer_json" | json_field 'hits.0.chunk.chunk_id')"
+
+if [[ "$(printf '%s' "$semantic_buffer_json" | semantic_has_path "packages/auth/src/session/service.ts")" != "true" ]]; then
+  printf 'expected buffered semantic results to keep packages/auth/src/session/service.ts\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$semantic_buffer_json" | json_field 'hits.0.chunk.path')" != "packages/auth/src/session/service.ts" ]]; then
+  printf 'expected buffered semantic top hit to remain packages/auth/src/session/service.ts\n' >&2
+  exit 1
+fi
+
+printf '\n== semantic inspect-chunk (top buffered hit) ==\n'
+"$hyperctl" --config-path "$config_path" semantic inspect-chunk \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_buffer_id" \
+  --chunk-id "$semantic_buffer_top_chunk_id" \
+  --json
+
+printf '\n== semantic query (north-star buffered, api scope) ==\n'
+semantic_buffer_api_json="$("$hyperctl" --config-path "$config_path" semantic query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_buffer_id" \
+  --query "where do we invalidate sessions?" \
+  --path-glob "packages/api/**" \
+  --limit 1 \
+  --json)"
+printf '%s\n' "$semantic_buffer_api_json"
+
+semantic_buffer_api_chunk_id="$(printf '%s' "$semantic_buffer_api_json" | json_field 'hits.0.chunk.chunk_id')"
+
+if [[ "$semantic_buffer_api_chunk_id" == "$semantic_clean_api_chunk_id" ]]; then
+  printf 'expected api-scoped semantic chunk grounding to change after the buffer overlay\n' >&2
+  exit 1
+fi
 
 printf '\n== impact analyze (buffer overlay refresh) ==\n'
 impact_buffer_json="$("$hyperctl" --config-path "$config_path" impact analyze \
