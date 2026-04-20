@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "protocol_version": "repo-hyperindex.local/v1",
+  "snapshot_id": "snap-1",
+  "repo_id": "repo-1",
+  "repo_root": "/tmp/repo",
+  "base": {
+    "kind": "git_commit",
+    "commit": "abc123",
+    "digest": "base-1",
+    "file_count": 0,
+    "files": []
+  },
+  "working_tree": {
+    "digest": "work-1",
+    "entries": []
+  },
+  "buffers": []
+}

@@ -51,6 +51,9 @@ def build_run_report(summary: dict[str, object]) -> dict[str, object]:
     run_metadata = dict(summary.get("run_metadata", {}))
     corpus = dict(summary.get("corpus", {}))
     query_counts_by_type = dict(summary.get("query_counts_by_type", {}))
+    prepare = dict(summary.get("prepare", {}))
+    refresh_summary = dict(summary.get("refresh_summary", {}))
+    benchmark_dimensions = dict(summary.get("benchmark_dimensions", {}))
 
     return {
         "run_id": summary.get("run_id"),
@@ -66,7 +69,11 @@ def build_run_report(summary: dict[str, object]) -> dict[str, object]:
         "query_pass_rate": summary.get("query_pass_rate"),
         "refresh_scenario_count": summary.get("refresh_scenario_count"),
         "query_counts_by_type": query_counts_by_type,
+        "benchmark_dimensions": benchmark_dimensions,
+        "prepare": prepare,
+        "refresh_summary": refresh_summary,
         "instrumentation": instrumentation,
+        "metric_summaries": summary.get("metric_summaries", []),
         "host": {
             "os": run_metadata.get("os"),
             "cpu": run_metadata.get("cpu"),
@@ -83,6 +90,10 @@ def render_run_report_markdown(report: dict[str, object]) -> str:
     corpus = dict(report.get("corpus", {}))
     host = dict(report.get("host", {}))
     query_counts_by_type = dict(report.get("query_counts_by_type", {}))
+    benchmark_dimensions = dict(report.get("benchmark_dimensions", {}))
+    prepare = dict(report.get("prepare", {}))
+    prepare_metadata = dict(prepare.get("metadata", {}))
+    refresh_summary = dict(report.get("refresh_summary", {}))
     lines = [
         f"# Hyperbench Run Report: {report.get('run_id')}",
         "",
@@ -96,11 +107,35 @@ def render_run_report_markdown(report: dict[str, object]) -> str:
         f"- Query pass rate: `{_format_ratio(report.get('query_pass_rate'))}`",
         f"- Refresh scenarios: `{report.get('refresh_scenario_count')}`",
         "",
+        "## Benchmark Profile",
+        "",
+        f"- Query types: `{_format_query_types(benchmark_dimensions.get('query_types'))}`",
+        f"- Adapter transport: `{benchmark_dimensions.get('adapter_transport') or 'unavailable'}`",
+        f"- Engine backend: `{benchmark_dimensions.get('engine_backend') or 'unavailable'}`",
+        f"- Build temperature: `{benchmark_dimensions.get('build_temperature') or 'unavailable'}`",
+        "",
+        "## Prepare",
+        "",
+        f"- Prepare latency: `{_format_ms(prepare.get('latency_ms'))}`",
+        f"- Repo id: `{prepare_metadata.get('repo_id') or 'unavailable'}`",
+        f"- Clean snapshot: `{prepare_metadata.get('clean_snapshot_id') or 'unavailable'}`",
+        f"- Symbol refresh mode: `{_nested(prepare_metadata, 'symbol_build', 'refresh_mode')}`",
+        (
+            "- Impact refresh mode: "
+            f"`{_nested_nested(prepare_metadata, 'impact_analyze', 'manifest', 'refresh_mode')}`"
+        ),
+        (
+            "- Impact representative query: "
+            f"`{_nested(prepare_metadata, 'representative_query', 'query_id')}`"
+        ),
+        "",
         "## Instrumentation",
         "",
         f"- Wall clock: `{_format_ms(instrumentation.get('wall_clock_ms'))}`",
         f"- Query latency p50: `{_format_ms(instrumentation.get('query_latency_p50_ms'))}`",
         f"- Query latency p95: `{_format_ms(instrumentation.get('query_latency_p95_ms'))}`",
+        f"- Impact latency p50: `{_format_metric_summary(report, 'impact-latency', 'p50')}`",
+        f"- Impact latency p95: `{_format_metric_summary(report, 'impact-latency', 'p95')}`",
         f"- Refresh latency p50: `{_format_ms(instrumentation.get('refresh_latency_p50_ms'))}`",
         f"- Refresh latency p95: `{_format_ms(instrumentation.get('refresh_latency_p95_ms'))}`",
         f"- Peak RSS: `{_format_bytes(instrumentation.get('peak_rss_bytes'))}`",
@@ -114,6 +149,12 @@ def render_run_report_markdown(report: dict[str, object]) -> str:
 
     lines.extend(
         [
+            "",
+            "## Refresh",
+            "",
+            f"- Scenario count: `{refresh_summary.get('scenario_count')}`",
+            f"- Mode counts: `{_format_mapping(refresh_summary.get('mode_counts'))}`",
+            f"- Fallback count: `{refresh_summary.get('fallback_count')}`",
             "",
             "## Host",
             "",
@@ -175,3 +216,41 @@ def _nested(root: dict[str, object], key: str, nested_key: str) -> str:
     if not isinstance(value, dict):
         return "unavailable"
     return str(value.get(nested_key) or "unavailable")
+
+
+def _nested_nested(
+    root: dict[str, object],
+    key: str,
+    nested_key: str,
+    leaf_key: str,
+) -> str:
+    value = root.get(key)
+    if not isinstance(value, dict):
+        return "unavailable"
+    nested = value.get(nested_key)
+    if not isinstance(nested, dict):
+        return "unavailable"
+    return str(nested.get(leaf_key) or "unavailable")
+
+
+def _format_mapping(value: object) -> str:
+    if not isinstance(value, dict) or not value:
+        return "unavailable"
+    return ", ".join(f"{key}={value[key]}" for key in sorted(value))
+
+
+def _format_query_types(value: object) -> str:
+    if not isinstance(value, list) or not value:
+        return "unavailable"
+    return ", ".join(str(entry) for entry in value)
+
+
+def _format_metric_summary(report: dict[str, object], metric_name: str, field: str) -> str:
+    for summary in report.get("metric_summaries", []):
+        if not isinstance(summary, dict):
+            continue
+        if summary.get("metric_name") != metric_name:
+            continue
+        value = summary.get(field)
+        return _format_ms(value)
+    return "unavailable"

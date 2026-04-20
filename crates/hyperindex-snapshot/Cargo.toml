@@ -1,0 +1,14 @@
+[package]
+name = "hyperindex-snapshot"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hex.workspace = true
+hyperindex-core = { path = "../hyperindex-core" }
+hyperindex-git-state = { path = "../hyperindex-git-state" }
+hyperindex-protocol = { path = "../hyperindex-protocol" }
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

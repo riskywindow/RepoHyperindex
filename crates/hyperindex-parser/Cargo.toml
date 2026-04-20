@@ -1,0 +1,22 @@
+[package]
+name = "hyperindex-parser"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+hyperindex-watcher = { path = "../hyperindex-watcher" }
+hyperindex-protocol = { path = "../hyperindex-protocol" }
+hyperindex-snapshot = { path = "../hyperindex-snapshot" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tree-sitter = "0.24"
+tree-sitter-typescript = "0.23.2"
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

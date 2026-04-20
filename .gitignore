@@ -6,3 +6,5 @@ __pycache__/
 .ruff_cache/
 bench/corpora/*
 !bench/corpora/.gitkeep
+.hyperindex/
+target/

@@ -1,0 +1,12 @@
+[package]
+name = "hyperindex-config"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hyperindex-core = { path = "../hyperindex-core" }
+hyperindex-protocol = { path = "../hyperindex-protocol" }
+toml.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

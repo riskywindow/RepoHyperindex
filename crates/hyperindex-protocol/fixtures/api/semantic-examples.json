@@ -1,0 +1,455 @@
+{
+  "requests": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-status-001",
+      "method": "semantic_status",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build_id": "semantic-build-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-build-001",
+      "method": "semantic_build",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "force": false
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-query-001",
+      "method": "semantic_query",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "query": {
+          "text": "where do we invalidate sessions?"
+        },
+        "filters": {
+          "path_globs": ["packages/**", "apps/**"],
+          "package_names": ["@hyperindex/auth"],
+          "package_roots": ["packages/auth"],
+          "workspace_roots": [],
+          "languages": ["typescript"],
+          "extensions": ["ts"],
+          "symbol_kinds": ["function", "method"]
+        },
+        "limit": 10,
+        "rerank_mode": "hybrid"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-inspect-chunk-001",
+      "method": "semantic_inspect_chunk",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "chunk_id": "chunk.invalidate-session-body",
+        "build_id": "semantic-build-001"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-status-001",
+      "status": "success",
+      "method": "semantic_status",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "state": "ready",
+        "capabilities": {
+          "status": true,
+          "build": true,
+          "query": true,
+          "inspect_chunk": true,
+          "local_rebuild": false,
+          "local_stats": false
+        },
+        "builds": [
+          {
+            "build_id": "semantic-build-001",
+            "state": "succeeded",
+            "requested_at": "2026-04-13T12:00:00Z",
+            "started_at": "2026-04-13T12:00:01Z",
+            "finished_at": "2026-04-13T12:00:04Z",
+            "manifest": {
+              "build_id": "semantic-build-001",
+              "repo_id": "repo-123",
+              "snapshot_id": "snap-001",
+              "semantic_config_digest": "sha256:semantic-config-001",
+              "chunk_schema_version": 1,
+              "symbol_index_build_id": "sym-index-build-001",
+              "embedding_provider": {
+                "provider_kind": "local_onnx",
+                "model_id": "bge-small-en-v1.5",
+                "model_digest": "sha256:model-001",
+                "vector_dimensions": 384,
+                "normalized": true,
+                "max_input_bytes": 8192,
+                "max_batch_size": 32
+              },
+              "chunk_text": {
+                "serializer_id": "phase6-structured-text",
+                "format_version": 1,
+                "includes_path_header": true,
+                "includes_symbol_context": true,
+                "normalized_newlines": true
+              },
+              "storage": {
+                "format": "sqlite",
+                "path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3",
+                "schema_version": 1,
+                "manifest_sha256": "sha256:manifest-001"
+              },
+              "embedding_cache": {
+                "key_algorithm": "sha256(input_kind + text_digest + provider_identity + provider_config_digest)",
+                "entry_count": 128,
+                "store_path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3"
+              },
+              "indexed_chunk_count": 128,
+              "indexed_file_count": 18,
+              "created_at": "2026-04-13T12:00:04Z"
+            },
+            "diagnostics": [
+              {
+                "severity": "info",
+                "code": "semantic_ready",
+                "message": "semantic index manifest is available for querying"
+              }
+            ],
+            "loaded_from_existing_build": true
+          }
+        ],
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-build-001",
+      "status": "success",
+      "method": "semantic_build",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build": {
+          "build_id": "semantic-build-001",
+          "state": "succeeded",
+          "requested_at": "2026-04-13T12:00:00Z",
+          "started_at": "2026-04-13T12:00:01Z",
+          "finished_at": "2026-04-13T12:00:04Z",
+          "manifest": {
+            "build_id": "semantic-build-001",
+            "repo_id": "repo-123",
+            "snapshot_id": "snap-001",
+            "semantic_config_digest": "sha256:semantic-config-001",
+            "chunk_schema_version": 1,
+            "symbol_index_build_id": "sym-index-build-001",
+            "embedding_provider": {
+              "provider_kind": "local_onnx",
+              "model_id": "bge-small-en-v1.5",
+              "model_digest": "sha256:model-001",
+              "vector_dimensions": 384,
+              "normalized": true,
+              "max_input_bytes": 8192,
+              "max_batch_size": 32
+            },
+            "chunk_text": {
+              "serializer_id": "phase6-structured-text",
+              "format_version": 1,
+              "includes_path_header": true,
+              "includes_symbol_context": true,
+              "normalized_newlines": true
+            },
+            "storage": {
+              "format": "sqlite",
+              "path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3",
+              "schema_version": 1,
+              "manifest_sha256": "sha256:manifest-001"
+            },
+            "embedding_cache": {
+              "key_algorithm": "sha256(input_kind + text_digest + provider_identity + provider_config_digest)",
+              "entry_count": 128,
+              "store_path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3"
+            },
+            "indexed_chunk_count": 128,
+            "indexed_file_count": 18,
+            "created_at": "2026-04-13T12:00:04Z"
+          },
+          "diagnostics": [],
+          "loaded_from_existing_build": false
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-query-001",
+      "status": "success",
+      "method": "semantic_query",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "query": {
+          "text": "where do we invalidate sessions?"
+        },
+        "manifest": {
+          "build_id": "semantic-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "semantic_config_digest": "sha256:semantic-config-001",
+          "chunk_schema_version": 1,
+          "symbol_index_build_id": "sym-index-build-001",
+          "embedding_provider": {
+            "provider_kind": "local_onnx",
+            "model_id": "bge-small-en-v1.5",
+            "model_digest": "sha256:model-001",
+            "vector_dimensions": 384,
+            "normalized": true,
+            "max_input_bytes": 8192,
+            "max_batch_size": 32
+          },
+          "chunk_text": {
+            "serializer_id": "phase6-structured-text",
+            "format_version": 1,
+            "includes_path_header": true,
+            "includes_symbol_context": true,
+            "normalized_newlines": true
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:manifest-001"
+          },
+          "embedding_cache": {
+            "key_algorithm": "sha256(input_kind + text_digest + provider_identity + provider_config_digest)",
+            "entry_count": 128,
+            "store_path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3"
+          },
+          "indexed_chunk_count": 128,
+          "indexed_file_count": 18,
+          "created_at": "2026-04-13T12:00:04Z"
+        },
+        "hits": [
+          {
+            "rank": 1,
+            "score": 985,
+            "semantic_score": 970,
+            "rerank_score": 985,
+            "chunk": {
+              "chunk_id": "chunk.invalidate-session-body",
+              "chunk_kind": "symbol_body",
+              "source_kind": "symbol",
+              "path": "packages/auth/src/session/service.ts",
+              "language": "typescript",
+              "extension": "ts",
+              "package_name": "@hyperindex/auth",
+              "package_root": "packages/auth",
+              "workspace_root": ".",
+              "symbol_id": "sym.invalidate_session",
+              "symbol_display_name": "invalidateSession",
+              "symbol_kind": "function",
+              "symbol_is_exported": true,
+              "symbol_is_default_export": false,
+              "span": {
+                "start": {
+                  "line": 11,
+                  "column": 1
+                },
+                "end": {
+                  "line": 24,
+                  "column": 2
+                },
+                "bytes": {
+                  "start": 210,
+                  "end": 602
+                }
+              },
+              "content_sha256": "sha256:file-001",
+              "text": {
+                "serializer_id": "phase6-structured-text",
+                "format_version": 1,
+                "text_digest": "sha256:text-001",
+                "text_bytes": 412,
+                "token_count_estimate": 103
+              }
+            },
+            "reason": "semantic match on invalidateSession in packages/auth/src/session/service.ts with lexical_overlap, path_hits, symbol_name (base 970)",
+            "snippet": "export function invalidateSession(sessionId: string) { ... }",
+            "explanation": {
+              "query_terms": ["invalidate", "session"],
+              "text_term_hits": ["invalidate", "session"],
+              "path_term_hits": ["session"],
+              "symbol_term_hits": ["invalidate", "session"],
+              "package_term_hits": [],
+              "signals": [
+                {
+                  "label": "semantic_score",
+                  "points": 0,
+                  "detail": "base semantic score 970"
+                },
+                {
+                  "label": "lexical_overlap",
+                  "points": 5000,
+                  "detail": "serialized chunk text matched query terms: invalidate, session"
+                },
+                {
+                  "label": "path_hits",
+                  "points": 3500,
+                  "detail": "file path matched query terms: session"
+                },
+                {
+                  "label": "symbol_name",
+                  "points": 9000,
+                  "detail": "symbol display name matched query terms: invalidate, session"
+                },
+                {
+                  "label": "export_visibility",
+                  "points": 900,
+                  "detail": "exported/public symbol"
+                }
+              ]
+            }
+          }
+        ],
+        "stats": {
+          "limit_requested": 10,
+          "candidate_chunk_count": 128,
+          "filtered_chunk_count": 14,
+          "hits_returned": 1,
+          "rerank_applied": true,
+          "elapsed_ms": 12
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-inspect-chunk-001",
+      "status": "success",
+      "method": "semantic_inspect_chunk",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "manifest": {
+          "build_id": "semantic-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "semantic_config_digest": "sha256:semantic-config-001",
+          "chunk_schema_version": 1,
+          "symbol_index_build_id": "sym-index-build-001",
+          "embedding_provider": {
+            "provider_kind": "local_onnx",
+            "model_id": "bge-small-en-v1.5",
+            "model_digest": "sha256:model-001",
+            "vector_dimensions": 384,
+            "normalized": true,
+            "max_input_bytes": 8192,
+            "max_batch_size": 32
+          },
+          "chunk_text": {
+            "serializer_id": "phase6-structured-text",
+            "format_version": 1,
+            "includes_path_header": true,
+            "includes_symbol_context": true,
+            "normalized_newlines": true
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:manifest-001"
+          },
+          "embedding_cache": {
+            "key_algorithm": "sha256(input_kind + text_digest + provider_identity + provider_config_digest)",
+            "entry_count": 128,
+            "store_path": ".hyperindex/data/semantic/repo-123/semantic.sqlite3"
+          },
+          "indexed_chunk_count": 128,
+          "indexed_file_count": 18,
+          "created_at": "2026-04-13T12:00:04Z"
+        },
+        "chunk": {
+          "metadata": {
+            "chunk_id": "chunk.invalidate-session-body",
+            "chunk_kind": "symbol_body",
+            "source_kind": "symbol",
+            "path": "packages/auth/src/session/service.ts",
+            "language": "typescript",
+            "extension": "ts",
+            "package_name": "@hyperindex/auth",
+            "package_root": "packages/auth",
+            "workspace_root": ".",
+            "symbol_id": "sym.invalidate_session",
+            "symbol_display_name": "invalidateSession",
+            "symbol_kind": "function",
+            "span": {
+              "start": {
+                "line": 11,
+                "column": 1
+              },
+              "end": {
+                "line": 24,
+                "column": 2
+              },
+              "bytes": {
+                "start": 210,
+                "end": 602
+              }
+            },
+            "content_sha256": "sha256:file-001",
+            "text": {
+              "serializer_id": "phase6-structured-text",
+              "format_version": 1,
+              "text_digest": "sha256:text-001",
+              "text_bytes": 412,
+              "token_count_estimate": 103
+            }
+          },
+          "serialized_text": "path: packages/auth/src/session/service.ts\nsymbol: invalidateSession\n\nexport function invalidateSession(sessionId: string) { ... }",
+          "embedding_cache": {
+            "cache_key": "cache-001",
+            "input_kind": "document",
+            "model_digest": "sha256:model-001",
+            "text_digest": "sha256:text-001",
+            "provider_config_digest": "sha256:provider-config-001",
+            "vector_dimensions": 384,
+            "normalized": true,
+            "stored_at": "2026-04-13T12:00:04Z"
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-semantic-inspect-chunk-missing-001",
+      "status": "error",
+      "method": "semantic_inspect_chunk",
+      "error": {
+        "category": "semantic",
+        "code": "semantic_chunk_not_found",
+        "message": "semantic chunk chunk.missing was not found",
+        "retriable": false,
+        "payload": {
+          "subject": {
+            "kind": "semantic_chunk",
+            "id": "chunk.missing",
+            "path": null
+          },
+          "validation": [],
+          "retry_after_ms": null,
+          "supported_protocol_versions": [],
+          "context": {}
+        }
+      }
+    }
+  ]
+}

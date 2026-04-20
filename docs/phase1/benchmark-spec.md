@@ -168,6 +168,10 @@ Every query also shares:
 - optional `notes`
 - `limit`
 
+All checked-in symbol query packs currently use `scope: repo`. The real Phase 4 daemon adapter
+added for symbol benchmarking in the latest cross-phase update supports that stable repo-scoped
+path first and keeps narrower package/file scoping out of this slice.
+
 ## Golden Model
 
 Golden expectations are deliberately evidence-first.
@@ -267,7 +271,7 @@ The smoke path explicitly does not include:
 - real-repo bootstrap
 - network-dependent corpus fetches
 - full benchmark runs
-- any real Hyperindex engine process
+- CI coverage for the real Hyperindex symbol engine
 
 This keeps CI fast, deterministic, and compatible with fresh clones and offline-safe local
 development.
@@ -337,6 +341,29 @@ The canonical implementation lives in [bench/hyperbench/schemas.py](/Users/rishi
   Flat per-refresh-scenario rollup.
 - `metric_summaries.csv`
   Aggregate metric summaries suitable for compare and reporting.
+
+Backward-compatible run-output extensions now used by the daemon-backed symbol and impact adapters:
+
+- `summary.json`
+  Adds `benchmark_dimensions`, `prepare`, and `refresh_summary` sections so fixture vs daemon,
+  cold vs warm, and full-build vs incremental behavior are machine-readable.
+- `events.jsonl`
+  The `prepare` and `refresh` events may now include adapter metadata such as transport mode,
+  parser/symbol build summaries, impact analyze/materialization summaries, refresh mode, and
+  fallback reason.
+- `refresh_results.csv`
+  May include `refresh_mode`, `fallback_reason`, `loaded_from_existing_build`,
+  `parse_build_latency_ms`, `symbol_build_latency_ms`, `impact_analyze_latency_ms`,
+  `impact_refresh_mode`, and `target_path`.
+- `metrics.jsonl` and `metric_summaries.csv`
+  May include prepare/build and refresh-phase metrics such as:
+  - `prepare-latency`
+  - `prepare-parse-build-latency`
+  - `prepare-symbol-build-latency`
+  - `prepare-impact-analyze-latency`
+  - `refresh-parse-build-latency`
+  - `refresh-symbol-build-latency`
+  - `refresh-impact-analyze-latency`
 
 The run summary captures:
 

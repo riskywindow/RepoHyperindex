@@ -1,0 +1,11 @@
+[package]
+name = "hyperindex-git-state"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hyperindex-core = { path = "../hyperindex-core" }
+hyperindex-protocol = { path = "../hyperindex-protocol" }
+
+[dev-dependencies]
+tempfile.workspace = true

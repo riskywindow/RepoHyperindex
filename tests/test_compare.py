@@ -74,6 +74,12 @@ def test_report_and_compare_commands_generate_reviewable_artifacts(tmp_path: Pat
     compare_md = (compare_dir / "compare.md").read_text(encoding="utf-8")
 
     assert report_json["corpus"]["corpus_id"] == "synthetic-saas-medium"
+    assert report_json["benchmark_dimensions"]["query_types"] == [
+        "exact",
+        "impact",
+        "semantic",
+        "symbol",
+    ]
     assert "## Instrumentation" in report_md
     assert "query-latency-p95" in compare_md
     assert compare_json["verdict"] in {"pass", "warn", "fail"}

@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="hyperbench",
         description=(
             "Repo Hyperindex Phase 1 benchmark harness. "
-            "Validate configs, generate corpora, run the fixture-backed harness, "
+            "Validate configs, generate corpora, run fixture or daemon-backed benchmarks, "
             "and render report/compare artifacts."
         ),
     )
@@ -150,7 +150,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument(
         "--adapter",
-        choices=["fixture", "shell"],
+        choices=["fixture", "daemon", "daemon-impact", "shell"],
         default="fixture",
         help="Adapter boundary to use for this benchmark run.",
     )
@@ -186,7 +186,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser.add_argument(
         "--engine-bin",
-        help="Reserved for the future shell adapter / Rust engine binary.",
+        help=(
+            "Optional path to the engine binary. "
+            "For --adapter daemon this should point to hyperd; otherwise the workspace "
+            "target/debug/hyperd binary or cargo run fallback is used."
+        ),
+    )
+    run_parser.add_argument(
+        "--daemon-build-temperature",
+        choices=["cold", "warm"],
+        default="cold",
+        help=(
+            "For --adapter daemon, measure either the first clean parser/symbol build "
+            "or a warmed repeat build on the same clean snapshot."
+        ),
+    )
+    run_parser.add_argument(
+        "--daemon-workspace-root",
+        help=(
+            "Optional workspace directory for the daemon adapter. "
+            "Defaults to a temporary directory and is mainly useful for debugging."
+        ),
     )
     run_parser.set_defaults(command_handler=_run_harness)
 
@@ -304,7 +324,12 @@ def _run_harness(args: argparse.Namespace) -> int:
         corpus_id=args.corpus_id,
         corpora_dir=args.corpora_dir,
     )
-    adapter = create_adapter(args.adapter, engine_bin=args.engine_bin)
+    adapter = create_adapter(
+        args.adapter,
+        engine_bin=args.engine_bin,
+        daemon_build_temperature=args.daemon_build_temperature,
+        daemon_workspace_root=args.daemon_workspace_root,
+    )
     bundle = load_corpus_bundle(corpus_path)
     result = run_benchmark(
         adapter=adapter,

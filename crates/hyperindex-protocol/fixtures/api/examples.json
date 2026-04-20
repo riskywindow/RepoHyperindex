@@ -1,0 +1,990 @@
+{
+  "requests": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-build-001",
+      "method": "parse_build",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "force": false
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-status-001",
+      "method": "parse_status",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build_id": "parse-build-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-inspect-file-001",
+      "method": "parse_inspect_file",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "path": "packages/auth/src/session.ts",
+        "include_facts": true
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-index-build-001",
+      "method": "symbol_index_build",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "force": false
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-index-status-001",
+      "method": "symbol_index_status",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build_id": "sym-index-build-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-search-001",
+      "method": "symbol_search",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "query": {
+          "text": "SessionStore",
+          "mode": "exact",
+          "kinds": ["class"],
+          "path_prefix": "packages/auth/"
+        },
+        "limit": 10
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-show-001",
+      "method": "symbol_show",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.session_store"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-definition-lookup-001",
+      "method": "definition_lookup",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.session_store"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-reference-lookup-001",
+      "method": "reference_lookup",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.session_store",
+        "limit": 25
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-resolve-001",
+      "method": "symbol_resolve",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "selector": {
+          "selector": "line_column",
+          "path": "packages/auth/src/session.ts",
+          "line": 12,
+          "column": 15
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-status-001",
+      "method": "impact_status",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-analyze-001",
+      "method": "impact_analyze",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "target": {
+          "target_kind": "symbol",
+          "value": "packages/auth/src/session/service.ts#invalidateSession",
+          "symbol_id": "sym.invalidate_session",
+          "path": "packages/auth/src/session/service.ts"
+        },
+        "change_hint": "modify_behavior",
+        "limit": 20,
+        "include_transitive": true,
+        "include_reason_paths": true
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-explain-001",
+      "method": "impact_explain",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "target": {
+          "target_kind": "file",
+          "path": "packages/api/src/routes/logout.ts"
+        },
+        "change_hint": "rename",
+        "impacted": {
+          "entity_kind": "file",
+          "path": "packages/web/src/auth/logout-client.ts"
+        },
+        "max_reason_paths": 4
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-show-missing-001",
+      "method": "symbol_show",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.missing"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-build-001",
+      "status": "success",
+      "method": "parse_build",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build": {
+          "build_id": "parse-build-001",
+          "state": "succeeded",
+          "requested_at": "2026-04-07T12:00:00Z",
+          "started_at": "2026-04-07T12:00:01Z",
+          "finished_at": "2026-04-07T12:00:02Z",
+          "counts": {
+            "planned_file_count": 18,
+            "parsed_file_count": 18,
+            "reused_file_count": 0,
+            "skipped_file_count": 0,
+            "diagnostic_count": 1
+          },
+          "loaded_from_existing_build": false,
+          "manifest": {
+            "build_id": "parse-build-001",
+            "repo_id": "repo-123",
+            "snapshot_id": "snap-001",
+            "parser_config_digest": "sha256:parse-config-001",
+            "artifact_root": ".hyperindex/data/parse-artifacts/repo-123/snap-001/parse-build-001",
+            "file_count": 18,
+            "diagnostic_count": 1,
+            "created_at": "2026-04-07T12:00:02Z"
+          }
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-status-001",
+      "status": "success",
+      "method": "parse_status",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "builds": [
+          {
+            "build_id": "parse-build-001",
+            "state": "succeeded",
+            "requested_at": "2026-04-07T12:00:00Z",
+            "started_at": "2026-04-07T12:00:01Z",
+            "finished_at": "2026-04-07T12:00:02Z",
+            "counts": {
+              "planned_file_count": 18,
+              "parsed_file_count": 18,
+              "reused_file_count": 0,
+              "skipped_file_count": 0,
+              "diagnostic_count": 1
+            },
+            "loaded_from_existing_build": false,
+            "manifest": {
+              "build_id": "parse-build-001",
+              "repo_id": "repo-123",
+              "snapshot_id": "snap-001",
+              "parser_config_digest": "sha256:parse-config-001",
+              "artifact_root": ".hyperindex/data/parse-artifacts/repo-123/snap-001/parse-build-001",
+              "file_count": 18,
+              "diagnostic_count": 1,
+              "created_at": "2026-04-07T12:00:02Z"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-parse-inspect-file-001",
+      "status": "success",
+      "method": "parse_inspect_file",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "artifact": {
+          "artifact_id": "artifact.session.ts",
+          "path": "packages/auth/src/session.ts",
+          "language": "typescript",
+          "source_kind": "base_snapshot",
+          "stage": "indexed",
+          "content_sha256": "sha256:file-001",
+          "content_bytes": 412,
+          "parser_pack_id": "ts_js_core",
+          "facts": {
+            "symbol_count": 1,
+            "occurrence_count": 2,
+            "edge_count": 2
+          },
+          "diagnostics": [
+            {
+              "severity": "warning",
+              "code": "partial_analysis",
+              "message": "re-export chains are reserved for a later slice",
+              "path": "packages/auth/src/session.ts",
+              "span": null
+            }
+          ]
+        },
+        "facts": {
+          "path": "packages/auth/src/session.ts",
+          "language": "typescript",
+          "symbols": [
+            {
+              "symbol_id": "sym.session_store",
+              "display_name": "SessionStore",
+              "qualified_name": "auth.SessionStore",
+              "kind": "class",
+              "language": "typescript",
+              "path": "packages/auth/src/session.ts",
+              "span": {
+                "start": { "line": 10, "column": 1 },
+                "end": { "line": 22, "column": 2 },
+                "bytes": { "start": 120, "end": 356 }
+              }
+            }
+          ],
+          "occurrences": [
+            {
+              "occurrence_id": "occ.session_store.def",
+              "symbol_id": "sym.session_store",
+              "path": "packages/auth/src/session.ts",
+              "span": {
+                "start": { "line": 10, "column": 14 },
+                "end": { "line": 10, "column": 26 },
+                "bytes": { "start": 133, "end": 145 }
+              },
+              "role": "definition"
+            },
+            {
+              "occurrence_id": "occ.session_store.ref.1",
+              "symbol_id": "sym.session_store",
+              "path": "packages/auth/src/session.ts",
+              "span": {
+                "start": { "line": 18, "column": 21 },
+                "end": { "line": 18, "column": 33 },
+                "bytes": { "start": 278, "end": 290 }
+              },
+              "role": "reference"
+            }
+          ],
+          "edges": [
+            {
+              "edge_id": "edge.file.contains.session_store",
+              "kind": "contains",
+              "from": {
+                "node_kind": "file",
+                "path": "packages/auth/src/session.ts"
+              },
+              "to": {
+                "node_kind": "symbol",
+                "symbol_id": "sym.session_store"
+              }
+            },
+            {
+              "edge_id": "edge.reference.to.session_store",
+              "kind": "references",
+              "from": {
+                "node_kind": "occurrence",
+                "occurrence_id": "occ.session_store.ref.1"
+              },
+              "to": {
+                "node_kind": "symbol",
+                "symbol_id": "sym.session_store"
+              }
+            }
+          ],
+          "diagnostics": [
+            {
+              "severity": "warning",
+              "code": "partial_analysis",
+              "message": "re-export chains are reserved for a later slice",
+              "path": "packages/auth/src/session.ts",
+              "span": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-index-build-001",
+      "status": "success",
+      "method": "symbol_index_build",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "build": {
+          "build_id": "sym-index-build-001",
+          "state": "succeeded",
+          "requested_at": "2026-04-07T12:00:03Z",
+          "started_at": "2026-04-07T12:00:03Z",
+          "finished_at": "2026-04-07T12:00:04Z",
+          "parser_build_id": "parse-build-001",
+          "stats": {
+            "file_count": 18,
+            "symbol_count": 42,
+            "occurrence_count": 110,
+            "edge_count": 153,
+            "diagnostic_count": 1
+          },
+          "refresh_mode": null,
+          "fallback_reason": null,
+          "loaded_from_existing_build": false,
+          "manifest": {
+            "build_id": "sym-index-build-001",
+            "repo_id": "repo-123",
+            "snapshot_id": "snap-001",
+            "parser_build_id": "parse-build-001",
+            "created_at": "2026-04-07T12:00:04Z",
+            "stats": {
+              "file_count": 18,
+              "symbol_count": 42,
+              "occurrence_count": 110,
+              "edge_count": 153,
+              "diagnostic_count": 1
+            },
+            "storage": {
+              "format": "sqlite",
+              "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+              "schema_version": 1,
+              "manifest_sha256": "sha256:index-manifest-001"
+            }
+          }
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-index-status-001",
+      "status": "success",
+      "method": "symbol_index_status",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "builds": [
+          {
+            "build_id": "sym-index-build-001",
+            "state": "succeeded",
+            "requested_at": "2026-04-07T12:00:03Z",
+            "started_at": "2026-04-07T12:00:03Z",
+            "finished_at": "2026-04-07T12:00:04Z",
+            "parser_build_id": "parse-build-001",
+            "stats": {
+              "file_count": 18,
+              "symbol_count": 42,
+              "occurrence_count": 110,
+              "edge_count": 153,
+              "diagnostic_count": 1
+            },
+            "refresh_mode": null,
+            "fallback_reason": null,
+            "loaded_from_existing_build": false,
+            "manifest": {
+              "build_id": "sym-index-build-001",
+              "repo_id": "repo-123",
+              "snapshot_id": "snap-001",
+              "parser_build_id": "parse-build-001",
+              "created_at": "2026-04-07T12:00:04Z",
+              "stats": {
+                "file_count": 18,
+                "symbol_count": 42,
+                "occurrence_count": 110,
+                "edge_count": 153,
+                "diagnostic_count": 1
+              },
+              "storage": {
+                "format": "sqlite",
+                "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+                "schema_version": 1,
+                "manifest_sha256": "sha256:index-manifest-001"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-search-001",
+      "status": "success",
+      "method": "symbol_search",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "manifest": {
+          "build_id": "sym-index-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "parser_build_id": "parse-build-001",
+          "created_at": "2026-04-07T12:00:04Z",
+          "stats": {
+            "file_count": 18,
+            "symbol_count": 42,
+            "occurrence_count": 110,
+            "edge_count": 153,
+            "diagnostic_count": 1
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:index-manifest-001"
+          }
+        },
+        "hits": [
+          {
+            "symbol": {
+              "symbol_id": "sym.session_store",
+              "display_name": "SessionStore",
+              "qualified_name": "auth.SessionStore",
+              "kind": "class",
+              "language": "typescript",
+              "path": "packages/auth/src/session.ts",
+              "span": {
+                "start": { "line": 10, "column": 1 },
+                "end": { "line": 22, "column": 2 },
+                "bytes": { "start": 120, "end": 356 }
+              }
+            },
+            "match_kind": "exact",
+            "score": 100,
+            "reason": "exact display name match"
+          }
+        ],
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-show-001",
+      "status": "success",
+      "method": "symbol_show",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "manifest": {
+          "build_id": "sym-index-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "parser_build_id": "parse-build-001",
+          "created_at": "2026-04-07T12:00:04Z",
+          "stats": {
+            "file_count": 18,
+            "symbol_count": 42,
+            "occurrence_count": 110,
+            "edge_count": 153,
+            "diagnostic_count": 1
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:index-manifest-001"
+          }
+        },
+        "symbol": {
+          "symbol_id": "sym.session_store",
+          "display_name": "SessionStore",
+          "qualified_name": "auth.SessionStore",
+          "kind": "class",
+          "language": "typescript",
+          "path": "packages/auth/src/session.ts",
+          "span": {
+            "start": { "line": 10, "column": 1 },
+            "end": { "line": 22, "column": 2 },
+            "bytes": { "start": 120, "end": 356 }
+          }
+        },
+        "definitions": [
+          {
+            "occurrence_id": "occ.session_store.def",
+            "symbol_id": "sym.session_store",
+            "path": "packages/auth/src/session.ts",
+            "span": {
+              "start": { "line": 10, "column": 14 },
+              "end": { "line": 10, "column": 26 },
+              "bytes": { "start": 133, "end": 145 }
+            },
+            "role": "definition"
+          }
+        ],
+        "related_edges": [
+          {
+            "edge_id": "edge.file.contains.session_store",
+            "kind": "contains",
+            "from": {
+              "node_kind": "file",
+              "path": "packages/auth/src/session.ts"
+            },
+            "to": {
+              "node_kind": "symbol",
+              "symbol_id": "sym.session_store"
+            }
+          }
+        ],
+        "file": {
+          "artifact_id": "artifact.session.ts",
+          "path": "packages/auth/src/session.ts",
+          "language": "typescript",
+          "source_kind": "base_snapshot",
+          "stage": "indexed",
+          "content_sha256": "sha256:file-001",
+          "content_bytes": 412,
+          "parser_pack_id": "ts_js_core",
+          "facts": {
+            "symbol_count": 1,
+            "occurrence_count": 2,
+            "edge_count": 2
+          },
+          "diagnostics": [
+            {
+              "severity": "warning",
+              "code": "partial_analysis",
+              "message": "re-export chains are reserved for a later slice",
+              "path": "packages/auth/src/session.ts",
+              "span": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-definition-lookup-001",
+      "status": "success",
+      "method": "definition_lookup",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.session_store",
+        "manifest": {
+          "build_id": "sym-index-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "parser_build_id": "parse-build-001",
+          "created_at": "2026-04-07T12:00:04Z",
+          "stats": {
+            "file_count": 18,
+            "symbol_count": 42,
+            "occurrence_count": 110,
+            "edge_count": 153,
+            "diagnostic_count": 1
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:index-manifest-001"
+          }
+        },
+        "definitions": [
+          {
+            "occurrence_id": "occ.session_store.def",
+            "symbol_id": "sym.session_store",
+            "path": "packages/auth/src/session.ts",
+            "span": {
+              "start": { "line": 10, "column": 14 },
+              "end": { "line": 10, "column": 26 },
+              "bytes": { "start": 133, "end": 145 }
+            },
+            "role": "definition"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-reference-lookup-001",
+      "status": "success",
+      "method": "reference_lookup",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "symbol_id": "sym.session_store",
+        "manifest": {
+          "build_id": "sym-index-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "parser_build_id": "parse-build-001",
+          "created_at": "2026-04-07T12:00:04Z",
+          "stats": {
+            "file_count": 18,
+            "symbol_count": 42,
+            "occurrence_count": 110,
+            "edge_count": 153,
+            "diagnostic_count": 1
+          },
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/symbols/repo-123.symbols.sqlite3",
+            "schema_version": 1,
+            "manifest_sha256": "sha256:index-manifest-001"
+          }
+        },
+        "references": [
+          {
+            "occurrence_id": "occ.session_store.ref.1",
+            "symbol_id": "sym.session_store",
+            "path": "packages/auth/src/session.ts",
+            "span": {
+              "start": { "line": 18, "column": 21 },
+              "end": { "line": 18, "column": 33 },
+              "bytes": { "start": 278, "end": 290 }
+            },
+            "role": "reference"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-resolve-001",
+      "status": "success",
+      "method": "symbol_resolve",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "selector": {
+          "selector": "line_column",
+          "path": "packages/auth/src/session.ts",
+          "line": 12,
+          "column": 15
+        },
+        "resolution": {
+          "symbol": {
+            "symbol_id": "sym.session_store",
+            "display_name": "SessionStore",
+            "qualified_name": "auth.SessionStore",
+            "kind": "class",
+            "language": "typescript",
+            "path": "packages/auth/src/session.ts",
+            "span": {
+              "start": { "line": 10, "column": 1 },
+              "end": { "line": 22, "column": 2 },
+              "bytes": { "start": 120, "end": 356 }
+            }
+          },
+          "occurrence": {
+            "occurrence_id": "occ.session_store.ref.1",
+            "symbol_id": "sym.session_store",
+            "path": "packages/auth/src/session.ts",
+            "span": {
+              "start": { "line": 18, "column": 21 },
+              "end": { "line": 18, "column": 33 },
+              "bytes": { "start": 278, "end": 290 }
+            },
+            "role": "reference"
+          }
+        },
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-status-001",
+      "status": "success",
+      "method": "impact_status",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "state": "not_ready",
+        "capabilities": {
+          "status": true,
+          "analyze": false,
+          "explain": false,
+          "materialized_store": true
+        },
+        "supported_targets": ["symbol", "file"],
+        "supported_change_scenarios": [
+          "modify_behavior",
+          "signature_change",
+          "rename",
+          "delete"
+        ],
+        "supported_result_kinds": ["symbol", "file", "package", "test"],
+        "certainty_tiers": ["certain", "likely", "possible"],
+        "manifest": {
+          "build_id": "impact-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "symbol_index_build_id": "sym-index-build-001",
+          "created_at": "2026-04-09T12:00:00Z",
+          "enrichments": [
+            {
+              "kind": "canonical_alias",
+              "state": "available",
+              "evidence_count": 18
+            },
+            {
+              "kind": "package_membership",
+              "state": "deferred",
+              "evidence_count": null
+            }
+          ],
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/impact/repo-123/impact.sqlite3",
+            "schema_version": 1,
+            "materialization_mode": "prefer_persisted"
+          },
+          "loaded_from_existing_build": false
+        },
+        "diagnostics": [
+          {
+            "severity": "warning",
+            "code": "impact_scaffold_only",
+            "message": "impact analysis is not implemented yet"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-analyze-001",
+      "status": "success",
+      "method": "impact_analyze",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "target": {
+          "target_kind": "symbol",
+          "value": "packages/auth/src/session/service.ts#invalidateSession",
+          "symbol_id": "sym.invalidate_session",
+          "path": "packages/auth/src/session/service.ts"
+        },
+        "change_hint": "modify_behavior",
+        "summary": {
+          "direct_count": 2,
+          "transitive_count": 1,
+          "certainty_counts": {
+            "certain": 2,
+            "likely": 1,
+            "possible": 0
+          }
+        },
+        "groups": [
+          {
+            "direct": true,
+            "certainty": "certain",
+            "entity_kind": "symbol",
+            "hit_count": 1,
+            "hits": [
+              {
+                "rank": 1,
+                "score": 100,
+                "entity": {
+                  "entity_kind": "symbol",
+                  "symbol_id": "sym.invalidate_session",
+                  "path": "packages/auth/src/session/service.ts",
+                  "display_name": "invalidateSession"
+                },
+                "certainty": "certain",
+                "primary_reason": "seed",
+                "depth": 0,
+                "direct": true,
+                "reason_paths": []
+              }
+            ]
+          },
+          {
+            "direct": false,
+            "certainty": "likely",
+            "entity_kind": "test",
+            "hit_count": 1,
+            "hits": [
+              {
+                "rank": 2,
+                "score": 72,
+                "entity": {
+                  "entity_kind": "test",
+                  "path": "packages/api/tests/logout-route.test.ts",
+                  "display_name": "logout route test",
+                  "symbol_id": null
+                },
+                "certainty": "likely",
+                "primary_reason": "test_affinity",
+                "depth": 1,
+                "direct": false,
+                "reason_paths": [
+                  {
+                    "summary": "changed route behavior can reach the covering logout test",
+                    "edges": [
+                      {
+                        "edge_kind": "declared_in_file",
+                        "from": {
+                          "entity_kind": "symbol",
+                          "symbol_id": "sym.invalidate_session",
+                          "path": "packages/auth/src/session/service.ts",
+                          "display_name": "invalidateSession"
+                        },
+                        "to": {
+                          "entity_kind": "file",
+                          "path": "packages/auth/src/session/service.ts"
+                        },
+                        "metadata": {}
+                      },
+                      {
+                        "edge_kind": "test_affinity",
+                        "from": {
+                          "entity_kind": "file",
+                          "path": "packages/auth/src/session/service.ts"
+                        },
+                        "to": {
+                          "entity_kind": "test",
+                          "path": "packages/api/tests/logout-route.test.ts",
+                          "display_name": "logout route test",
+                          "symbol_id": null
+                        },
+                        "metadata": {
+                          "policy": "conservative_file_to_test"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "diagnostics": [],
+        "manifest": {
+          "build_id": "impact-build-001",
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "symbol_index_build_id": "sym-index-build-001",
+          "created_at": "2026-04-09T12:00:00Z",
+          "enrichments": [
+            {
+              "kind": "canonical_alias",
+              "state": "available",
+              "evidence_count": 18
+            }
+          ],
+          "storage": {
+            "format": "sqlite",
+            "path": ".hyperindex/data/impact/repo-123/impact.sqlite3",
+            "schema_version": 1,
+            "materialization_mode": "prefer_persisted"
+          },
+          "loaded_from_existing_build": false
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-impact-explain-001",
+      "status": "success",
+      "method": "impact_explain",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "target": {
+          "target_kind": "file",
+          "path": "packages/api/src/routes/logout.ts"
+        },
+        "impacted": {
+          "entity_kind": "file",
+          "path": "packages/web/src/auth/logout-client.ts"
+        },
+        "certainty": "certain",
+        "direct": false,
+        "reason_paths": [
+          {
+            "summary": "logout.ts -> imported by logout-client.ts",
+            "edges": [
+              {
+                "edge_kind": "imported_by_file",
+                "from": {
+                  "entity_kind": "file",
+                  "path": "packages/api/src/routes/logout.ts"
+                },
+                "to": {
+                  "entity_kind": "file",
+                  "path": "packages/web/src/auth/logout-client.ts"
+                },
+                "metadata": {
+                  "path": "packages/web/src/auth/logout-client.ts"
+                }
+              }
+            ]
+          }
+        ],
+        "diagnostics": []
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-symbol-show-missing-001",
+      "status": "error",
+      "method": "symbol_show",
+      "error": {
+        "category": "symbol",
+        "code": "symbol_not_found",
+        "message": "symbol sym.missing was not found",
+        "retriable": false,
+        "payload": {
+          "subject": {
+            "kind": "symbol",
+            "id": "sym.missing",
+            "path": null
+          },
+          "validation": [],
+          "retry_after_ms": null,
+          "supported_protocol_versions": [],
+          "context": {}
+        }
+      }
+    }
+  ]
+}

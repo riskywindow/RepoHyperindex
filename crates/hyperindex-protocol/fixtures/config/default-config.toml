@@ -1,0 +1,78 @@
+version = 1
+protocol_version = "repo-hyperindex.local/v1"
+
+[directories]
+runtime_root = ".hyperindex"
+state_dir = ".hyperindex/state"
+data_dir = ".hyperindex/data"
+manifests_dir = ".hyperindex/data/manifests"
+logs_dir = ".hyperindex/logs"
+temp_dir = ".hyperindex/tmp"
+
+[transport]
+kind = "unix_socket"
+socket_path = ".hyperindex/hyperd.sock"
+connect_timeout_ms = 2000
+request_timeout_ms = 30000
+max_frame_bytes = 1048576
+
+[repo_registry]
+backend = "sqlite"
+sqlite_path = ".hyperindex/state/runtime.sqlite3"
+manifests_dir = ".hyperindex/data/manifests"
+
+[watch]
+backend = "poll"
+poll_interval_ms = 250
+debounce_ms = 100
+batch_max_events = 256
+
+[scheduler]
+max_concurrent_repos = 1
+coalesce_window_ms = 150
+idle_flush_ms = 500
+job_lease_ms = 30000
+
+[logging]
+verbosity = "info"
+format = "text"
+
+[ignores]
+global_patterns = [".git/**", "node_modules/**", "target/**", ".next/**", "dist/**"]
+repo_patterns = []
+exclude_dot_git = true
+exclude_node_modules = true
+exclude_target = true
+
+[parser]
+enabled = true
+max_file_bytes = 2097152
+diagnostics_max_per_file = 32
+cache_mode = "persistent"
+artifact_dir = ".hyperindex/data/parse-artifacts"
+
+[[parser.language_packs]]
+pack_id = "ts_js_core"
+enabled = true
+languages = ["typescript", "tsx", "javascript", "jsx", "mts", "cts"]
+include_globs = ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.mts", "**/*.cts"]
+grammar_version = "tree-sitter-typescript@phase4-contract"
+
+[symbol_index]
+enabled = true
+store_dir = ".hyperindex/data/symbols"
+default_search_limit = 25
+max_search_limit = 200
+persist_occurrences = true
+
+[impact]
+enabled = true
+store_dir = ".hyperindex/data/impact"
+materialization_mode = "prefer_persisted"
+default_limit = 20
+max_limit = 200
+default_include_transitive = true
+default_include_reason_paths = true
+max_reason_paths_per_hit = 4
+max_transitive_depth = 8
+include_possible_results = true

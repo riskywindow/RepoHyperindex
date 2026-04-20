@@ -109,15 +109,58 @@ def build_compare_output(
 def extract_compare_metrics(summary: dict[str, object]) -> dict[str, dict[str, object]]:
     """Extract the flattened comparable metric surface from a run summary."""
     instrumentation = dict(summary.get("instrumentation", {}))
+    metric_summaries = {
+        str(entry.get("metric_name")): entry for entry in summary.get("metric_summaries", [])
+    }
     return {
         "query-latency-p50": _metric("ms", instrumentation.get("query_latency_p50_ms")),
         "query-latency-p95": _metric("ms", instrumentation.get("query_latency_p95_ms")),
+        "impact-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "impact-latency", "p50"),
+        ),
+        "impact-latency-p95": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "impact-latency", "p95"),
+        ),
         "refresh-latency-p50": _metric("ms", instrumentation.get("refresh_latency_p50_ms")),
         "refresh-latency-p95": _metric("ms", instrumentation.get("refresh_latency_p95_ms")),
         "wall-clock": _metric("ms", instrumentation.get("wall_clock_ms")),
         "peak-rss": _metric("bytes", instrumentation.get("peak_rss_bytes")),
         "output-disk-usage": _metric("bytes", instrumentation.get("output_disk_usage_bytes")),
         "query-pass-rate": _metric("ratio", summary.get("query_pass_rate")),
+        "prepare-latency": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "prepare-latency", "mean"),
+        ),
+        "prepare-parse-build-latency": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "prepare-parse-build-latency", "mean"),
+        ),
+        "prepare-symbol-build-latency": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "prepare-symbol-build-latency", "mean"),
+        ),
+        "prepare-impact-analyze-latency": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "prepare-impact-analyze-latency", "mean"),
+        ),
+        "refresh-parse-build-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-parse-build-latency", "p50"),
+        ),
+        "refresh-symbol-build-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-symbol-build-latency", "p50"),
+        ),
+        "refresh-impact-analyze-latency-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-impact-analyze-latency", "p50"),
+        ),
+        "refresh-impact-refresh-elapsed-ms-p50": _metric(
+            "ms",
+            _summary_stat(metric_summaries, "refresh-impact-refresh-elapsed-ms", "p50"),
+        ),
     }
 
 
@@ -223,8 +266,13 @@ def render_compare_markdown(
         f"- Baseline: `{compare_output.baseline_run_id}`",
         f"- Candidate: `{compare_output.candidate_run_id}`",
         f"- Verdict: `{compare_output.verdict.value}`",
-        f"- Adapter: `{candidate_summary.get('adapter')}`",
+        f"- Baseline adapter: `{baseline_summary.get('adapter')}`",
+        f"- Candidate adapter: `{candidate_summary.get('adapter')}`",
         f"- Corpus: `{dict(candidate_summary.get('corpus', {})).get('corpus_id')}`",
+        "- Baseline build temperature: "
+        f"`{_benchmark_dimension(baseline_summary, 'build_temperature')}`",
+        "- Candidate build temperature: "
+        f"`{_benchmark_dimension(candidate_summary, 'build_temperature')}`",
         "",
         "## Metric Deltas",
         "",
@@ -259,6 +307,26 @@ def render_compare_markdown(
 
 def _metric(unit: str, value: object) -> dict[str, object]:
     return {"unit": unit, "value": None if value is None else float(value)}
+
+
+def _summary_stat(
+    metric_summaries: dict[str, dict[str, object]],
+    metric_name: str,
+    field_name: str,
+) -> float | None:
+    summary = metric_summaries.get(metric_name)
+    if not isinstance(summary, dict):
+        return None
+    value = summary.get(field_name)
+    return None if value is None else float(value)
+
+
+def _benchmark_dimension(summary: dict[str, object], key: str) -> str:
+    benchmark_dimensions = summary.get("benchmark_dimensions")
+    if not isinstance(benchmark_dimensions, dict):
+        return "unavailable"
+    value = benchmark_dimensions.get(key)
+    return str(value) if value is not None else "unavailable"
 
 
 def _severity_to_status(severity: BudgetSeverity) -> BudgetStatus:

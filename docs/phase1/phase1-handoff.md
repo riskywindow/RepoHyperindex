@@ -14,7 +14,8 @@ Built in this phase:
 - real-corpus selection artifacts, dry-run bootstrap planning, and snapshot metadata
 - deterministic synthetic query packs and goldens meeting the Phase 1 target counts
 - a runnable `FixtureAdapter` that lets the harness execute end to end today
-- a placeholder `ShellAdapter` boundary for the future Rust engine
+- a real daemon-backed symbol adapter for the Phase 4 parser/symbol engine
+- a placeholder `ShellAdapter` boundary for future non-daemon engine paths
 - machine-readable run outputs plus report and compare artifacts
 - smoke CI coverage and operator-facing docs
 
@@ -32,13 +33,13 @@ Phase 1 did not build:
 
 The harness is meant to evaluate engines, not to be one.
 
-## What The First Rust Engine Adapter Should Implement In Phase 2
+## What The Next Real Engine Adapters Should Implement
 
 The first real adapter should satisfy the existing boundary in
 [adapter.py](/Users/rishivinodkumar/RepoHyperindex/bench/hyperbench/adapter.py)
 without forcing a harness redesign.
 
-Minimum Phase 2 adapter responsibilities:
+Minimum next-adapter responsibilities:
 
 1. `prepare_corpus(bundle) -> PreparedCorpus`
    - create or refresh any engine-local index state for the selected bundle
@@ -59,13 +60,15 @@ Recommended Phase 2 implementation rules:
 - keep adapter-specific serialization localized to the adapter layer
 - avoid embedding report, compare, or budget logic in the engine itself
 
-If the Rust engine is invoked as a subprocess first, the shell-facing contract should map
-cleanly into the existing `QueryExecutionResult` and `RefreshExecutionResult` types. A direct
-Python FFI or RPC integration can come later if needed.
+The daemon-backed symbol adapter now proves that the existing boundary can carry real parser/symbol
+build metadata, cold/warm build comparisons, and incremental refresh results without a harness
+redesign. Future adapters should continue mapping cleanly into the same `QueryExecutionResult` and
+`RefreshExecutionResult` types, extending them only in backward-compatible ways.
 
 ## Current Risks And Tech Debt
 
-- The `ShellAdapter` is still a placeholder, so the Phase 2 engine integration path is defined but not exercised.
+- The daemon-backed symbol path is exercised for symbol benchmarking, but exact, semantic, and
+  impact real-engine adapters are still missing.
 - The fixture path proves harness correctness, but it does not simulate retrieval mistakes, partial matches, or ranking noise.
 - Run summaries are stable and machine-readable, but there is not yet a dedicated typed schema for every emitted JSONL record.
 - Real-corpus execution remains manual until repo pins are filled in and curated seed packs are replaced with verified expectations.
@@ -73,27 +76,17 @@ Python FFI or RPC integration can come later if needed.
 
 ## Recommended Next Milestones
 
-### Milestone 1: Rust adapter contract bring-up
+### Milestone 1: Exact parity
 
-- implement the first runnable Rust-engine-backed adapter behind the current boundary
-- prove `prepare_corpus`, one query type, and clear adapter error handling
+- add the first real exact-query adapter path behind the current boundary
+- prove `prepare_corpus`, exact query normalization, and clear adapter error handling
 
-### Milestone 2: Exact and symbol parity
-
-- make exact and symbol queries pass against the synthetic corpus goldens
-- validate normalized path and symbol output contracts
-
-### Milestone 3: Incremental refresh path
-
-- wire edit scenarios into the real engine adapter
-- prove the hero path around session invalidation and changed-query reporting
-
-### Milestone 4: Semantic and impact evaluation
+### Milestone 2: Semantic and impact evaluation
 
 - add the engine’s semantic and impact query support to the same harness
 - start collecting real quality deltas against the existing fixture baseline
 
-### Milestone 5: Real-corpus execution hardening
+### Milestone 3: Real-corpus execution hardening
 
 - pin real repos
 - bootstrap them locally

@@ -1,0 +1,7 @@
+[package]
+name = "hyperindex-scheduler"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hyperindex-protocol = { path = "../hyperindex-protocol" }

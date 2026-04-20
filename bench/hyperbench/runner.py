@@ -17,8 +17,11 @@ from pydantic import ValidationError
 
 from hyperbench.adapter import (
     CorpusBundle,
+    DaemonImpactAdapter,
+    DaemonSymbolAdapter,
     EngineAdapter,
     FixtureAdapter,
+    PreparedCorpus,
     QueryExecutionResult,
     RefreshExecutionResult,
     ShellAdapter,
@@ -69,10 +72,28 @@ class RunResult:
     artifacts: RunArtifacts
 
 
-def create_adapter(adapter_name: str, *, engine_bin: str | None = None) -> EngineAdapter:
+def create_adapter(
+    adapter_name: str,
+    *,
+    engine_bin: str | None = None,
+    daemon_build_temperature: str = "cold",
+    daemon_workspace_root: str | None = None,
+) -> EngineAdapter:
     """Construct an adapter implementation by name."""
     if adapter_name == "fixture":
         return FixtureAdapter()
+    if adapter_name == "daemon":
+        return DaemonSymbolAdapter(
+            engine_bin=engine_bin,
+            build_temperature=daemon_build_temperature,
+            workspace_root=daemon_workspace_root,
+        )
+    if adapter_name == "daemon-impact":
+        return DaemonImpactAdapter(
+            engine_bin=engine_bin,
+            build_temperature=daemon_build_temperature,
+            workspace_root=daemon_workspace_root,
+        )
     if adapter_name == "shell":
         return ShellAdapter(engine_bin=engine_bin)
     raise RunnerError(f"Unsupported adapter '{adapter_name}'.")
@@ -167,178 +188,271 @@ def run_benchmark(
     query_pack_ids: list[str] | None = None,
 ) -> RunResult:
     """Execute the end-to-end benchmark harness for the selected corpus bundle."""
-    if mode not in {"full", "smoke"}:
-        raise RunnerError("mode must be either 'full' or 'smoke'")
+    try:
+        if mode not in {"full", "smoke"}:
+            raise RunnerError("mode must be either 'full' or 'smoke'")
 
-    selected_query_packs = _select_query_packs(corpus_bundle, query_pack_ids, mode)
-    selected_scenarios = (
-        corpus_bundle.edit_scenarios
-        if mode == "full"
-        else corpus_bundle.edit_scenarios[: min(2, len(corpus_bundle.edit_scenarios))]
-    )
-    if not selected_query_packs:
-        raise RunnerError("No query packs were selected for the benchmark run.")
+        selected_query_packs = _select_query_packs(corpus_bundle, query_pack_ids, mode)
+        selected_scenarios = (
+            corpus_bundle.edit_scenarios
+            if mode == "full"
+            else corpus_bundle.edit_scenarios[: min(2, len(corpus_bundle.edit_scenarios))]
+        )
+        if not selected_query_packs:
+            raise RunnerError("No query packs were selected for the benchmark run.")
 
-    output_root = Path(output_dir)
-    output_root.mkdir(parents=True, exist_ok=True)
-    run_started_at = datetime.now(UTC)
-    wall_clock_start = time.perf_counter()
-    run_metadata = _collect_run_metadata(
-        adapter_name=adapter.name,
-        corpus_bundle=corpus_bundle,
-        mode=mode,
-        query_pack_ids=[pack.query_pack_id for pack in selected_query_packs],
-    )
+        output_root = Path(output_dir)
+        output_root.mkdir(parents=True, exist_ok=True)
+        run_started_at = datetime.now(UTC)
+        wall_clock_start = time.perf_counter()
+        run_metadata = _collect_run_metadata(
+            adapter_name=adapter.name,
+            corpus_bundle=corpus_bundle,
+            mode=mode,
+            query_pack_ids=[pack.query_pack_id for pack in selected_query_packs],
+        )
 
-    prepared = adapter.prepare_corpus(corpus_bundle)
-    query_rows: list[dict[str, object]] = []
-    refresh_rows: list[dict[str, object]] = []
-    event_rows: list[dict[str, object]] = [
-        {
-            "event_type": "run-metadata",
-            "run_started_at": run_started_at.isoformat(),
-            "metadata": run_metadata,
-        },
-        {
-            "event_type": "prepare",
-            "adapter": adapter.name,
-            "corpus_id": corpus_bundle.manifest.corpus_id,
-            "latency_ms": prepared.latency_ms,
-            "notes": prepared.notes,
-        }
-    ]
-
-    for pack in selected_query_packs:
-        golden = corpus_bundle.golden_sets_by_pack_id.get(pack.query_pack_id)
-        if golden is None:
-            raise RunnerError(f"Missing golden set for query pack '{pack.query_pack_id}'.")
-        for query in pack.queries:
-            expectation = corpus_bundle.expectations_by_query_id[query.query_id]
-            result = _execute_query(adapter, corpus_bundle, query)
-            evaluated_row = _evaluate_query_result(query, result, expectation, pack.query_pack_id)
-            query_rows.append(evaluated_row)
-            event_rows.append(
-                {
-                    "event_type": "query",
-                    "adapter": adapter.name,
-                    "corpus_id": corpus_bundle.manifest.corpus_id,
-                    "query_pack_id": pack.query_pack_id,
-                    "query_id": query.query_id,
-                    "query_type": query.type,
-                    "latency_ms": result.latency_ms,
-                    "passed": evaluated_row["passed"],
-                    "actual_hit_count": evaluated_row["actual_hit_count"],
-                    "expected_hit_count": evaluated_row["expected_hit_count"],
-                    "notes": result.notes,
-                }
-            )
-
-    for scenario in selected_scenarios:
-        refresh_result = adapter.run_incremental_refresh(corpus_bundle, scenario)
-        refresh_row = _normalize_refresh_row(refresh_result)
-        refresh_rows.append(refresh_row)
-        event_rows.append(
+        prepared = adapter.prepare_corpus(corpus_bundle)
+        query_rows: list[dict[str, object]] = []
+        refresh_rows: list[dict[str, object]] = []
+        event_rows: list[dict[str, object]] = [
             {
-                "event_type": "refresh",
+                "event_type": "run-metadata",
+                "run_started_at": run_started_at.isoformat(),
+                "metadata": run_metadata,
+            },
+            {
+                "event_type": "prepare",
                 "adapter": adapter.name,
                 "corpus_id": corpus_bundle.manifest.corpus_id,
-                **refresh_row,
+                "latency_ms": prepared.latency_ms,
+                "notes": prepared.notes,
+                "metadata": prepared.metadata,
+            },
+        ]
+        selected_query_ids = {
+            query.query_id for pack in selected_query_packs for query in pack.queries
+        }
+        run_metric_rows: list[dict[str, object]] = list(prepared.metric_rows)
+
+        for pack in selected_query_packs:
+            golden = corpus_bundle.golden_sets_by_pack_id.get(pack.query_pack_id)
+            if golden is None:
+                raise RunnerError(f"Missing golden set for query pack '{pack.query_pack_id}'.")
+            for query in pack.queries:
+                expectation = corpus_bundle.expectations_by_query_id[query.query_id]
+                result = _execute_query(adapter, corpus_bundle, query)
+                evaluated_row = _evaluate_query_result(
+                    query, result, expectation, pack.query_pack_id
+                )
+                query_rows.append(evaluated_row)
+                event_rows.append(
+                    {
+                        "event_type": "query",
+                        "adapter": adapter.name,
+                        "corpus_id": corpus_bundle.manifest.corpus_id,
+                        "query_pack_id": pack.query_pack_id,
+                        "query_id": query.query_id,
+                        "query_type": query.type,
+                        "latency_ms": result.latency_ms,
+                        "passed": evaluated_row["passed"],
+                        "actual_hit_count": evaluated_row["actual_hit_count"],
+                        "expected_hit_count": evaluated_row["expected_hit_count"],
+                        "notes": result.notes,
+                    }
+                )
+
+        for scenario in selected_scenarios:
+            refresh_result = adapter.run_incremental_refresh(corpus_bundle, scenario)
+            refresh_row = _normalize_refresh_row(refresh_result, selected_query_ids)
+            refresh_rows.append(refresh_row)
+            run_metric_rows.extend(refresh_result.metric_rows)
+            event_rows.append(
+                {
+                    "event_type": "refresh",
+                    "adapter": adapter.name,
+                    "corpus_id": corpus_bundle.manifest.corpus_id,
+                    **refresh_row,
+                    "metadata": refresh_result.metadata,
                 }
             )
 
-    wall_clock_ms = (time.perf_counter() - wall_clock_start) * 1000.0
-    peak_rss_bytes = _peak_rss_bytes()
-    run_metric_rows: list[dict[str, object]] = [
-        {
-            "metric_name": "wall-clock",
-            "metric_kind": "latency",
-            "unit": "ms",
-            "value": wall_clock_ms,
-            "tags": {"scope": "run"},
-        }
-    ]
-    if peak_rss_bytes is not None:
+        wall_clock_ms = (time.perf_counter() - wall_clock_start) * 1000.0
+        peak_rss_bytes = _peak_rss_bytes()
         run_metric_rows.append(
             {
-                "metric_name": "peak-rss",
-                "metric_kind": "system",
-                "unit": "bytes",
-                "value": float(peak_rss_bytes),
+                "metric_name": "wall-clock",
+                "metric_kind": "latency",
+                "unit": "ms",
+                "value": wall_clock_ms,
                 "tags": {"scope": "run"},
             }
         )
+        if peak_rss_bytes is not None:
+            run_metric_rows.append(
+                {
+                    "metric_name": "peak-rss",
+                    "metric_kind": "system",
+                    "unit": "bytes",
+                    "value": float(peak_rss_bytes),
+                    "tags": {"scope": "run"},
+                }
+            )
 
-    metric_samples = build_metric_samples(
-        query_rows=query_rows,
-        refresh_rows=refresh_rows,
-        run_metric_rows=run_metric_rows,
-    )
-    metric_summaries = summarize_metric_samples(metric_samples)
+        metric_samples = build_metric_samples(
+            query_rows=query_rows,
+            refresh_rows=refresh_rows,
+            run_metric_rows=run_metric_rows,
+        )
+        metric_summaries = summarize_metric_samples(metric_samples)
 
-    run_id = _build_run_id(adapter.name, corpus_bundle.manifest.corpus_id, mode)
-    summary_payload = _build_summary_payload(
-        run_id=run_id,
-        run_started_at=run_started_at,
-        adapter_name=adapter.name,
-        corpus_bundle=corpus_bundle,
-        query_rows=query_rows,
-        refresh_rows=refresh_rows,
-        metric_summaries=metric_summaries,
-        mode=mode,
-        selected_query_packs=selected_query_packs,
-        run_metadata=run_metadata,
-        peak_rss_bytes=peak_rss_bytes,
-        wall_clock_ms=wall_clock_ms,
-        output_disk_usage_bytes=None,
-    )
-    event_rows.append(
-        {
-            "event_type": "run-summary",
-            "run_id": run_id,
-            "adapter": adapter.name,
-            "corpus_id": corpus_bundle.manifest.corpus_id,
-            "query_count": len(query_rows),
-            "refresh_scenario_count": len(refresh_rows),
-            "query_pass_count": summary_payload["query_pass_count"],
-        }
-    )
-
-    artifacts = RunArtifacts(
-        output_dir=output_root,
-        summary_path=output_root / "summary.json",
-        events_path=output_root / "events.jsonl",
-        metrics_path=output_root / "metrics.jsonl",
-        query_results_csv_path=output_root / "query_results.csv",
-        refresh_results_csv_path=output_root / "refresh_results.csv",
-        metric_summaries_csv_path=output_root / "metric_summaries.csv",
-    )
-    write_jsonl(artifacts.events_path, event_rows)
-    write_csv(
-        artifacts.query_results_csv_path,
-        query_rows,
-        [
-            "query_pack_id",
-            "query_id",
-            "query_type",
-            "latency_ms",
-            "expected_hit_count",
-            "actual_hit_count",
-            "matched_hit_count",
-            "top_hit_path",
-            "expected_top_hit_path",
-            "passed",
-            "notes",
-        ],
-    )
-    write_csv(
-        artifacts.refresh_results_csv_path,
-        refresh_rows,
-        ["scenario_id", "latency_ms", "changed_query_count", "changed_queries", "notes"],
-    )
-    write_csv(
-        artifacts.metric_summaries_csv_path,
-        [
+        run_id = _build_run_id(adapter.name, corpus_bundle.manifest.corpus_id, mode)
+        summary_payload = _build_summary_payload(
+            run_id=run_id,
+            run_started_at=run_started_at,
+            adapter_name=adapter.name,
+            corpus_bundle=corpus_bundle,
+            prepared=prepared,
+            query_rows=query_rows,
+            refresh_rows=refresh_rows,
+            metric_summaries=metric_summaries,
+            mode=mode,
+            selected_query_packs=selected_query_packs,
+            run_metadata=run_metadata,
+            peak_rss_bytes=peak_rss_bytes,
+            wall_clock_ms=wall_clock_ms,
+            output_disk_usage_bytes=None,
+        )
+        event_rows.append(
             {
+                "event_type": "run-summary",
+                "run_id": run_id,
+                "adapter": adapter.name,
+                "corpus_id": corpus_bundle.manifest.corpus_id,
+                "query_count": len(query_rows),
+                "refresh_scenario_count": len(refresh_rows),
+                "query_pass_count": summary_payload["query_pass_count"],
+            }
+        )
+
+        artifacts = RunArtifacts(
+            output_dir=output_root,
+            summary_path=output_root / "summary.json",
+            events_path=output_root / "events.jsonl",
+            metrics_path=output_root / "metrics.jsonl",
+            query_results_csv_path=output_root / "query_results.csv",
+            refresh_results_csv_path=output_root / "refresh_results.csv",
+            metric_summaries_csv_path=output_root / "metric_summaries.csv",
+        )
+        write_jsonl(artifacts.events_path, event_rows)
+        write_csv(
+            artifacts.query_results_csv_path,
+            query_rows,
+            [
+                "query_pack_id",
+                "query_id",
+                "query_type",
+                "latency_ms",
+                "expected_hit_count",
+                "actual_hit_count",
+                "matched_hit_count",
+                "top_hit_path",
+                "expected_top_hit_path",
+                "passed",
+                "notes",
+            ],
+        )
+        write_csv(
+            artifacts.refresh_results_csv_path,
+            refresh_rows,
+            [
+                "scenario_id",
+                "latency_ms",
+                "changed_query_count",
+                "changed_queries",
+                "refresh_mode",
+                "fallback_reason",
+                "loaded_from_existing_build",
+                "parse_build_latency_ms",
+                "symbol_build_latency_ms",
+                "impact_analyze_latency_ms",
+                "symbol_refresh_mode",
+                "symbol_fallback_reason",
+                "symbol_loaded_from_existing_build",
+                "impact_refresh_mode",
+                "impact_fallback_reason",
+                "impact_loaded_from_existing_build",
+                "impact_refresh_elapsed_ms",
+                "impact_refresh_files_touched",
+                "impact_refresh_entities_recomputed",
+                "impact_refresh_edges_refreshed",
+                "impact_query_id",
+                "impact_query_target_type",
+                "impact_query_target",
+                "target_path",
+                "notes",
+            ],
+        )
+        write_csv(
+            artifacts.metric_summaries_csv_path,
+            [
+                {
+                    "metric_name": summary.metric_name,
+                    "metric_kind": summary.metric_kind.value,
+                    "unit": summary.unit.value,
+                    "sample_count": summary.sample_count,
+                    "minimum": summary.minimum,
+                    "maximum": summary.maximum,
+                    "mean": summary.mean,
+                    "p50": summary.p50,
+                    "p95": summary.p95,
+                    "p99": summary.p99,
+                }
+                for summary in metric_summaries
+            ],
+            [
+                "metric_name",
+                "metric_kind",
+                "unit",
+                "sample_count",
+                "minimum",
+                "maximum",
+                "mean",
+                "p50",
+                "p95",
+                "p99",
+            ],
+        )
+        write_json(artifacts.summary_path, summary_payload)
+        output_disk_usage_bytes = _directory_size_bytes(output_root)
+        run_metric_rows.append(
+            {
+                "metric_name": "output-disk-usage",
+                "metric_kind": "system",
+                "unit": "bytes",
+                "value": float(output_disk_usage_bytes),
+                "tags": {"scope": "run"},
+            }
+        )
+        metric_samples = build_metric_samples(
+            query_rows=query_rows,
+            refresh_rows=refresh_rows,
+            run_metric_rows=run_metric_rows,
+        )
+        metric_summaries = summarize_metric_samples(metric_samples)
+        metrics_rows = [
+            {
+                "record_type": "sample",
+                "metric_name": sample.metric_name,
+                "metric_kind": sample.metric_kind.value,
+                "unit": sample.unit.value,
+                "value": sample.value,
+                "tags": sample.tags,
+            }
+            for sample in metric_samples
+        ] + [
+            {
+                "record_type": "summary",
                 "metric_name": summary.metric_name,
                 "metric_kind": summary.metric_kind.value,
                 "unit": summary.unit.value,
@@ -351,121 +465,68 @@ def run_benchmark(
                 "p99": summary.p99,
             }
             for summary in metric_summaries
-        ],
-        [
-            "metric_name",
-            "metric_kind",
-            "unit",
-            "sample_count",
-            "minimum",
-            "maximum",
-            "mean",
-            "p50",
-            "p95",
-            "p99",
-        ],
-    )
-    write_json(artifacts.summary_path, summary_payload)
-    output_disk_usage_bytes = _directory_size_bytes(output_root)
-    run_metric_rows.append(
-        {
-            "metric_name": "output-disk-usage",
-            "metric_kind": "system",
-            "unit": "bytes",
-            "value": float(output_disk_usage_bytes),
-            "tags": {"scope": "run"},
-        }
-    )
-    metric_samples = build_metric_samples(
-        query_rows=query_rows,
-        refresh_rows=refresh_rows,
-        run_metric_rows=run_metric_rows,
-    )
-    metric_summaries = summarize_metric_samples(metric_samples)
-    metrics_rows = [
-        {
-            "record_type": "sample",
-            "metric_name": sample.metric_name,
-            "metric_kind": sample.metric_kind.value,
-            "unit": sample.unit.value,
-            "value": sample.value,
-            "tags": sample.tags,
-        }
-        for sample in metric_samples
-    ] + [
-        {
-            "record_type": "summary",
-            "metric_name": summary.metric_name,
-            "metric_kind": summary.metric_kind.value,
-            "unit": summary.unit.value,
-            "sample_count": summary.sample_count,
-            "minimum": summary.minimum,
-            "maximum": summary.maximum,
-            "mean": summary.mean,
-            "p50": summary.p50,
-            "p95": summary.p95,
-            "p99": summary.p99,
-        }
-        for summary in metric_summaries
-    ]
-    write_jsonl(artifacts.metrics_path, metrics_rows)
-    write_csv(
-        artifacts.metric_summaries_csv_path,
-        [
-            {
-                "metric_name": summary.metric_name,
-                "metric_kind": summary.metric_kind.value,
-                "unit": summary.unit.value,
-                "sample_count": summary.sample_count,
-                "minimum": summary.minimum,
-                "maximum": summary.maximum,
-                "mean": summary.mean,
-                "p50": summary.p50,
-                "p95": summary.p95,
-                "p99": summary.p99,
-            }
-            for summary in metric_summaries
-        ],
-        [
-            "metric_name",
-            "metric_kind",
-            "unit",
-            "sample_count",
-            "minimum",
-            "maximum",
-            "mean",
-            "p50",
-            "p95",
-            "p99",
-        ],
-    )
-    summary_payload = _build_summary_payload(
-        run_id=run_id,
-        run_started_at=run_started_at,
-        adapter_name=adapter.name,
-        corpus_bundle=corpus_bundle,
-        query_rows=query_rows,
-        refresh_rows=refresh_rows,
-        metric_summaries=metric_summaries,
-        mode=mode,
-        selected_query_packs=selected_query_packs,
-        run_metadata=run_metadata,
-        peak_rss_bytes=peak_rss_bytes,
-        wall_clock_ms=wall_clock_ms,
-        output_disk_usage_bytes=output_disk_usage_bytes,
-    )
-    write_json(artifacts.summary_path, summary_payload)
+        ]
+        write_jsonl(artifacts.metrics_path, metrics_rows)
+        write_csv(
+            artifacts.metric_summaries_csv_path,
+            [
+                {
+                    "metric_name": summary.metric_name,
+                    "metric_kind": summary.metric_kind.value,
+                    "unit": summary.unit.value,
+                    "sample_count": summary.sample_count,
+                    "minimum": summary.minimum,
+                    "maximum": summary.maximum,
+                    "mean": summary.mean,
+                    "p50": summary.p50,
+                    "p95": summary.p95,
+                    "p99": summary.p99,
+                }
+                for summary in metric_summaries
+            ],
+            [
+                "metric_name",
+                "metric_kind",
+                "unit",
+                "sample_count",
+                "minimum",
+                "maximum",
+                "mean",
+                "p50",
+                "p95",
+                "p99",
+            ],
+        )
+        summary_payload = _build_summary_payload(
+            run_id=run_id,
+            run_started_at=run_started_at,
+            adapter_name=adapter.name,
+            corpus_bundle=corpus_bundle,
+            prepared=prepared,
+            query_rows=query_rows,
+            refresh_rows=refresh_rows,
+            metric_summaries=metric_summaries,
+            mode=mode,
+            selected_query_packs=selected_query_packs,
+            run_metadata=run_metadata,
+            peak_rss_bytes=peak_rss_bytes,
+            wall_clock_ms=wall_clock_ms,
+            output_disk_usage_bytes=output_disk_usage_bytes,
+        )
+        write_json(artifacts.summary_path, summary_payload)
 
-    return RunResult(
-        run_id=run_id,
-        adapter_name=adapter.name,
-        corpus_id=corpus_bundle.manifest.corpus_id,
-        query_pack_ids=[pack.query_pack_id for pack in selected_query_packs],
-        mode=mode,
-        query_count=len(query_rows),
-        refresh_scenario_count=len(refresh_rows),
-        artifacts=artifacts,
-    )
+        return RunResult(
+            run_id=run_id,
+            adapter_name=adapter.name,
+            corpus_id=corpus_bundle.manifest.corpus_id,
+            query_pack_ids=[pack.query_pack_id for pack in selected_query_packs],
+            mode=mode,
+            query_count=len(query_rows),
+            refresh_scenario_count=len(refresh_rows),
+            artifacts=artifacts,
+        )
+    finally:
+        adapter.close()
 
 
 def _select_query_packs(
@@ -488,8 +549,18 @@ def _select_query_packs(
 
     smoke_packs: list[QueryPack] = []
     for pack in selected:
-        smoke_packs.append(pack.model_copy(update={"queries": pack.queries[:1]}))
+        smoke_packs.append(pack.model_copy(update={"queries": [_select_smoke_query(pack)]}))
     return smoke_packs
+
+
+def _select_smoke_query(pack: QueryPack):
+    for query in pack.queries:
+        if "hero" in query.tags:
+            return query
+    for query in pack.queries:
+        if "invalidate-session" in query.query_id or "hero" in query.query_id:
+            return query
+    return pack.queries[0]
 
 
 def _execute_query(
@@ -546,12 +617,45 @@ def _evaluate_query_result(
     }
 
 
-def _normalize_refresh_row(result: RefreshExecutionResult) -> dict[str, object]:
+def _normalize_refresh_row(
+    result: RefreshExecutionResult,
+    selected_query_ids: set[str],
+) -> dict[str, object]:
+    changed_queries = [
+        query_id for query_id in result.changed_queries if query_id in selected_query_ids
+    ]
+    metadata = dict(result.metadata)
     return {
         "scenario_id": result.scenario_id,
         "latency_ms": result.latency_ms,
-        "changed_query_count": len(result.changed_queries),
-        "changed_queries": ",".join(result.changed_queries),
+        "changed_query_count": len(changed_queries),
+        "changed_queries": ",".join(changed_queries),
+        "refresh_mode": metadata.get("refresh_mode", ""),
+        "fallback_reason": metadata.get("fallback_reason", ""),
+        "loaded_from_existing_build": metadata.get("loaded_from_existing_build", False),
+        "parse_build_latency_ms": metadata.get("parse_build_latency_ms", ""),
+        "symbol_build_latency_ms": metadata.get("symbol_build_latency_ms", ""),
+        "impact_analyze_latency_ms": metadata.get("impact_analyze_latency_ms", ""),
+        "symbol_refresh_mode": metadata.get("symbol_refresh_mode", ""),
+        "symbol_fallback_reason": metadata.get("symbol_fallback_reason", ""),
+        "symbol_loaded_from_existing_build": metadata.get(
+            "symbol_loaded_from_existing_build", False
+        ),
+        "impact_refresh_mode": metadata.get("impact_refresh_mode", ""),
+        "impact_fallback_reason": metadata.get("impact_fallback_reason", ""),
+        "impact_loaded_from_existing_build": metadata.get(
+            "impact_loaded_from_existing_build", False
+        ),
+        "impact_refresh_elapsed_ms": metadata.get("impact_refresh_elapsed_ms", ""),
+        "impact_refresh_files_touched": metadata.get("impact_refresh_files_touched", ""),
+        "impact_refresh_entities_recomputed": metadata.get(
+            "impact_refresh_entities_recomputed", ""
+        ),
+        "impact_refresh_edges_refreshed": metadata.get("impact_refresh_edges_refreshed", ""),
+        "impact_query_id": metadata.get("impact_query_id", ""),
+        "impact_query_target_type": metadata.get("impact_query_target_type", ""),
+        "impact_query_target": metadata.get("impact_query_target", ""),
+        "target_path": metadata.get("target_path", ""),
         "notes": " | ".join(result.notes),
     }
 
@@ -562,6 +666,7 @@ def _build_summary_payload(
     run_started_at: datetime,
     adapter_name: str,
     corpus_bundle: CorpusBundle,
+    prepared: PreparedCorpus,
     query_rows: list[dict[str, object]],
     refresh_rows: list[dict[str, object]],
     metric_summaries: list,
@@ -575,6 +680,10 @@ def _build_summary_payload(
     type_counter = Counter(str(row["query_type"]) for row in query_rows)
     pass_counter = sum(1 for row in query_rows if bool(row["passed"]))
     query_pass_rate = (pass_counter / len(query_rows)) if query_rows else 0.0
+    refresh_mode_counter = Counter(
+        str(row["refresh_mode"]) for row in refresh_rows if str(row.get("refresh_mode") or "")
+    )
+    fallback_count = sum(1 for row in refresh_rows if row.get("fallback_reason"))
     return {
         "schema_version": "1",
         "run_id": run_id,
@@ -594,6 +703,22 @@ def _build_summary_payload(
         "query_pass_rate": query_pass_rate,
         "refresh_scenario_count": len(refresh_rows),
         "query_counts_by_type": dict(sorted(type_counter.items())),
+        "benchmark_dimensions": {
+            "query_types": sorted(type_counter),
+            "adapter_transport": prepared.metadata.get("transport"),
+            "engine_backend": prepared.metadata.get("engine_backend"),
+            "build_temperature": prepared.metadata.get("build_temperature"),
+        },
+        "prepare": {
+            "latency_ms": prepared.latency_ms,
+            "notes": prepared.notes,
+            "metadata": prepared.metadata,
+        },
+        "refresh_summary": {
+            "scenario_count": len(refresh_rows),
+            "mode_counts": dict(sorted(refresh_mode_counter.items())),
+            "fallback_count": fallback_count,
+        },
         "instrumentation": {
             "wall_clock_ms": wall_clock_ms,
             "query_latency_p50_ms": _summary_stat(metric_summaries, "query-latency", "p50"),
