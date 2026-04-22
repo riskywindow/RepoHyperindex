@@ -1,12 +1,94 @@
-# Repo Hyperindex Phase 7 Status: Planner Workspace Scaffolded
+# Repo Hyperindex Phase 7 Status: Planner Route Adapters Landed
 
-Phase 7 status: planner workspace scaffolded as of 2026-04-21.
+Phase 7 status: planner route adapters landed as of 2026-04-22.
 
 Primary planning documents:
 
 - [execution-plan.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/execution-plan.md)
 - [acceptance.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/acceptance.md)
 - [decisions.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/decisions.md)
+
+## 2026-04-22 Phase 7 Route Registry And Normalized Engine Adapters
+
+### What Was Completed
+
+- Added a planner-owned normalized route-adapter layer in:
+  - [route_adapters.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_adapters.rs)
+  - [route_registry.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_registry.rs)
+- The new planner adapter boundary now models:
+  - per-route readiness
+  - route-specific supported filters
+  - route constraints for later fusion and trust shaping
+  - normalized internal candidates with:
+    - engine type
+    - engine-local score
+    - file, symbol, and span provenance when available
+    - engine diagnostics and notes
+- Replaced the old trace-only planner registry behavior with real selected-route execution for:
+  - symbol
+  - semantic
+  - impact
+- Kept exact as the explicit unavailable compatibility boundary through
+  [exact_route.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/exact_route.rs).
+- Wired daemon-backed real executors in
+  [crates/hyperindex-daemon/src/planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/planner.rs)
+  so planner status, capabilities, query, and explain now consume the same route registry shape.
+- `planner_explain` now returns normalized candidates from the existing engines.
+- `planner_query` now records real candidate counts and route execution traces while still staying
+  grouping-deferred.
+- Added focused coverage for:
+  - normalized candidate filtering and metadata preservation
+  - generic multi-engine registry execution without planner special-casing
+  - real daemon-backed route readiness for exact, symbol, semantic, and impact
+  - explicit non-destructive impact target failure behavior
+
+### Key Decisions
+
+- Keep the normalized adapter contract in the planner crate and the real engine executors in the
+  daemon crate.
+- Treat route capability detection and route execution as one registry concern so the planner does
+  not duplicate per-route branching elsewhere.
+- Let `planner_explain` surface normalized candidates now, while preserving the existing deferment
+  of fusion, dedupe, grouping, and trust payload shaping.
+- Keep exact explicitly unavailable rather than widening into exact-engine work.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner -p hyperindex-daemon
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised:
+    - planner route-adapter normalization and registry behavior
+    - real daemon-backed planner route readiness and explain execution
+    - existing daemon symbol, semantic, and impact regression coverage
+- `git diff --check`
+  - passed
+
+### Remaining Risks / TODOs
+
+- Score fusion, deduplication, result grouping, and trust payload shaping are still placeholder
+  layers above the new normalized candidate seam.
+- `planner_query` still returns grouping-deferred no-answer payloads because grouped planner output
+  is not implemented yet.
+- Route-specific package and symbol-shape filter support is explicit and testable now, but it is
+  still not uniform across all routes.
+- There is still no checked-in exact-search engine, so exact remains intentionally unavailable.
+- The Phase 1 harness still has no `daemon-planner` adapter path.
+
+### Next Recommended Prompt
+
+- Implement the next Phase 7 slice on top of the normalized candidates:
+  add deterministic fusion, deduplication, grouping, and trust payload shaping, or add the
+  backward-compatible `daemon-planner` harness adapter if you want planner-mode benchmarking next
 
 ## 2026-04-21 Phase 7 Query IR And Deterministic Intent Classification
 

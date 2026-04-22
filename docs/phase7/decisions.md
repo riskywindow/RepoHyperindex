@@ -1,5 +1,70 @@
 # Repo Hyperindex Phase 7 Decisions
 
+## 2026-04-22 Add Planner-Side Normalized Route Adapters Over Existing Engines
+
+### Status
+
+- accepted
+
+### Context
+
+- The prior Phase 7 planner work had:
+  - deterministic intent classification
+  - normalized planner IR
+  - route traces
+  - public planner status, capabilities, query, and explain contracts
+- It did not yet have:
+  - a registry that could describe per-route readiness and constraints explicitly
+  - a normalized internal candidate shape for later fusion and trust payloads
+  - a clean execution seam for the checked-in symbol, semantic, and impact engines
+- This task explicitly requires:
+  - capability detection for exact, symbol, semantic, and impact routes
+  - normalized planner-side adapters over the existing engines
+  - graceful handling for unavailable, unbuilt, degraded, or failing routes
+  - multi-engine candidate retrieval without hard-coding route-specific execution logic all over
+    the planner
+
+### Decision
+
+- Add a planner-owned route-adapter boundary in `hyperindex-planner` with:
+  - `PlannerRouteAdapter`
+  - `PlannerRouteCapabilityReport`
+  - `PlannerRouteConstraints`
+  - `NormalizedPlannerCandidate`
+  - `PlannerRouteExecution`
+- Make the route registry own both:
+  - per-route capability inspection
+  - selected-route execution and normalized candidate collection
+- Keep exact as the existing unavailable boundary through
+  `UnavailableExactRouteProvider`.
+- Implement the real symbol, semantic, and impact executors in
+  `crates/hyperindex-daemon/src/planner.rs`, not in the planner crate itself.
+- Let `planner_explain` expose normalized candidates now, while `planner_query` stays
+  grouping-deferred until fusion and grouping land.
+
+### Why
+
+- The planner crate should own the normalized boundary and candidate model used by later fusion and
+  trust payload work.
+- The daemon crate already owns the checked-in engine services and runtime config, so it is the
+  right place to implement the actual symbol, semantic, and impact executors.
+- Separating route capability reports from route execution keeps readiness explicit and testable
+  without forcing planner callers to scrape traces.
+- Keeping `planner_query` grouping-deferred preserves scope:
+  this slice is about adapters and route execution, not final ranking or grouping policy.
+
+### Consequences
+
+- Planner traces can now distinguish:
+  - route disabled or unavailable
+  - route skipped due to unsupported requested filters
+  - route executed with normalized candidates
+- `planner_explain` is now the primary bring-up surface for normalized multi-engine candidates.
+- `planner_query` remains honest:
+  it may report `execution_deferred` when candidates exist but fusion and grouping do not yet.
+- Future Phase 7 work can build fusion, dedupe, grouping, trust payloads, and a harness adapter on
+  top of the new normalized candidate seam instead of bypassing it.
+
 ## 2026-04-21 Encode Deterministic Route Planning In The Query IR
 
 ### Status

@@ -95,6 +95,31 @@ impl PlannerRuntimeContext {
     }
 
     pub fn capabilities(&self) -> PlannerCapabilities {
+        self.capabilities_for_routes(vec![
+            self.route_capability(PlannerRouteKind::Exact),
+            self.route_capability(PlannerRouteKind::Symbol),
+            self.route_capability(PlannerRouteKind::Semantic),
+            self.route_capability(PlannerRouteKind::Impact),
+        ])
+    }
+
+    pub fn query_state_for_routes(&self, routes: &[PlannerRouteCapability]) -> PlannerQueryState {
+        if !self.planner_enabled {
+            PlannerQueryState::Disabled
+        } else if routes
+            .iter()
+            .any(|route| route.route_kind != PlannerRouteKind::Exact && route.available)
+        {
+            PlannerQueryState::Ready
+        } else {
+            PlannerQueryState::Degraded
+        }
+    }
+
+    pub fn capabilities_for_routes(
+        &self,
+        routes: Vec<PlannerRouteCapability>,
+    ) -> PlannerCapabilities {
         PlannerCapabilities {
             status: true,
             query: self.planner_enabled,
@@ -117,12 +142,7 @@ impl PlannerRuntimeContext {
                 extensions: true,
                 symbol_kinds: true,
             },
-            routes: vec![
-                self.route_capability(PlannerRouteKind::Exact),
-                self.route_capability(PlannerRouteKind::Symbol),
-                self.route_capability(PlannerRouteKind::Semantic),
-                self.route_capability(PlannerRouteKind::Impact),
-            ],
+            routes,
         }
     }
 

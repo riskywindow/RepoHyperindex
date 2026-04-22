@@ -365,19 +365,24 @@ It contains:
 The config surface is contract-first:
 
 - it defines defaults
-- it does not imply live planning exists yet
+- it does not imply fused planner answers exist yet
 - it keeps exact search typed without pretending the engine ships today
 
 ## Current Slice Note
 
-The checked-in Phase 7 slice implements the public contract, fixtures, config defaults, and
-roundtrip coverage before live route execution.
+The checked-in Phase 7 slice now implements the public contract plus a planner-side capability
+registry and normalized route adapters over the existing symbol, semantic, and impact engines.
 
 Current truthful behavior is therefore:
 
-- planner routes may appear in traces as `deferred`
-- `planner_query` and `planner_explain` may return `no_answer.reason = execution_deferred`
-- grouped results and normalized candidates remain empty until real route execution lands
+- the exact route may appear in traces as explicitly unavailable
+- symbol, semantic, and impact routes may appear in traces as `executed` when they are ready and
+  selected
+- `planner_explain` may return normalized candidates from those executed routes
+- `planner_query` may still return `no_answer.reason = execution_deferred` while score fusion and
+  grouping remain deferred
+- grouped results remain empty until fusion, deduplication, and grouping land
 
-That is intentional. The contract is ready for implementation, but the implementation is not yet
-claiming live planning behavior.
+That is intentional. Route execution now exists behind a normalized boundary, while final
+route-planning policy, score fusion, deduplication, grouping, and trust shaping remain later
+Phase 7 slices.

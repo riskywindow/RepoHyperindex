@@ -7,12 +7,19 @@ pub mod planner_engine;
 pub mod planner_model;
 pub mod query_ir;
 pub mod result_grouping;
+pub mod route_adapters;
 pub mod route_registry;
 pub mod score_fusion;
 pub mod trust_payloads;
 
 pub use daemon_integration::PlannerRuntimeContext;
 pub use planner_model::{PlannerError, PlannerResult, PlannerWorkspace};
+pub use route_adapters::{
+    NormalizedPlannerCandidate, PlannerRouteAdapter, PlannerRouteCapabilityReport,
+    PlannerRouteConstraints, PlannerRouteExecution, PlannerRouteExecutionState,
+    PlannerRouteReadiness, PlannerRouteRequest,
+};
+pub use route_registry::{PlannerRoutePlan, PlannerRouteRegistry};
 
 #[cfg(test)]
 mod tests {

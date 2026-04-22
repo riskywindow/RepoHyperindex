@@ -1,7 +1,7 @@
 use hyperindex_protocol::planner::{
-    PlannerExplainResponse, PlannerModeDecision, PlannerNoAnswer, PlannerNoAnswerReason,
-    PlannerQueryIr, PlannerQueryParams, PlannerQueryResponse, PlannerQueryStats, PlannerTrace,
-    PlannerTraceStep,
+    PlannerCandidate, PlannerExplainResponse, PlannerModeDecision, PlannerNoAnswer,
+    PlannerNoAnswerReason, PlannerQueryIr, PlannerQueryParams, PlannerQueryResponse,
+    PlannerQueryStats, PlannerTrace, PlannerTraceStep,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use tracing::info;
@@ -18,10 +18,12 @@ use crate::trust_payloads::TrustPayloadFactory;
 struct PlannerScaffoldOutput {
     mode: PlannerModeDecision,
     ir: PlannerQueryIr,
+    candidates: Vec<PlannerCandidate>,
     groups: Vec<hyperindex_protocol::planner::PlannerResultGroup>,
     diagnostics: Vec<hyperindex_protocol::planner::PlannerDiagnostic>,
     trace: PlannerTrace,
-    no_answer: PlannerNoAnswer,
+    no_answer: Option<PlannerNoAnswer>,
+    ambiguity: Option<hyperindex_protocol::planner::PlannerAmbiguity>,
     stats: PlannerQueryStats,
 }
 
@@ -64,8 +66,8 @@ impl PlannerEngine {
             groups: scaffold.groups,
             diagnostics: scaffold.diagnostics,
             trace: (params.include_trace || params.explain).then_some(scaffold.trace),
-            no_answer: Some(scaffold.no_answer),
-            ambiguity: None,
+            no_answer: scaffold.no_answer,
+            ambiguity: scaffold.ambiguity,
             stats: scaffold.stats,
         })
     }
@@ -102,12 +104,12 @@ impl PlannerEngine {
             snapshot_id: snapshot.snapshot_id.clone(),
             mode: scaffold.mode,
             ir: scaffold.ir,
-            candidates: Vec::new(),
+            candidates: scaffold.candidates,
             groups: scaffold.groups,
             diagnostics: scaffold.diagnostics,
             trace: Some(scaffold.trace),
-            no_answer: Some(scaffold.no_answer),
-            ambiguity: None,
+            no_answer: scaffold.no_answer,
+            ambiguity: scaffold.ambiguity,
             stats: scaffold.stats,
         })
     }
@@ -137,20 +139,51 @@ impl PlannerEngine {
         let fused_groups = fusion.fuse_placeholder(&route_plan.traces);
         let grouped = grouping.group_placeholder(fused_groups);
         let groups = trust_payloads.decorate_placeholder(grouped);
+        let candidates = route_plan
+            .candidates
+            .iter()
+            .map(|candidate| candidate.to_public_candidate())
+            .collect::<Vec<_>>();
 
         let mut diagnostics = runtime_diagnostics(context);
+        diagnostics.extend(route_plan.diagnostics.clone());
         diagnostics.push(scaffold_warning(
-            "planner_execution_deferred",
-            "planner route execution, score fusion, and grouping remain deferred in this contract slice",
+            if candidates.is_empty() {
+                "planner_execution_deferred"
+            } else {
+                "planner_grouping_deferred"
+            },
+            if candidates.is_empty() {
+                "planner route execution, score fusion, and grouping remain deferred in this contract slice"
+            } else {
+                "planner route execution is live, but score fusion and grouping remain deferred in this contract slice"
+            },
         ));
         diagnostics.push(scaffold_info(
             "planner_contract_ready",
             "planner protocol, config, daemon, and CLI surfaces are wired for Phase 7 implementation work",
         ));
+        if !candidates.is_empty() {
+            diagnostics.push(scaffold_info(
+                "planner_candidates_materialized",
+                format!(
+                    "planner explain materialized {} normalized candidate(s) across {} route(s)",
+                    candidates.len(),
+                    route_plan
+                        .traces
+                        .iter()
+                        .filter(|trace| trace.status
+                            == hyperindex_protocol::planner::PlannerRouteStatus::Executed)
+                        .count()
+                ),
+            ));
+        }
 
         let routes_considered = route_plan.routes_considered();
         let routes_available = route_plan.routes_available();
         let groups_returned = groups.len() as u32;
+        let no_answer = no_answer_for(context, params, &route_plan, groups_returned);
+        let ambiguity = route_plan.ambiguity.clone();
         let trace = PlannerTrace {
             planner_version: planner_version(),
             selected_mode: mode.selected_mode.clone(),
@@ -181,33 +214,96 @@ impl PlannerEngine {
                         params.include_trace, params.explain
                     ),
                 },
+                PlannerTraceStep {
+                    code: "candidate_summary".to_string(),
+                    message: format!(
+                        "raw_candidates={} normalized_candidates={}",
+                        route_plan.raw_candidate_count,
+                        candidates.len()
+                    ),
+                },
             ],
-            routes: route_plan.traces,
+            routes: route_plan.traces.clone(),
         };
 
         Ok(PlannerScaffoldOutput {
             mode,
             ir,
+            candidates,
             groups,
             diagnostics,
             trace,
-            no_answer: PlannerNoAnswer {
-                reason: PlannerNoAnswerReason::ExecutionDeferred,
-                details: vec![
-                    "The public planner contract is implemented before live route execution."
-                        .to_string(),
-                    "Use planner_explain for deterministic trace inspection during bring-up."
-                        .to_string(),
-                ],
-            },
+            no_answer,
+            ambiguity,
             stats: PlannerQueryStats {
                 limit_requested: params.limit,
                 routes_considered,
                 routes_available,
-                candidates_considered: 0,
+                candidates_considered: route_plan.candidates.len() as u32,
                 groups_returned,
                 elapsed_ms: 0,
             },
         })
     }
+}
+
+fn no_answer_for(
+    context: &PlannerRuntimeContext,
+    params: &PlannerQueryParams,
+    route_plan: &PlannerRoutePlan,
+    groups_returned: u32,
+) -> Option<PlannerNoAnswer> {
+    if route_plan.ambiguity.is_some() {
+        return None;
+    }
+    if params.explain && !route_plan.candidates.is_empty() {
+        return None;
+    }
+    if !context.planner_enabled {
+        return Some(PlannerNoAnswer {
+            reason: PlannerNoAnswerReason::PlannerDisabled,
+            details: vec!["planner configuration is disabled for this runtime".to_string()],
+        });
+    }
+    if groups_returned > 0 {
+        return None;
+    }
+    if !route_plan.candidates.is_empty() {
+        return Some(PlannerNoAnswer {
+            reason: PlannerNoAnswerReason::ExecutionDeferred,
+            details: vec![
+                "normalized candidates are available, but score fusion and grouping remain deferred"
+                    .to_string(),
+                "use planner_explain to inspect route-level candidates during bring-up"
+                    .to_string(),
+            ],
+        });
+    }
+    if route_plan.routes_available() == 0 {
+        return Some(PlannerNoAnswer {
+            reason: PlannerNoAnswerReason::NoRouteAvailable,
+            details: vec!["no enabled planner route is ready for this snapshot".to_string()],
+        });
+    }
+    if route_plan.has_deferred_routes() {
+        return Some(PlannerNoAnswer {
+            reason: PlannerNoAnswerReason::ExecutionDeferred,
+            details: vec![
+                "selected route execution remains deferred in this planner workspace".to_string(),
+            ],
+        });
+    }
+    if route_plan.raw_candidate_count > 0 && route_plan.candidates.is_empty() {
+        return Some(PlannerNoAnswer {
+            reason: PlannerNoAnswerReason::FiltersExcludedAllCandidates,
+            details: vec![
+                "route execution produced candidates, but planner filters removed them all"
+                    .to_string(),
+            ],
+        });
+    }
+    Some(PlannerNoAnswer {
+        reason: PlannerNoAnswerReason::NoCandidateMatched,
+        details: vec!["no selected route produced a normalized candidate".to_string()],
+    })
 }

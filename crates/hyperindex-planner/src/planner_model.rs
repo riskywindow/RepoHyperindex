@@ -42,6 +42,13 @@ pub struct PlannerWorkspace {
 }
 
 impl PlannerWorkspace {
+    pub fn with_route_registry(route_registry: PlannerRouteRegistry) -> Self {
+        Self {
+            route_registry,
+            ..Self::default()
+        }
+    }
+
     pub fn plan(
         &self,
         context: &PlannerRuntimeContext,
@@ -64,7 +71,7 @@ impl PlannerWorkspace {
         let ir = self
             .ir_builder
             .build(context, params, snapshot, &classified)?;
-        let route_plan = self.route_registry.plan(context, &ir);
+        let route_plan = self.route_registry.plan(context, snapshot, &ir);
         self.engine.query_scaffold(
             self,
             context,
@@ -101,7 +108,7 @@ impl PlannerWorkspace {
         let ir = self
             .ir_builder
             .build(context, params, snapshot, &classified)?;
-        let route_plan = self.route_registry.plan(context, &ir);
+        let route_plan = self.route_registry.plan(context, snapshot, &ir);
         self.engine.explain_scaffold(
             self,
             context,

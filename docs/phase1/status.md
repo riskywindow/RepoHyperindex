@@ -1,5 +1,67 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-22 Phase 7 Planner Adapter Compatibility Note
+
+### What Was Completed
+
+- Implemented the requested Phase 7 planner route-registry and normalized adapter slice in the
+  Rust runtime crates without changing the checked-in Phase 1 harness artifacts.
+- Added planner-side normalized adapters and a capability registry over the existing:
+  - exact compatibility boundary
+  - symbol engine
+  - semantic engine
+  - impact engine
+- Wired daemon-backed planner execution so:
+  - `planner_status` and `planner_capabilities` report explicit route readiness
+  - `planner_explain` returns normalized candidates from the real engines
+  - `planner_query` records real route execution and candidate counts while staying
+    grouping-deferred
+- Added focused Rust coverage for:
+  - normalized planner candidates
+  - route readiness and capability checks
+  - explicit non-destructive failure behavior
+  - generic multi-engine registry execution
+
+### Key Decisions
+
+- Keep this work inside the already-approved explicit Phase 7 planner exception rather than
+  widening the Phase 1 harness.
+- Preserve the checked-in Phase 1 benchmark boundary:
+  no `bench/` adapter, schema, metric, report, or compare changes landed here.
+- Keep exact explicitly unavailable and keep planner grouping/fusion deferred so this slice stays
+  focused on the normalized adapter boundary only.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner -p hyperindex-daemon
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised planner adapter, daemon planner, and existing engine regression coverage
+- `git diff --check`
+  - passed
+
+### Remaining Risks / TODOs
+
+- Phase 1 still has no planner-mode harness adapter.
+- Planner fusion, dedupe, grouping, and trust payload shaping are still deferred above the new
+  normalized adapter seam.
+- Exact search remains intentionally unavailable in the current repo.
+
+### Next Recommended Prompt
+
+- Build the next Phase 7 planner slice on top of the normalized adapter boundary:
+  either add deterministic fusion and grouping, or add the backward-compatible `daemon-planner`
+  harness adapter without changing the existing Phase 1 artifact formats
+
 ## 2026-04-21 Phase 7 Planner Query IR Compatibility Note
 
 ### What Was Completed
