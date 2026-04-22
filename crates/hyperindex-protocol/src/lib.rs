@@ -82,6 +82,18 @@ mod tests {
     }
 
     #[test]
+    fn planner_protocol_fixture_roundtrips_cleanly() {
+        let fixture_path = fixture_path("fixtures/api/planner-examples.json");
+        let raw = fs::read_to_string(fixture_path).unwrap();
+        let original: Value = serde_json::from_str(&raw).unwrap();
+        let decoded: ProtocolFixtures = serde_json::from_str(&raw).unwrap();
+        assert!(!decoded.requests.is_empty());
+        assert!(!decoded.responses.is_empty());
+        let encoded = serde_json::to_value(&decoded).unwrap();
+        assert_eq!(encoded, original);
+    }
+
+    #[test]
     fn protocol_error_payload_roundtrips_cleanly() {
         let original = ProtocolError::invalid_field(
             "selector.line",

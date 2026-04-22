@@ -42,7 +42,7 @@ enum Commands {
         query: String,
 
         #[arg(long)]
-        intent_hint: Option<String>,
+        mode_override: Option<String>,
 
         #[arg(long, default_value_t = 10)]
         limit: u32,
@@ -1003,7 +1003,7 @@ fn dispatch(cli: Cli) -> Result<String> {
             repo_id,
             snapshot_id,
             query,
-            intent_hint,
+            mode_override,
             limit,
             path_globs,
             include_trace,
@@ -1013,7 +1013,7 @@ fn dispatch(cli: Cli) -> Result<String> {
             &repo_id,
             &snapshot_id,
             &query,
-            intent_hint.as_deref(),
+            mode_override.as_deref(),
             limit,
             path_globs,
             include_trace,

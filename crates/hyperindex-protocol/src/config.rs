@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::impact::ImpactMaterializationMode;
+use crate::planner::{PlannerBudgetPolicy, PlannerMode, PlannerRouteBudget, PlannerRouteKind};
 use crate::semantic::{
     SemanticChunkTextConfig, SemanticEmbeddingProviderConfig, SemanticEmbeddingProviderKind,
     SemanticRerankMode,
@@ -294,6 +295,80 @@ impl Default for SemanticConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerRoutesConfig {
+    pub exact_enabled: bool,
+    pub symbol_enabled: bool,
+    pub semantic_enabled: bool,
+    pub impact_enabled: bool,
+}
+
+impl Default for PlannerRoutesConfig {
+    fn default() -> Self {
+        Self {
+            exact_enabled: true,
+            symbol_enabled: true,
+            semantic_enabled: true,
+            impact_enabled: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerConfig {
+    pub enabled: bool,
+    pub default_mode: PlannerMode,
+    pub default_limit: usize,
+    pub max_limit: usize,
+    pub default_include_trace: bool,
+    #[serde(default)]
+    pub routes: PlannerRoutesConfig,
+    pub budgets: PlannerBudgetPolicy,
+}
+
+impl Default for PlannerConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            default_mode: PlannerMode::Auto,
+            default_limit: 10,
+            max_limit: 50,
+            default_include_trace: false,
+            routes: PlannerRoutesConfig::default(),
+            budgets: PlannerBudgetPolicy {
+                total_timeout_ms: 1_500,
+                max_groups: 10,
+                route_budgets: vec![
+                    PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Exact,
+                        max_candidates: 25,
+                        max_groups: 10,
+                        timeout_ms: 150,
+                    },
+                    PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Symbol,
+                        max_candidates: 20,
+                        max_groups: 10,
+                        timeout_ms: 250,
+                    },
+                    PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Semantic,
+                        max_candidates: 16,
+                        max_groups: 8,
+                        timeout_ms: 400,
+                    },
+                    PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Impact,
+                        max_candidates: 8,
+                        max_groups: 4,
+                        timeout_ms: 600,
+                    },
+                ],
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RuntimeConfig {
     pub version: u32,
     pub protocol_version: String,
@@ -312,6 +387,8 @@ pub struct RuntimeConfig {
     pub impact: ImpactConfig,
     #[serde(default)]
     pub semantic: SemanticConfig,
+    #[serde(default)]
+    pub planner: PlannerConfig,
 }
 
 impl Default for RuntimeConfig {
@@ -378,6 +455,7 @@ impl Default for RuntimeConfig {
             symbol_index: SymbolIndexConfig::default(),
             impact: ImpactConfig::default(),
             semantic: SemanticConfig::default(),
+            planner: PlannerConfig::default(),
         }
     }
 }

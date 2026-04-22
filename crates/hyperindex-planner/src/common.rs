@@ -1,5 +1,6 @@
 use hyperindex_protocol::planner::{
-    PlannerDiagnostic, PlannerDiagnosticSeverity, PlannerRouteBudget, PlannerRouteKind,
+    PlannerBudgetPolicy, PlannerDiagnostic, PlannerDiagnosticSeverity, PlannerRouteBudget,
+    PlannerRouteKind,
 };
 
 pub const PLANNER_PHASE: &str = "phase7";
@@ -29,27 +30,19 @@ pub fn scaffold_warning(code: impl Into<String>, message: impl Into<String>) -> 
     }
 }
 
-pub fn default_budget(route_kind: PlannerRouteKind) -> PlannerRouteBudget {
-    match route_kind {
-        PlannerRouteKind::Exact => PlannerRouteBudget {
+pub fn budget_for_route(
+    policy: &PlannerBudgetPolicy,
+    route_kind: PlannerRouteKind,
+) -> PlannerRouteBudget {
+    policy
+        .route_budgets
+        .iter()
+        .find(|budget| budget.route_kind == route_kind)
+        .cloned()
+        .unwrap_or_else(|| PlannerRouteBudget {
             route_kind,
-            max_candidates: 25,
-            max_groups: 10,
-        },
-        PlannerRouteKind::Symbol => PlannerRouteBudget {
-            route_kind,
-            max_candidates: 20,
-            max_groups: 10,
-        },
-        PlannerRouteKind::Semantic => PlannerRouteBudget {
-            route_kind,
-            max_candidates: 16,
-            max_groups: 8,
-        },
-        PlannerRouteKind::Impact => PlannerRouteBudget {
-            route_kind,
-            max_candidates: 8,
-            max_groups: 4,
-        },
-    }
+            max_candidates: 10,
+            max_groups: policy.max_groups,
+            timeout_ms: policy.total_timeout_ms,
+        })
 }

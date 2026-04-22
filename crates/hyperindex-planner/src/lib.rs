@@ -17,8 +17,7 @@ pub use planner_model::{PlannerError, PlannerResult, PlannerWorkspace};
 #[cfg(test)]
 mod tests {
     use hyperindex_protocol::planner::{
-        PlannerIntentKind, PlannerQueryParams, PlannerQueryText, PlannerRouteKind,
-        PlannerRouteStatus,
+        PlannerMode, PlannerQueryFilters, PlannerQueryParams, PlannerRouteKind, PlannerRouteStatus,
     };
     use hyperindex_protocol::snapshot::{
         BaseSnapshot, BaseSnapshotKind, ComposedSnapshot, WorkingTreeOverlay,
@@ -50,58 +49,77 @@ mod tests {
     }
 
     #[test]
-    fn planner_workspace_emits_scaffold_trace_for_hybrid_query() {
+    fn planner_workspace_emits_scaffold_trace_for_impact_query() {
         let response = PlannerWorkspace::default()
             .plan(
                 &PlannerRuntimeContext::default(),
                 &PlannerQueryParams {
                     repo_id: "repo-123".to_string(),
                     snapshot_id: "snap-123".to_string(),
-                    query: PlannerQueryText {
+                    query: hyperindex_protocol::planner::PlannerUserQuery {
                         text: "where do we invalidate sessions?".to_string(),
                     },
-                    intent_hint: None,
-                    path_globs: vec!["packages/**".to_string()],
+                    mode_override: None,
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters {
+                        path_globs: vec!["packages/**".to_string()],
+                        package_names: Vec::new(),
+                        package_roots: Vec::new(),
+                        workspace_roots: Vec::new(),
+                        languages: Vec::new(),
+                        extensions: Vec::new(),
+                        symbol_kinds: Vec::new(),
+                    },
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
                     limit: 10,
+                    explain: false,
                     include_trace: true,
                 },
                 &scaffold_snapshot(),
             )
             .unwrap();
 
-        assert_eq!(response.intent.selected_intent, PlannerIntentKind::Hybrid);
+        assert_eq!(response.mode.selected_mode, PlannerMode::Impact);
         assert!(response.groups.is_empty());
         let trace = response.trace.unwrap();
         assert!(
             trace
                 .routes
                 .iter()
-                .any(|route| route.route_kind == PlannerRouteKind::Exact
-                    && route.status == PlannerRouteStatus::Skipped)
+                .any(|route| route.route_kind == PlannerRouteKind::Impact
+                    && route.status == PlannerRouteStatus::Deferred
+                    && route.selected)
         );
     }
 
     #[test]
-    fn explicit_intent_hint_overrides_heuristics() {
+    fn explicit_mode_override_overrides_heuristics() {
         let response = PlannerWorkspace::default()
             .plan(
                 &PlannerRuntimeContext::default(),
                 &PlannerQueryParams {
                     repo_id: "repo-123".to_string(),
                     snapshot_id: "snap-123".to_string(),
-                    query: PlannerQueryText {
+                    query: hyperindex_protocol::planner::PlannerUserQuery {
                         text: "invalidateSession".to_string(),
                     },
-                    intent_hint: Some(PlannerIntentKind::Impact),
-                    path_globs: Vec::new(),
+                    mode_override: Some(PlannerMode::Symbol),
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
                     limit: 5,
+                    explain: false,
                     include_trace: false,
                 },
                 &scaffold_snapshot(),
             )
             .unwrap();
 
-        assert_eq!(response.intent.selected_intent, PlannerIntentKind::Impact);
+        assert_eq!(response.mode.selected_mode, PlannerMode::Symbol);
         assert!(response.trace.is_none());
     }
 }

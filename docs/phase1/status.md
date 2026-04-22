@@ -1,5 +1,61 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-21 Phase 7 Planner Contract Compatibility Note
+
+### What Was Completed
+
+- Implemented the public Phase 7 planner contract in the Rust runtime surface without changing the
+  checked-in Phase 1 harness artifacts.
+- Added additive planner protocol and config support for:
+  - planner status
+  - planner capabilities
+  - unified planner query
+  - planner explain and trace
+- Added planner fixture examples, roundtrip serialization coverage, and durable Phase 7 protocol
+  and trust-model docs.
+
+### Key Decisions
+
+- Treat this as explicit user-requested Phase 7 work outside the default Phase 1 scope.
+- Keep the slice contract-only:
+  no live planning,
+  no harness integration, and
+  no answer-generation surface landed here.
+- Preserve the Phase 1 benchmark boundary by avoiding any `bench/` schema or artifact changes.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-protocol -p hyperindex-planner -p hyperindex-daemon -p hyperindex-cli
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised planner contract coverage in:
+    - `hyperindex-protocol`
+    - `hyperindex-planner`
+    - `hyperindex-daemon`
+    - `hyperindex-cli`
+- `git diff --check`
+  - passed
+
+### Remaining Risks / TODOs
+
+- The Phase 7 planner front door is still contract-only and does not yet run real symbol,
+  semantic, or impact routes.
+- Phase 1 still has no planner-mode harness path; that remains a later additive slice.
+
+### Next Recommended Prompt
+
+- Implement live planner route execution against symbol, semantic, and impact services while
+  preserving the current Phase 1 harness artifacts and keeping exact explicitly unavailable
+
 ## 2026-04-20 Phase 6 Closeout Compatibility Validation
 
 ### What Was Completed

@@ -8,6 +8,95 @@ Primary planning documents:
 - [acceptance.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/acceptance.md)
 - [decisions.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/decisions.md)
 
+## 2026-04-21 Phase 7 Planner Public Contract
+
+### What Was Completed
+
+- Replaced the old planner intent-hint scaffold with a contract-complete unified planner protocol
+  in [crates/hyperindex-protocol/src/planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/src/planner.rs).
+- Added additive daemon API surface for:
+  - `planner_status`
+  - `planner_capabilities`
+  - `planner_query`
+  - `planner_explain`
+- Defined typed planner models for:
+  - raw user query
+  - explicit mode override
+  - selected and target context
+  - filters and route hints
+  - budgets and timeouts
+  - normalized candidates
+  - grouped results
+  - evidence items
+  - trust and explanation payloads
+  - planner traces and route diagnostics
+  - no-answer and ambiguity reasons
+- Added a public planner config surface under
+  [RuntimeConfig.planner](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/src/config.rs)
+  with default mode, limits, route toggles, and budget policy.
+- Updated the planner, daemon, and CLI scaffolds so the widened public contract compiles and
+  returns truthful contract-only responses:
+  deferred traces,
+  empty candidate and group payloads, and
+  explicit `execution_deferred` no-answer payloads.
+- Added a dedicated planner fixture catalog at
+  [crates/hyperindex-protocol/fixtures/api/planner-examples.json](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/fixtures/api/planner-examples.json)
+  plus roundtrip serialization coverage.
+- Wrote durable Phase 7 docs:
+  - [protocol.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/protocol.md)
+  - [trust-model.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/trust-model.md)
+
+### Key Decisions
+
+- Widen the first public planner surface beyond the original one-method scaffold because this task
+  explicitly requires status, capabilities, and explain/trace contracts.
+- Keep the widened API contract-only:
+  no live route execution,
+  no answer generation,
+  no benchmark integration, and
+  no exact-engine work landed in this slice.
+- Make planner defaults public through config instead of burying mode, limit, and timeout policy in
+  planner-only constants.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-protocol -p hyperindex-planner -p hyperindex-daemon -p hyperindex-cli
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised:
+    - `hyperindex-protocol`
+    - `hyperindex-planner`
+    - `hyperindex-daemon`
+    - `hyperindex-cli`
+- `git diff --check`
+  - passed
+  - no whitespace or patch-format issues in the planner contract changes
+
+### Remaining Risks / TODOs
+
+- The public contract is now implementation-ready, but live route execution is still deferred.
+- `planner_query` and `planner_explain` remain truthful no-answer stubs until real symbol,
+  semantic, and impact orchestration lands.
+- CLI support is still limited to the unified `hyperctl query` front door; dedicated CLI surfaces
+  for planner status or explain are still optional future work.
+- Harness integration is still unimplemented and must remain backward-compatible when added.
+
+### Next Recommended Prompt
+
+- Implement the next Phase 7 slice on top of the new contract:
+  execute real symbol, semantic, and impact routes behind `planner_query` and `planner_explain`,
+  keep exact explicitly unavailable, populate trust payloads from real evidence, and then add
+  backward-compatible harness integration
+
 ## 2026-04-21 Phase 7 Planner Workspace Scaffold
 
 ### What Was Completed

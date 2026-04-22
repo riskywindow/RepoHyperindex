@@ -1,4 +1,6 @@
-use hyperindex_protocol::planner::{PlannerQueryParams, PlannerQueryResponse};
+use hyperindex_protocol::planner::{
+    PlannerExplainResponse, PlannerQueryParams, PlannerQueryResponse,
+};
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use thiserror::Error;
 
@@ -55,15 +57,51 @@ impl PlannerWorkspace {
             });
         }
 
-        let intent = self.intent_router.classify(params);
-        let ir = self.ir_builder.build(params, snapshot, &intent)?;
+        let mode = self
+            .intent_router
+            .classify(params, context.default_mode.clone());
+        let ir = self.ir_builder.build(context, params, snapshot, &mode)?;
         let route_plan = self.route_registry.plan(context, &ir);
-        self.engine.plan_scaffold(
+        self.engine.query_scaffold(
             self,
             context,
             snapshot,
             params,
-            intent,
+            mode,
+            ir,
+            route_plan,
+            &self.fusion,
+            &self.grouping,
+            &self.trust_payloads,
+        )
+    }
+
+    pub fn explain(
+        &self,
+        context: &PlannerRuntimeContext,
+        params: &PlannerQueryParams,
+        snapshot: &ComposedSnapshot,
+    ) -> PlannerResult<PlannerExplainResponse> {
+        if params.repo_id != snapshot.repo_id || params.snapshot_id != snapshot.snapshot_id {
+            return Err(PlannerError::SnapshotMismatch {
+                requested_repo_id: params.repo_id.clone(),
+                requested_snapshot_id: params.snapshot_id.clone(),
+                loaded_repo_id: snapshot.repo_id.clone(),
+                loaded_snapshot_id: snapshot.snapshot_id.clone(),
+            });
+        }
+
+        let mode = self
+            .intent_router
+            .classify(params, context.default_mode.clone());
+        let ir = self.ir_builder.build(context, params, snapshot, &mode)?;
+        let route_plan = self.route_registry.plan(context, &ir);
+        self.engine.explain_scaffold(
+            self,
+            context,
+            snapshot,
+            params,
+            mode,
             ir,
             route_plan,
             &self.fusion,

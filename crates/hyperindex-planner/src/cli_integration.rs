@@ -11,8 +11,8 @@ pub fn render_query_response(
     let mut lines = vec![
         format!("planner query {}", response.snapshot_id),
         format!(
-            "intent: {:?} ({:?})",
-            response.intent.selected_intent, response.intent.source
+            "mode: {:?} ({:?})",
+            response.mode.selected_mode, response.mode.source
         ),
         format!(
             "routes: {}/{} available",
@@ -32,10 +32,14 @@ pub fn render_query_response(
         lines.push("trace:".to_string());
         for route in &trace.routes {
             lines.push(format!(
-                "- {:?}: {:?} (available={})",
-                route.route_kind, route.status, route.available
+                "- {:?}: {:?} (available={}, selected={})",
+                route.route_kind, route.status, route.available, route.selected
             ));
         }
+    }
+
+    if let Some(no_answer) = &response.no_answer {
+        lines.push(format!("no_answer: {:?}", no_answer.reason));
     }
 
     Ok(lines.join("\n"))

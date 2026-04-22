@@ -1,5 +1,30 @@
 # Repo Hyperindex Phase 1 Decisions
 
+## 2026-04-21 - Allow explicit Phase 7 planner contract work without changing Phase 1 artifacts
+
+### Decision
+
+Permit the explicit user-requested Phase 7 planner public-contract work in the runtime crates and
+Phase 7 docs as long as it remains additive to the checked-in Phase 1 harness and artifact
+contracts.
+
+### Why
+
+- The repo defaults to Phase 1, but this task explicitly requested Phase 7 planner protocol,
+  config, fixture, and documentation work.
+- The requested slice is contract-first:
+  it does not add live planner execution, harness integration, or answer-generation behavior.
+- The existing Phase 1 harness artifacts do not need to change for the planner contract itself to
+  become implementation-ready.
+
+### Consequence
+
+- The runtime crates and `docs/phase7/` may grow planner status, capabilities, query, explain,
+  trust, and config contracts while `bench/` schemas, run artifacts, and compare flows remain
+  unchanged.
+- A later Phase 1-facing slice may integrate planner benchmarking only if it preserves existing
+  artifact names and query-pack compatibility.
+
 ## 2026-04-19 - Add a dedicated daemon-backed semantic adapter without changing Phase 1 artifacts
 
 ### Decision

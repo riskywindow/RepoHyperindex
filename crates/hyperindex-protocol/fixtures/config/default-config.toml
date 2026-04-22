@@ -76,3 +76,74 @@ default_include_reason_paths = true
 max_reason_paths_per_hit = 4
 max_transitive_depth = 8
 include_possible_results = true
+
+[semantic]
+enabled = true
+store_dir = ".hyperindex/data/semantic"
+chunk_schema_version = 1
+
+[semantic.embedding_provider]
+provider_kind = "deterministic_fixture"
+model_id = "phase6-deterministic-fixture"
+model_digest = "phase6-deterministic-fixture-v1"
+vector_dimensions = 384
+normalized = true
+max_input_bytes = 8192
+max_batch_size = 32
+
+[semantic.embedding_runtime]
+args = []
+
+[semantic.chunk_text]
+serializer_id = "phase6-structured-text"
+format_version = 1
+includes_path_header = true
+includes_symbol_context = true
+normalized_newlines = true
+
+[semantic.query]
+default_search_limit = 20
+max_search_limit = 200
+default_rerank_mode = "hybrid"
+default_path_globs = []
+
+[planner]
+enabled = true
+default_mode = "auto"
+default_limit = 10
+max_limit = 50
+default_include_trace = false
+
+[planner.routes]
+exact_enabled = true
+symbol_enabled = true
+semantic_enabled = true
+impact_enabled = true
+
+[planner.budgets]
+total_timeout_ms = 1500
+max_groups = 10
+
+[[planner.budgets.route_budgets]]
+route_kind = "exact"
+max_candidates = 25
+max_groups = 10
+timeout_ms = 150
+
+[[planner.budgets.route_budgets]]
+route_kind = "symbol"
+max_candidates = 20
+max_groups = 10
+timeout_ms = 250
+
+[[planner.budgets.route_budgets]]
+route_kind = "semantic"
+max_candidates = 16
+max_groups = 8
+timeout_ms = 400
+
+[[planner.budgets.route_budgets]]
+route_kind = "impact"
+max_candidates = 8
+max_groups = 4
+timeout_ms = 600

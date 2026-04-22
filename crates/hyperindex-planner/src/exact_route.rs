@@ -7,6 +7,6 @@ impl UnavailableExactRouteProvider {
     }
 
     pub fn unavailable_reason(&self) -> &'static str {
-        "exact_engine_unavailable"
+        "exact route remains a typed compatibility boundary in Phase 7"
     }
 }

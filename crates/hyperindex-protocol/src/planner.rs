@@ -1,22 +1,31 @@
 use serde::{Deserialize, Serialize};
 
 use crate::impact::ImpactEntityRef;
-use crate::symbols::{SourceSpan, SymbolId};
+use crate::symbols::{LanguageId, SourceSpan, SymbolId, SymbolKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum PlannerIntentKind {
-    Lookup,
+pub enum PlannerMode {
+    Auto,
+    Exact,
+    Symbol,
     Semantic,
     Impact,
-    Hybrid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum PlannerIntentSource {
-    ExplicitHint,
+pub enum PlannerModeSelectionSource {
+    ExplicitOverride,
     Heuristic,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerQueryState {
+    Disabled,
+    Ready,
+    Degraded,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -33,14 +42,17 @@ pub enum PlannerRouteKind {
 pub enum PlannerRouteStatus {
     Planned,
     Skipped,
+    Deferred,
     Executed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum PlannerSkipReason {
+pub enum PlannerRouteSkipReason {
     ExactEngineUnavailable,
     CapabilityDisabled,
+    FilteredByMode,
+    FilteredByRouteHint,
     ExecutionDeferred,
 }
 
@@ -49,31 +61,166 @@ pub enum PlannerSkipReason {
 pub enum PlannerDiagnosticSeverity {
     Info,
     Warning,
+    Error,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlannerQueryText {
+#[serde(rename_all = "snake_case")]
+pub enum PlannerEvidenceKind {
+    ExactMatch,
+    SymbolHit,
+    SemanticHit,
+    ImpactHit,
+    ContextSeed,
+    FilterMatch,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerTrustTier {
+    High,
+    Medium,
+    Low,
+    NeedsReview,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerNoAnswerReason {
+    PlannerDisabled,
+    NoRouteAvailable,
+    NoCandidateMatched,
+    FiltersExcludedAllCandidates,
+    ExecutionDeferred,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerAmbiguityReason {
+    MultipleCandidateSeeds,
+    MixedRouteSignals,
+    MultipleAnchorsRemain,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerUserQuery {
     pub text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "context_kind", rename_all = "snake_case")]
+pub enum PlannerContextRef {
+    Symbol {
+        symbol_id: SymbolId,
+        path: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        span: Option<SourceSpan>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        display_name: Option<String>,
+    },
+    Span {
+        path: String,
+        span: SourceSpan,
+    },
+    File {
+        path: String,
+    },
+    Package {
+        package_name: String,
+        package_root: String,
+    },
+    Workspace {
+        workspace_root: String,
+    },
+    Impact {
+        entity: ImpactEntityRef,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct PlannerQueryFilters {
+    #[serde(default)]
+    pub path_globs: Vec<String>,
+    #[serde(default)]
+    pub package_names: Vec<String>,
+    #[serde(default)]
+    pub package_roots: Vec<String>,
+    #[serde(default)]
+    pub workspace_roots: Vec<String>,
+    #[serde(default)]
+    pub languages: Vec<LanguageId>,
+    #[serde(default)]
+    pub extensions: Vec<String>,
+    #[serde(default)]
+    pub symbol_kinds: Vec<SymbolKind>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct PlannerRouteHints {
+    #[serde(default)]
+    pub preferred_routes: Vec<PlannerRouteKind>,
+    #[serde(default)]
+    pub disabled_routes: Vec<PlannerRouteKind>,
+    #[serde(default)]
+    pub require_exact_seed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerRouteBudget {
+    pub route_kind: PlannerRouteKind,
+    pub max_candidates: u32,
+    pub max_groups: u32,
+    pub timeout_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct PlannerBudgetHints {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_timeout_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_groups: Option<u32>,
+    #[serde(default)]
+    pub route_budgets: Vec<PlannerRouteBudget>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerBudgetPolicy {
+    pub total_timeout_ms: u64,
+    pub max_groups: u32,
+    #[serde(default)]
+    pub route_budgets: Vec<PlannerRouteBudget>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlannerQueryParams {
     pub repo_id: String,
     pub snapshot_id: String,
-    pub query: PlannerQueryText,
+    pub query: PlannerUserQuery,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub intent_hint: Option<PlannerIntentKind>,
+    pub mode_override: Option<PlannerMode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_context: Option<PlannerContextRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_context: Option<PlannerContextRef>,
     #[serde(default)]
-    pub path_globs: Vec<String>,
+    pub filters: PlannerQueryFilters,
+    #[serde(default)]
+    pub route_hints: PlannerRouteHints,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budgets: Option<PlannerBudgetHints>,
     pub limit: u32,
+    #[serde(default)]
+    pub explain: bool,
     #[serde(default)]
     pub include_trace: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlannerIntentDecision {
-    pub selected_intent: PlannerIntentKind,
-    pub source: PlannerIntentSource,
+pub struct PlannerModeDecision {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_mode: Option<PlannerMode>,
+    pub selected_mode: PlannerMode,
+    pub source: PlannerModeSelectionSource,
     #[serde(default)]
     pub reasons: Vec<String>,
 }
@@ -84,30 +231,15 @@ pub struct PlannerQueryIr {
     pub snapshot_id: String,
     pub surface_query: String,
     pub normalized_query: String,
-    pub intent: PlannerIntentKind,
+    pub selected_mode: PlannerMode,
     pub limit: u32,
-    #[serde(default)]
-    pub path_globs: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlannerRouteBudget {
-    pub route_kind: PlannerRouteKind,
-    pub max_candidates: u32,
-    pub max_groups: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlannerRouteTrace {
-    pub route_kind: PlannerRouteKind,
-    pub available: bool,
-    pub status: PlannerRouteStatus,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub skip_reason: Option<PlannerSkipReason>,
+    pub selected_context: Option<PlannerContextRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub budget: Option<PlannerRouteBudget>,
-    #[serde(default)]
-    pub notes: Vec<String>,
+    pub target_context: Option<PlannerContextRef>,
+    pub filters: PlannerQueryFilters,
+    pub route_hints: PlannerRouteHints,
+    pub budgets: PlannerBudgetPolicy,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -129,11 +261,20 @@ pub enum PlannerAnchor {
     File {
         path: String,
     },
+    Package {
+        package_name: String,
+        package_root: String,
+    },
+    Workspace {
+        workspace_root: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PlannerEvidenceRef {
+pub struct PlannerEvidenceItem {
+    pub evidence_kind: PlannerEvidenceKind,
     pub route_kind: PlannerRouteKind,
+    pub label: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -142,15 +283,51 @@ pub struct PlannerEvidenceRef {
     pub symbol_id: Option<SymbolId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub impact_entity: Option<ImpactEntityRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub score: Option<u32>,
     #[serde(default)]
     pub notes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerCandidate {
+    pub candidate_id: String,
+    pub route_kind: PlannerRouteKind,
+    pub label: String,
+    pub anchor: PlannerAnchor,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rank: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub route_score: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub normalized_score: Option<u32>,
+    #[serde(default)]
+    pub evidence: Vec<PlannerEvidenceItem>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerExplanationPayload {
+    pub template_id: String,
+    pub summary: String,
+    #[serde(default)]
+    pub details: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlannerTrustPayload {
-    pub evidence_count: u32,
+    pub tier: PlannerTrustTier,
     pub deterministic: bool,
-    pub explanation_template: String,
+    pub evidence_count: u32,
+    pub route_agreement_count: u32,
+    pub template_id: String,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -159,9 +336,12 @@ pub struct PlannerResultGroup {
     pub label: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub anchor: Option<PlannerAnchor>,
-    pub trust: PlannerTrustPayload,
     #[serde(default)]
-    pub evidence: Vec<PlannerEvidenceRef>,
+    pub routes: Vec<PlannerRouteKind>,
+    pub trust: PlannerTrustPayload,
+    pub explanation: PlannerExplanationPayload,
+    #[serde(default)]
+    pub evidence: Vec<PlannerEvidenceItem>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub score: Option<u32>,
 }
@@ -174,12 +354,55 @@ pub struct PlannerDiagnostic {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerRouteTrace {
+    pub route_kind: PlannerRouteKind,
+    pub available: bool,
+    pub selected: bool,
+    pub status: PlannerRouteStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<PlannerRouteSkipReason>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub budget: Option<PlannerRouteBudget>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub candidate_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
+    #[serde(default)]
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerTraceStep {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlannerTrace {
     pub planner_version: String,
+    pub selected_mode: PlannerMode,
     #[serde(default)]
-    pub events: Vec<String>,
+    pub steps: Vec<PlannerTraceStep>,
     #[serde(default)]
     pub routes: Vec<PlannerRouteTrace>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerNoAnswer {
+    pub reason: PlannerNoAnswerReason,
+    #[serde(default)]
+    pub details: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerAmbiguity {
+    pub reason: PlannerAmbiguityReason,
+    #[serde(default)]
+    pub details: Vec<String>,
+    #[serde(default)]
+    pub candidate_contexts: Vec<PlannerContextRef>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -187,15 +410,91 @@ pub struct PlannerQueryStats {
     pub limit_requested: u32,
     pub routes_considered: u32,
     pub routes_available: u32,
+    pub candidates_considered: u32,
     pub groups_returned: u32,
     pub elapsed_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerStatusParams {
+    pub repo_id: String,
+    pub snapshot_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerCapabilitiesParams {
+    pub repo_id: String,
+    pub snapshot_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerExplainParams {
+    #[serde(flatten)]
+    pub query: PlannerQueryParams,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerRouteCapability {
+    pub route_kind: PlannerRouteKind,
+    pub enabled: bool,
+    pub available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerFilterCapabilities {
+    pub path_globs: bool,
+    pub package_names: bool,
+    pub package_roots: bool,
+    pub workspace_roots: bool,
+    pub languages: bool,
+    pub extensions: bool,
+    pub symbol_kinds: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerCapabilities {
+    pub status: bool,
+    pub query: bool,
+    pub explain: bool,
+    pub trace: bool,
+    pub explicit_mode_override: bool,
+    #[serde(default)]
+    pub modes: Vec<PlannerMode>,
+    pub filters: PlannerFilterCapabilities,
+    #[serde(default)]
+    pub routes: Vec<PlannerRouteCapability>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerStatusResponse {
+    pub repo_id: String,
+    pub snapshot_id: String,
+    pub state: PlannerQueryState,
+    pub capabilities: PlannerCapabilities,
+    #[serde(default)]
+    pub diagnostics: Vec<PlannerDiagnostic>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerCapabilitiesResponse {
+    pub repo_id: String,
+    pub snapshot_id: String,
+    pub default_mode: PlannerMode,
+    pub default_limit: u32,
+    pub max_limit: u32,
+    pub budgets: PlannerBudgetPolicy,
+    pub capabilities: PlannerCapabilities,
+    #[serde(default)]
+    pub diagnostics: Vec<PlannerDiagnostic>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlannerQueryResponse {
     pub repo_id: String,
     pub snapshot_id: String,
-    pub intent: PlannerIntentDecision,
+    pub mode: PlannerModeDecision,
     pub ir: PlannerQueryIr,
     #[serde(default)]
     pub groups: Vec<PlannerResultGroup>,
@@ -203,61 +502,284 @@ pub struct PlannerQueryResponse {
     pub diagnostics: Vec<PlannerDiagnostic>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trace: Option<PlannerTrace>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_answer: Option<PlannerNoAnswer>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ambiguity: Option<PlannerAmbiguity>,
+    pub stats: PlannerQueryStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerExplainResponse {
+    pub repo_id: String,
+    pub snapshot_id: String,
+    pub mode: PlannerModeDecision,
+    pub ir: PlannerQueryIr,
+    #[serde(default)]
+    pub candidates: Vec<PlannerCandidate>,
+    #[serde(default)]
+    pub groups: Vec<PlannerResultGroup>,
+    #[serde(default)]
+    pub diagnostics: Vec<PlannerDiagnostic>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<PlannerTrace>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_answer: Option<PlannerNoAnswer>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ambiguity: Option<PlannerAmbiguity>,
     pub stats: PlannerQueryStats,
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        PlannerIntentDecision, PlannerIntentKind, PlannerIntentSource, PlannerQueryIr,
-        PlannerQueryResponse, PlannerQueryStats, PlannerRouteKind, PlannerRouteStatus,
-        PlannerRouteTrace, PlannerTrace,
+        PlannerAnchor, PlannerBudgetPolicy, PlannerCapabilities, PlannerDiagnostic,
+        PlannerDiagnosticSeverity, PlannerEvidenceItem, PlannerEvidenceKind,
+        PlannerExplainResponse, PlannerExplanationPayload, PlannerFilterCapabilities, PlannerMode,
+        PlannerModeDecision, PlannerModeSelectionSource, PlannerNoAnswer, PlannerNoAnswerReason,
+        PlannerQueryFilters, PlannerQueryIr, PlannerQueryResponse, PlannerQueryStats,
+        PlannerResultGroup, PlannerRouteBudget, PlannerRouteCapability, PlannerRouteKind,
+        PlannerRouteStatus, PlannerRouteTrace, PlannerTrace, PlannerTraceStep, PlannerTrustPayload,
+        PlannerTrustTier,
     };
 
     #[test]
-    fn planner_response_roundtrips_cleanly() {
+    fn planner_query_response_roundtrips_cleanly() {
         let original = PlannerQueryResponse {
             repo_id: "repo-123".to_string(),
             snapshot_id: "snap-123".to_string(),
-            intent: PlannerIntentDecision {
-                selected_intent: PlannerIntentKind::Hybrid,
-                source: PlannerIntentSource::Heuristic,
-                reasons: vec!["natural-language routing scaffold".to_string()],
+            mode: PlannerModeDecision {
+                requested_mode: Some(PlannerMode::Auto),
+                selected_mode: PlannerMode::Semantic,
+                source: PlannerModeSelectionSource::Heuristic,
+                reasons: vec![
+                    "natural-language query routed to semantic-first planning".to_string(),
+                ],
             },
             ir: PlannerQueryIr {
                 repo_id: "repo-123".to_string(),
                 snapshot_id: "snap-123".to_string(),
                 surface_query: "where do we invalidate sessions?".to_string(),
                 normalized_query: "where do we invalidate sessions?".to_string(),
-                intent: PlannerIntentKind::Hybrid,
+                selected_mode: PlannerMode::Semantic,
                 limit: 10,
-                path_globs: vec!["packages/**".to_string()],
+                selected_context: None,
+                target_context: None,
+                filters: PlannerQueryFilters {
+                    path_globs: vec!["packages/**".to_string()],
+                    package_names: vec!["@hyperindex/auth".to_string()],
+                    package_roots: Vec::new(),
+                    workspace_roots: Vec::new(),
+                    languages: Vec::new(),
+                    extensions: Vec::new(),
+                    symbol_kinds: Vec::new(),
+                },
+                route_hints: super::PlannerRouteHints::default(),
+                budgets: PlannerBudgetPolicy {
+                    total_timeout_ms: 1_500,
+                    max_groups: 10,
+                    route_budgets: vec![PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Semantic,
+                        max_candidates: 16,
+                        max_groups: 8,
+                        timeout_ms: 400,
+                    }],
+                },
             },
-            groups: Vec::new(),
-            diagnostics: Vec::new(),
+            groups: vec![PlannerResultGroup {
+                group_id: "group-1".to_string(),
+                label: "invalidateSession".to_string(),
+                anchor: Some(PlannerAnchor::File {
+                    path: "packages/auth/src/session/service.ts".to_string(),
+                }),
+                routes: vec![PlannerRouteKind::Semantic],
+                trust: PlannerTrustPayload {
+                    tier: PlannerTrustTier::Medium,
+                    deterministic: true,
+                    evidence_count: 1,
+                    route_agreement_count: 1,
+                    template_id: "planner.trust.single_route".to_string(),
+                    reasons: vec!["one semantic route supplied grounded evidence".to_string()],
+                    warnings: vec![
+                        "exact route is still unavailable in the current repo".to_string(),
+                    ],
+                },
+                explanation: PlannerExplanationPayload {
+                    template_id: "planner.group.semantic".to_string(),
+                    summary: "Semantic retrieval surfaced the session invalidation implementation."
+                        .to_string(),
+                    details: vec![
+                        "The grouped anchor is still evidence-first and machine-readable."
+                            .to_string(),
+                    ],
+                },
+                evidence: vec![PlannerEvidenceItem {
+                    evidence_kind: PlannerEvidenceKind::SemanticHit,
+                    route_kind: PlannerRouteKind::Semantic,
+                    label: "semantic chunk".to_string(),
+                    path: Some("packages/auth/src/session/service.ts".to_string()),
+                    span: None,
+                    symbol_id: None,
+                    impact_entity: None,
+                    snippet: Some("export function invalidateSession(...) { ... }".to_string()),
+                    score: Some(940),
+                    notes: vec!["semantic score normalized into planner band".to_string()],
+                }],
+                score: Some(940),
+            }],
+            diagnostics: vec![PlannerDiagnostic {
+                severity: PlannerDiagnosticSeverity::Info,
+                code: "planner_contract_fixture".to_string(),
+                message: "planner query response fixture is grounded and deterministic".to_string(),
+            }],
             trace: Some(PlannerTrace {
-                planner_version: "phase7-planner-scaffold-v1".to_string(),
-                events: vec!["routes_considered=4".to_string()],
+                planner_version: "phase7-query-contract-v1".to_string(),
+                selected_mode: PlannerMode::Semantic,
+                steps: vec![PlannerTraceStep {
+                    code: "mode_selected".to_string(),
+                    message: "semantic mode selected by heuristic classifier".to_string(),
+                }],
                 routes: vec![PlannerRouteTrace {
-                    route_kind: PlannerRouteKind::Exact,
-                    available: false,
-                    status: PlannerRouteStatus::Skipped,
+                    route_kind: PlannerRouteKind::Semantic,
+                    available: true,
+                    selected: true,
+                    status: PlannerRouteStatus::Deferred,
                     skip_reason: None,
-                    budget: None,
-                    notes: vec!["exact_engine_unavailable".to_string()],
+                    budget: Some(PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Semantic,
+                        max_candidates: 16,
+                        max_groups: 8,
+                        timeout_ms: 400,
+                    }),
+                    candidate_count: None,
+                    group_count: None,
+                    elapsed_ms: None,
+                    notes: vec!["live route execution is intentionally deferred".to_string()],
                 }],
             }),
+            no_answer: Some(PlannerNoAnswer {
+                reason: PlannerNoAnswerReason::ExecutionDeferred,
+                details: vec![
+                    "The public contract is implemented before live planning.".to_string(),
+                ],
+            }),
+            ambiguity: None,
             stats: PlannerQueryStats {
                 limit_requested: 10,
-                routes_considered: 4,
-                routes_available: 3,
-                groups_returned: 0,
+                routes_considered: 1,
+                routes_available: 1,
+                candidates_considered: 0,
+                groups_returned: 1,
                 elapsed_ms: 0,
             },
         };
 
         let encoded = serde_json::to_string_pretty(&original).unwrap();
         let decoded: PlannerQueryResponse = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded, original);
+    }
+
+    #[test]
+    fn planner_explain_response_roundtrips_cleanly() {
+        let original = PlannerExplainResponse {
+            repo_id: "repo-123".to_string(),
+            snapshot_id: "snap-123".to_string(),
+            mode: PlannerModeDecision {
+                requested_mode: Some(PlannerMode::Exact),
+                selected_mode: PlannerMode::Exact,
+                source: PlannerModeSelectionSource::ExplicitOverride,
+                reasons: vec!["exact mode was requested explicitly".to_string()],
+            },
+            ir: PlannerQueryIr {
+                repo_id: "repo-123".to_string(),
+                snapshot_id: "snap-123".to_string(),
+                surface_query: "packages/auth/src/session/service.ts".to_string(),
+                normalized_query: "packages/auth/src/session/service.ts".to_string(),
+                selected_mode: PlannerMode::Exact,
+                limit: 5,
+                selected_context: None,
+                target_context: None,
+                filters: PlannerQueryFilters::default(),
+                route_hints: super::PlannerRouteHints::default(),
+                budgets: PlannerBudgetPolicy {
+                    total_timeout_ms: 1_500,
+                    max_groups: 10,
+                    route_budgets: vec![PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Exact,
+                        max_candidates: 25,
+                        max_groups: 10,
+                        timeout_ms: 150,
+                    }],
+                },
+            },
+            candidates: Vec::new(),
+            groups: Vec::new(),
+            diagnostics: Vec::new(),
+            trace: None,
+            no_answer: Some(PlannerNoAnswer {
+                reason: PlannerNoAnswerReason::ExecutionDeferred,
+                details: vec!["Explain data is contract-only in this phase.".to_string()],
+            }),
+            ambiguity: None,
+            stats: PlannerQueryStats {
+                limit_requested: 5,
+                routes_considered: 1,
+                routes_available: 0,
+                candidates_considered: 0,
+                groups_returned: 0,
+                elapsed_ms: 0,
+            },
+        };
+
+        let encoded = serde_json::to_string_pretty(&original).unwrap();
+        let decoded: PlannerExplainResponse = serde_json::from_str(&encoded).unwrap();
+        assert_eq!(decoded, original);
+    }
+
+    #[test]
+    fn planner_capabilities_roundtrip_cleanly() {
+        let original = PlannerCapabilities {
+            status: true,
+            query: true,
+            explain: true,
+            trace: true,
+            explicit_mode_override: true,
+            modes: vec![
+                PlannerMode::Auto,
+                PlannerMode::Exact,
+                PlannerMode::Symbol,
+                PlannerMode::Semantic,
+                PlannerMode::Impact,
+            ],
+            filters: PlannerFilterCapabilities {
+                path_globs: true,
+                package_names: true,
+                package_roots: true,
+                workspace_roots: true,
+                languages: true,
+                extensions: true,
+                symbol_kinds: true,
+            },
+            routes: vec![
+                PlannerRouteCapability {
+                    route_kind: PlannerRouteKind::Exact,
+                    enabled: true,
+                    available: false,
+                    reason: Some(
+                        "exact route boundary exists but no exact engine ships yet".to_string(),
+                    ),
+                },
+                PlannerRouteCapability {
+                    route_kind: PlannerRouteKind::Semantic,
+                    enabled: true,
+                    available: true,
+                    reason: None,
+                },
+            ],
+        };
+
+        let encoded = serde_json::to_string_pretty(&original).unwrap();
+        let decoded: PlannerCapabilities = serde_json::from_str(&encoded).unwrap();
         assert_eq!(decoded, original);
     }
 }

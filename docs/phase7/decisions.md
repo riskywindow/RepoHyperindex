@@ -1,5 +1,61 @@
 # Repo Hyperindex Phase 7 Decisions
 
+## 2026-04-21 Widen The First Public Planner Surface To A Contract-Complete Front Door
+
+### Status
+
+- accepted
+
+### Context
+
+- The original Phase 7 scaffold decision kept the first public surface to one `planner_query`
+  method.
+- This task explicitly requires the public contract for:
+  - query status
+  - unified query
+  - explain or trace
+  - planner capabilities
+- The task is still contract-only:
+  no live route execution, no answer generation, and no benchmark schema changes are allowed yet.
+
+### Decision
+
+- Widen the public planner daemon surface additively to:
+  - `planner_status`
+  - `planner_capabilities`
+  - `planner_query`
+  - `planner_explain`
+- Replace the old planner intent-hint scaffold with a unified query request model centered on:
+  - raw user query text
+  - explicit `mode_override`
+  - selected and target context
+  - typed filters
+  - typed route hints
+  - typed budget and timeout hints
+  - explicit `no_answer` and `ambiguity` payloads
+- Keep the current runtime truthful by returning deferred traces and explicit
+  `execution_deferred` no-answer payloads until real route execution lands.
+- Add a dedicated `RuntimeConfig.planner` section so default mode, limits, route toggles, and
+  timeout budgets are public config, not hidden implementation constants.
+
+### Why
+
+- The widened surface makes the public contract explicit enough for implementation without forcing
+  callers to infer behavior from one overloaded query method.
+- Status and capability endpoints keep operator and harness code from scraping per-query traces for
+  static support information.
+- A typed trust model and explicit no-answer states preserve the evidence-first product wedge
+  without widening scope into answer generation.
+
+### Consequences
+
+- The public planner API is now slightly broader than the original scaffold plan, but it remains
+  phase-appropriate and contract-only.
+- Later implementation work can add live symbol, semantic, and impact routing without redesigning
+  the request or response shapes.
+- The repo still does not ship a real exact-search engine, and the widened contract continues to
+  surface that gap explicitly.
+
 ## 2026-04-21 Dedicated Planner Crate With A Callable Scaffold Front Door
 
 ### Status

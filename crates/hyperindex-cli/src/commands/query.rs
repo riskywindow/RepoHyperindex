@@ -3,7 +3,9 @@ use std::path::Path;
 use hyperindex_core::{HyperindexError, HyperindexResult};
 use hyperindex_planner::cli_integration::render_query_response;
 use hyperindex_protocol::api::{RequestBody, SuccessPayload};
-use hyperindex_protocol::planner::{PlannerIntentKind, PlannerQueryParams, PlannerQueryText};
+use hyperindex_protocol::planner::{
+    PlannerMode, PlannerQueryFilters, PlannerQueryParams, PlannerRouteHints, PlannerUserQuery,
+};
 
 use crate::client::DaemonClient;
 
@@ -12,7 +14,7 @@ pub fn query(
     repo_id: &str,
     snapshot_id: &str,
     query: &str,
-    intent_hint: Option<&str>,
+    mode_override: Option<&str>,
     limit: u32,
     path_globs: Vec<String>,
     include_trace: bool,
@@ -22,12 +24,25 @@ pub fn query(
     match client.send(RequestBody::PlannerQuery(PlannerQueryParams {
         repo_id: repo_id.to_string(),
         snapshot_id: snapshot_id.to_string(),
-        query: PlannerQueryText {
+        query: PlannerUserQuery {
             text: query.to_string(),
         },
-        intent_hint: parse_intent_hint(intent_hint)?,
-        path_globs,
+        mode_override: parse_mode_override(mode_override)?,
+        selected_context: None,
+        target_context: None,
+        filters: PlannerQueryFilters {
+            path_globs,
+            package_names: Vec::new(),
+            package_roots: Vec::new(),
+            workspace_roots: Vec::new(),
+            languages: Vec::new(),
+            extensions: Vec::new(),
+            symbol_kinds: Vec::new(),
+        },
+        route_hints: PlannerRouteHints::default(),
+        budgets: None,
         limit,
+        explain: false,
         include_trace,
     }))? {
         SuccessPayload::PlannerQuery(response) => {
@@ -37,15 +52,16 @@ pub fn query(
     }
 }
 
-fn parse_intent_hint(raw: Option<&str>) -> HyperindexResult<Option<PlannerIntentKind>> {
+fn parse_mode_override(raw: Option<&str>) -> HyperindexResult<Option<PlannerMode>> {
     match raw {
         None => Ok(None),
-        Some("lookup") => Ok(Some(PlannerIntentKind::Lookup)),
-        Some("semantic") => Ok(Some(PlannerIntentKind::Semantic)),
-        Some("impact") => Ok(Some(PlannerIntentKind::Impact)),
-        Some("hybrid") => Ok(Some(PlannerIntentKind::Hybrid)),
+        Some("auto") => Ok(Some(PlannerMode::Auto)),
+        Some("exact") => Ok(Some(PlannerMode::Exact)),
+        Some("symbol") => Ok(Some(PlannerMode::Symbol)),
+        Some("semantic") => Ok(Some(PlannerMode::Semantic)),
+        Some("impact") => Ok(Some(PlannerMode::Impact)),
         Some(other) => Err(HyperindexError::Message(format!(
-            "unsupported planner intent hint {other}; expected lookup, semantic, impact, or hybrid"
+            "unsupported planner mode override {other}; expected auto, exact, symbol, semantic, or impact"
         ))),
     }
 }
@@ -64,19 +80,20 @@ fn unexpected_response(method: &str, payload: SuccessPayload) -> HyperindexError
 #[cfg(test)]
 mod tests {
     use hyperindex_protocol::planner::{
-        PlannerIntentDecision, PlannerIntentKind, PlannerIntentSource, PlannerQueryIr,
-        PlannerQueryResponse, PlannerQueryStats,
+        PlannerBudgetPolicy, PlannerMode, PlannerModeDecision, PlannerModeSelectionSource,
+        PlannerNoAnswer, PlannerNoAnswerReason, PlannerQueryFilters, PlannerQueryIr,
+        PlannerQueryResponse, PlannerQueryStats, PlannerRouteBudget, PlannerRouteKind,
     };
 
-    use super::{parse_intent_hint, render_query_response};
+    use super::{parse_mode_override, render_query_response};
 
     #[test]
-    fn parse_intent_hint_accepts_supported_values() {
+    fn parse_mode_override_accepts_supported_values() {
         assert_eq!(
-            parse_intent_hint(Some("hybrid")).unwrap(),
-            Some(PlannerIntentKind::Hybrid)
+            parse_mode_override(Some("symbol")).unwrap(),
+            Some(PlannerMode::Symbol)
         );
-        assert!(parse_intent_hint(Some("unknown")).is_err());
+        assert!(parse_mode_override(Some("unknown")).is_err());
     }
 
     #[test]
@@ -84,9 +101,10 @@ mod tests {
         let response = PlannerQueryResponse {
             repo_id: "repo-123".to_string(),
             snapshot_id: "snap-123".to_string(),
-            intent: PlannerIntentDecision {
-                selected_intent: PlannerIntentKind::Hybrid,
-                source: PlannerIntentSource::Heuristic,
+            mode: PlannerModeDecision {
+                requested_mode: Some(PlannerMode::Auto),
+                selected_mode: PlannerMode::Semantic,
+                source: PlannerModeSelectionSource::Heuristic,
                 reasons: vec!["scaffold".to_string()],
             },
             ir: PlannerQueryIr {
@@ -94,17 +112,44 @@ mod tests {
                 snapshot_id: "snap-123".to_string(),
                 surface_query: "where do we invalidate sessions?".to_string(),
                 normalized_query: "where do we invalidate sessions?".to_string(),
-                intent: PlannerIntentKind::Hybrid,
+                selected_mode: PlannerMode::Semantic,
                 limit: 10,
-                path_globs: vec!["packages/**".to_string()],
+                selected_context: None,
+                target_context: None,
+                filters: PlannerQueryFilters {
+                    path_globs: vec!["packages/**".to_string()],
+                    package_names: Vec::new(),
+                    package_roots: Vec::new(),
+                    workspace_roots: Vec::new(),
+                    languages: Vec::new(),
+                    extensions: Vec::new(),
+                    symbol_kinds: Vec::new(),
+                },
+                route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                budgets: PlannerBudgetPolicy {
+                    total_timeout_ms: 1_500,
+                    max_groups: 10,
+                    route_budgets: vec![PlannerRouteBudget {
+                        route_kind: PlannerRouteKind::Semantic,
+                        max_candidates: 16,
+                        max_groups: 8,
+                        timeout_ms: 400,
+                    }],
+                },
             },
             groups: Vec::new(),
             diagnostics: Vec::new(),
             trace: None,
+            no_answer: Some(PlannerNoAnswer {
+                reason: PlannerNoAnswerReason::ExecutionDeferred,
+                details: vec!["contract only".to_string()],
+            }),
+            ambiguity: None,
             stats: PlannerQueryStats {
                 limit_requested: 10,
                 routes_considered: 4,
                 routes_available: 3,
+                candidates_considered: 0,
                 groups_returned: 0,
                 elapsed_ms: 0,
             },

@@ -1,0 +1,617 @@
+{
+  "requests": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-status-001",
+      "method": "planner_status",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-capabilities-001",
+      "method": "planner_capabilities",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001"
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-query-001",
+      "method": "planner_query",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "query": {
+          "text": "where do we invalidate sessions?"
+        },
+        "mode_override": "auto",
+        "filters": {
+          "path_globs": ["packages/**", "apps/**"],
+          "package_names": ["@hyperindex/auth"],
+          "package_roots": ["packages/auth"],
+          "workspace_roots": ["."],
+          "languages": ["typescript"],
+          "extensions": ["ts"],
+          "symbol_kinds": ["function", "method"]
+        },
+        "route_hints": {
+          "preferred_routes": ["impact", "semantic"],
+          "disabled_routes": ["exact"],
+          "require_exact_seed": true
+        },
+        "budgets": {
+          "total_timeout_ms": 1200,
+          "max_groups": 6,
+          "route_budgets": [
+            {
+              "route_kind": "impact",
+              "max_candidates": 6,
+              "max_groups": 4,
+              "timeout_ms": 500
+            },
+            {
+              "route_kind": "semantic",
+              "max_candidates": 12,
+              "max_groups": 6,
+              "timeout_ms": 350
+            }
+          ]
+        },
+        "limit": 6,
+        "explain": false,
+        "include_trace": true
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-explain-001",
+      "method": "planner_explain",
+      "params": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "query": {
+          "text": "SessionStore"
+        },
+        "mode_override": "symbol",
+        "selected_context": {
+          "context_kind": "file",
+          "path": "packages/auth/src/session/service.ts"
+        },
+        "filters": {
+          "path_globs": ["packages/auth/**"],
+          "package_names": [],
+          "package_roots": [],
+          "workspace_roots": [],
+          "languages": [],
+          "extensions": [],
+          "symbol_kinds": ["class"]
+        },
+        "route_hints": {
+          "preferred_routes": ["symbol"],
+          "disabled_routes": ["semantic"],
+          "require_exact_seed": false
+        },
+        "limit": 5,
+        "explain": true,
+        "include_trace": true
+      }
+    }
+  ],
+  "responses": [
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-status-001",
+      "status": "success",
+      "method": "planner_status",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "state": "ready",
+        "capabilities": {
+          "status": true,
+          "query": true,
+          "explain": true,
+          "trace": true,
+          "explicit_mode_override": true,
+          "modes": ["auto", "exact", "symbol", "semantic", "impact"],
+          "filters": {
+            "path_globs": true,
+            "package_names": true,
+            "package_roots": true,
+            "workspace_roots": true,
+            "languages": true,
+            "extensions": true,
+            "symbol_kinds": true
+          },
+          "routes": [
+            {
+              "route_kind": "exact",
+              "enabled": true,
+              "available": false,
+              "reason": "exact route boundary exists but no exact engine ships yet"
+            },
+            {
+              "route_kind": "symbol",
+              "enabled": true,
+              "available": true
+            },
+            {
+              "route_kind": "semantic",
+              "enabled": true,
+              "available": true
+            },
+            {
+              "route_kind": "impact",
+              "enabled": true,
+              "available": true
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "severity": "info",
+            "code": "planner_runtime_scaffold",
+            "message": "planner runtime glue is scaffolded and remains snapshot-scoped"
+          },
+          {
+            "severity": "warning",
+            "code": "exact_route_unavailable",
+            "message": "exact route remains unavailable in the current repository"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-capabilities-001",
+      "status": "success",
+      "method": "planner_capabilities",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "default_mode": "auto",
+        "default_limit": 10,
+        "max_limit": 50,
+        "budgets": {
+          "total_timeout_ms": 1500,
+          "max_groups": 10,
+          "route_budgets": [
+            {
+              "route_kind": "exact",
+              "max_candidates": 25,
+              "max_groups": 10,
+              "timeout_ms": 150
+            },
+            {
+              "route_kind": "symbol",
+              "max_candidates": 20,
+              "max_groups": 10,
+              "timeout_ms": 250
+            },
+            {
+              "route_kind": "semantic",
+              "max_candidates": 16,
+              "max_groups": 8,
+              "timeout_ms": 400
+            },
+            {
+              "route_kind": "impact",
+              "max_candidates": 8,
+              "max_groups": 4,
+              "timeout_ms": 600
+            }
+          ]
+        },
+        "capabilities": {
+          "status": true,
+          "query": true,
+          "explain": true,
+          "trace": true,
+          "explicit_mode_override": true,
+          "modes": ["auto", "exact", "symbol", "semantic", "impact"],
+          "filters": {
+            "path_globs": true,
+            "package_names": true,
+            "package_roots": true,
+            "workspace_roots": true,
+            "languages": true,
+            "extensions": true,
+            "symbol_kinds": true
+          },
+          "routes": [
+            {
+              "route_kind": "exact",
+              "enabled": true,
+              "available": false,
+              "reason": "exact route boundary exists but no exact engine ships yet"
+            },
+            {
+              "route_kind": "symbol",
+              "enabled": true,
+              "available": true
+            },
+            {
+              "route_kind": "semantic",
+              "enabled": true,
+              "available": true
+            },
+            {
+              "route_kind": "impact",
+              "enabled": true,
+              "available": true
+            }
+          ]
+        },
+        "diagnostics": [
+          {
+            "severity": "info",
+            "code": "planner_runtime_scaffold",
+            "message": "planner runtime glue is scaffolded and remains snapshot-scoped"
+          }
+        ]
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-query-001",
+      "status": "success",
+      "method": "planner_query",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "mode": {
+          "requested_mode": "auto",
+          "selected_mode": "impact",
+          "source": "heuristic",
+          "reasons": [
+            "query includes impact-oriented language",
+            "impact remains the product wedge for blast-radius style questions"
+          ]
+        },
+        "ir": {
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "surface_query": "where do we invalidate sessions?",
+          "normalized_query": "where do we invalidate sessions?",
+          "selected_mode": "impact",
+          "limit": 6,
+          "filters": {
+            "path_globs": ["packages/**", "apps/**"],
+            "package_names": ["@hyperindex/auth"],
+            "package_roots": ["packages/auth"],
+            "workspace_roots": ["."],
+            "languages": ["typescript"],
+            "extensions": ["ts"],
+            "symbol_kinds": ["function", "method"]
+          },
+          "route_hints": {
+            "preferred_routes": ["impact", "semantic"],
+            "disabled_routes": ["exact"],
+            "require_exact_seed": true
+          },
+          "budgets": {
+            "total_timeout_ms": 1200,
+            "max_groups": 6,
+            "route_budgets": [
+              {
+                "route_kind": "impact",
+                "max_candidates": 6,
+                "max_groups": 4,
+                "timeout_ms": 500
+              },
+              {
+                "route_kind": "semantic",
+                "max_candidates": 12,
+                "max_groups": 6,
+                "timeout_ms": 350
+              }
+            ]
+          }
+        },
+        "groups": [],
+        "diagnostics": [
+          {
+            "severity": "info",
+            "code": "planner_runtime_scaffold",
+            "message": "planner runtime glue is scaffolded and remains snapshot-scoped"
+          },
+          {
+            "severity": "warning",
+            "code": "exact_route_unavailable",
+            "message": "exact route remains unavailable in the current repository"
+          },
+          {
+            "severity": "warning",
+            "code": "planner_execution_deferred",
+            "message": "planner route execution, score fusion, and grouping remain deferred in this contract slice"
+          },
+          {
+            "severity": "info",
+            "code": "planner_contract_ready",
+            "message": "planner protocol, config, daemon, and CLI surfaces are wired for Phase 7 implementation work"
+          }
+        ],
+        "trace": {
+          "planner_version": "phase7-planner-scaffold-v1",
+          "selected_mode": "impact",
+          "steps": [
+            {
+              "code": "mode_selected",
+              "message": "selected_mode=Impact"
+            },
+            {
+              "code": "snapshot_bound",
+              "message": "snapshot=snap-001"
+            },
+            {
+              "code": "trace_request",
+              "message": "include_trace=true explain=false"
+            }
+          ],
+          "routes": [
+            {
+              "route_kind": "impact",
+              "available": true,
+              "selected": true,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "impact",
+                "max_candidates": 6,
+                "max_groups": 4,
+                "timeout_ms": 500
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
+            {
+              "route_kind": "semantic",
+              "available": true,
+              "selected": false,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "semantic",
+                "max_candidates": 12,
+                "max_groups": 6,
+                "timeout_ms": 350
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
+            {
+              "route_kind": "symbol",
+              "available": true,
+              "selected": false,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "symbol",
+                "max_candidates": 10,
+                "max_groups": 6,
+                "timeout_ms": 1200
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
+            {
+              "route_kind": "exact",
+              "available": false,
+              "selected": false,
+              "status": "skipped",
+              "skip_reason": "filtered_by_route_hint",
+              "budget": {
+                "route_kind": "exact",
+                "max_candidates": 10,
+                "max_groups": 6,
+                "timeout_ms": 1200
+              },
+              "notes": ["route disabled by planner route hints"]
+            }
+          ]
+        },
+        "no_answer": {
+          "reason": "execution_deferred",
+          "details": [
+            "The public planner contract is implemented before live route execution.",
+            "Use planner_explain for deterministic trace inspection during bring-up."
+          ]
+        },
+        "stats": {
+          "limit_requested": 6,
+          "routes_considered": 4,
+          "routes_available": 3,
+          "candidates_considered": 0,
+          "groups_returned": 0,
+          "elapsed_ms": 0
+        }
+      }
+    },
+    {
+      "protocol_version": "repo-hyperindex.local/v1",
+      "request_id": "req-planner-explain-001",
+      "status": "success",
+      "method": "planner_explain",
+      "result": {
+        "repo_id": "repo-123",
+        "snapshot_id": "snap-001",
+        "mode": {
+          "requested_mode": "symbol",
+          "selected_mode": "symbol",
+          "source": "explicit_override",
+          "reasons": ["planner mode selected from explicit override"]
+        },
+        "ir": {
+          "repo_id": "repo-123",
+          "snapshot_id": "snap-001",
+          "surface_query": "SessionStore",
+          "normalized_query": "SessionStore",
+          "selected_mode": "symbol",
+          "limit": 5,
+          "selected_context": {
+            "context_kind": "file",
+            "path": "packages/auth/src/session/service.ts"
+          },
+          "filters": {
+            "path_globs": ["packages/auth/**"],
+            "package_names": [],
+            "package_roots": [],
+            "workspace_roots": [],
+            "languages": [],
+            "extensions": [],
+            "symbol_kinds": ["class"]
+          },
+          "route_hints": {
+            "preferred_routes": ["symbol"],
+            "disabled_routes": ["semantic"],
+            "require_exact_seed": false
+          },
+          "budgets": {
+            "total_timeout_ms": 1500,
+            "max_groups": 10,
+            "route_budgets": [
+              {
+                "route_kind": "exact",
+                "max_candidates": 25,
+                "max_groups": 10,
+                "timeout_ms": 150
+              },
+              {
+                "route_kind": "symbol",
+                "max_candidates": 20,
+                "max_groups": 10,
+                "timeout_ms": 250
+              },
+              {
+                "route_kind": "semantic",
+                "max_candidates": 16,
+                "max_groups": 8,
+                "timeout_ms": 400
+              },
+              {
+                "route_kind": "impact",
+                "max_candidates": 8,
+                "max_groups": 4,
+                "timeout_ms": 600
+              }
+            ]
+          }
+        },
+        "candidates": [],
+        "groups": [],
+        "diagnostics": [
+          {
+            "severity": "info",
+            "code": "planner_runtime_scaffold",
+            "message": "planner runtime glue is scaffolded and remains snapshot-scoped"
+          },
+          {
+            "severity": "warning",
+            "code": "exact_route_unavailable",
+            "message": "exact route remains unavailable in the current repository"
+          },
+          {
+            "severity": "warning",
+            "code": "planner_execution_deferred",
+            "message": "planner route execution, score fusion, and grouping remain deferred in this contract slice"
+          },
+          {
+            "severity": "info",
+            "code": "planner_contract_ready",
+            "message": "planner protocol, config, daemon, and CLI surfaces are wired for Phase 7 implementation work"
+          }
+        ],
+        "trace": {
+          "planner_version": "phase7-planner-scaffold-v1",
+          "selected_mode": "symbol",
+          "steps": [
+            {
+              "code": "mode_selected",
+              "message": "selected_mode=Symbol"
+            },
+            {
+              "code": "snapshot_bound",
+              "message": "snapshot=snap-001"
+            },
+            {
+              "code": "trace_request",
+              "message": "include_trace=true explain=true"
+            }
+          ],
+          "routes": [
+            {
+              "route_kind": "symbol",
+              "available": true,
+              "selected": true,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "symbol",
+                "max_candidates": 20,
+                "max_groups": 10,
+                "timeout_ms": 250
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
+            {
+              "route_kind": "semantic",
+              "available": false,
+              "selected": false,
+              "status": "skipped",
+              "skip_reason": "filtered_by_route_hint",
+              "budget": {
+                "route_kind": "semantic",
+                "max_candidates": 16,
+                "max_groups": 8,
+                "timeout_ms": 400
+              },
+              "notes": ["route disabled by planner route hints"]
+            },
+            {
+              "route_kind": "exact",
+              "available": false,
+              "selected": false,
+              "status": "skipped",
+              "skip_reason": "exact_engine_unavailable",
+              "budget": {
+                "route_kind": "exact",
+                "max_candidates": 25,
+                "max_groups": 10,
+                "timeout_ms": 150
+              },
+              "notes": ["exact route remains a typed compatibility boundary in Phase 7"]
+            }
+          ]
+        },
+        "no_answer": {
+          "reason": "execution_deferred",
+          "details": [
+            "The public planner contract is implemented before live route execution.",
+            "Use planner_explain for deterministic trace inspection during bring-up."
+          ]
+        },
+        "stats": {
+          "limit_requested": 5,
+          "routes_considered": 3,
+          "routes_available": 1,
+          "candidates_considered": 0,
+          "groups_returned": 0,
+          "elapsed_ms": 0
+        }
+      }
+    }
+  ]
+}

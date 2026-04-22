@@ -8,7 +8,10 @@ use hyperindex_protocol::errors::ProtocolError;
 use hyperindex_protocol::impact::{
     ImpactAnalyzeResponse, ImpactExplainResponse, ImpactStatusResponse,
 };
-use hyperindex_protocol::planner::PlannerQueryResponse;
+use hyperindex_protocol::planner::{
+    PlannerCapabilitiesResponse, PlannerExplainResponse, PlannerQueryResponse,
+    PlannerStatusResponse,
+};
 use hyperindex_protocol::repo::{
     RepoShowResponse, ReposAddResponse, ReposListResponse, ReposRemoveResponse,
 };
@@ -327,9 +330,18 @@ impl HandlerRegistry {
             RequestBody::SemanticInspectChunk(params) => Ok(SuccessPayload::SemanticInspectChunk(
                 self.semantic_inspect_chunk(&params)?,
             )),
+            RequestBody::PlannerStatus(params) => {
+                Ok(SuccessPayload::PlannerStatus(self.planner_status(&params)?))
+            }
             RequestBody::PlannerQuery(params) => {
                 Ok(SuccessPayload::PlannerQuery(self.planner_query(&params)?))
             }
+            RequestBody::PlannerExplain(params) => Ok(SuccessPayload::PlannerExplain(
+                self.planner_explain(&params)?,
+            )),
+            RequestBody::PlannerCapabilities(params) => Ok(SuccessPayload::PlannerCapabilities(
+                self.planner_capabilities(&params)?,
+            )),
             RequestBody::ImpactStatus(params) => {
                 Ok(SuccessPayload::ImpactStatus(self.impact_status(&params)?))
             }
@@ -650,6 +662,31 @@ impl HandlerRegistry {
         PlannerService.query(self.state_manager.loaded_config(), &snapshot, params)
     }
 
+    fn planner_status(
+        &self,
+        params: &hyperindex_protocol::planner::PlannerStatusParams,
+    ) -> Result<PlannerStatusResponse, ProtocolError> {
+        let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
+        PlannerService.status(self.state_manager.loaded_config(), &snapshot, params)
+    }
+
+    fn planner_explain(
+        &self,
+        params: &hyperindex_protocol::planner::PlannerExplainParams,
+    ) -> Result<PlannerExplainResponse, ProtocolError> {
+        let snapshot =
+            self.load_symbol_snapshot(&params.query.repo_id, &params.query.snapshot_id)?;
+        PlannerService.explain(self.state_manager.loaded_config(), &snapshot, params)
+    }
+
+    fn planner_capabilities(
+        &self,
+        params: &hyperindex_protocol::planner::PlannerCapabilitiesParams,
+    ) -> Result<PlannerCapabilitiesResponse, ProtocolError> {
+        let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
+        PlannerService.capabilities(self.state_manager.loaded_config(), &snapshot, params)
+    }
+
     fn load_symbol_snapshot(
         &self,
         repo_id: &str,
@@ -703,7 +740,10 @@ fn method_for(body: &RequestBody) -> ApiMethod {
         RequestBody::SemanticBuild(_) => ApiMethod::SemanticBuild,
         RequestBody::SemanticQuery(_) => ApiMethod::SemanticQuery,
         RequestBody::SemanticInspectChunk(_) => ApiMethod::SemanticInspectChunk,
+        RequestBody::PlannerStatus(_) => ApiMethod::PlannerStatus,
         RequestBody::PlannerQuery(_) => ApiMethod::PlannerQuery,
+        RequestBody::PlannerExplain(_) => ApiMethod::PlannerExplain,
+        RequestBody::PlannerCapabilities(_) => ApiMethod::PlannerCapabilities,
         RequestBody::ImpactStatus(_) => ApiMethod::ImpactStatus,
         RequestBody::ImpactAnalyze(_) => ApiMethod::ImpactAnalyze,
         RequestBody::ImpactExplain(_) => ApiMethod::ImpactExplain,
@@ -745,7 +785,10 @@ fn method_name(method: &ApiMethod) -> &'static str {
         ApiMethod::SemanticBuild => "semantic_build",
         ApiMethod::SemanticQuery => "semantic_query",
         ApiMethod::SemanticInspectChunk => "semantic_inspect_chunk",
+        ApiMethod::PlannerStatus => "planner_status",
         ApiMethod::PlannerQuery => "planner_query",
+        ApiMethod::PlannerExplain => "planner_explain",
+        ApiMethod::PlannerCapabilities => "planner_capabilities",
         ApiMethod::ImpactStatus => "impact_status",
         ApiMethod::ImpactAnalyze => "impact_analyze",
         ApiMethod::ImpactExplain => "impact_explain",
