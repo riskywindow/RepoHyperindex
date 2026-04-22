@@ -10,6 +10,7 @@ use crate::impact::{
     ImpactAnalyzeParams, ImpactAnalyzeResponse, ImpactExplainParams, ImpactExplainResponse,
     ImpactStatusParams, ImpactStatusResponse,
 };
+use crate::planner::{PlannerQueryParams, PlannerQueryResponse};
 use crate::repo::{
     RepoShowParams, RepoShowResponse, RepoStatusParams, RepoStatusResponse, ReposAddParams,
     ReposAddResponse, ReposListParams, ReposListResponse, ReposRemoveParams, ReposRemoveResponse,
@@ -75,6 +76,7 @@ pub enum ApiMethod {
     SemanticBuild,
     SemanticQuery,
     SemanticInspectChunk,
+    PlannerQuery,
     ImpactStatus,
     ImpactAnalyze,
     ImpactExplain,
@@ -134,6 +136,7 @@ pub enum RequestBody {
     SemanticBuild(SemanticBuildParams),
     SemanticQuery(SemanticQueryParams),
     SemanticInspectChunk(SemanticInspectChunkParams),
+    PlannerQuery(PlannerQueryParams),
     ImpactStatus(ImpactStatusParams),
     ImpactAnalyze(ImpactAnalyzeParams),
     ImpactExplain(ImpactExplainParams),
@@ -214,6 +217,7 @@ pub enum SuccessPayload {
     SemanticBuild(SemanticBuildResponse),
     SemanticQuery(SemanticQueryResponse),
     SemanticInspectChunk(SemanticInspectChunkResponse),
+    PlannerQuery(PlannerQueryResponse),
     ImpactStatus(ImpactStatusResponse),
     ImpactAnalyze(ImpactAnalyzeResponse),
     ImpactExplain(ImpactExplainResponse),

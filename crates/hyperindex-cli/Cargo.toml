@@ -20,6 +20,7 @@ hyperindex-git-state = { path = "../hyperindex-git-state" }
 hyperindex-impact = { path = "../hyperindex-impact" }
 hyperindex-impact-store = { path = "../hyperindex-impact-store" }
 hyperindex-parser = { path = "../hyperindex-parser" }
+hyperindex-planner = { path = "../hyperindex-planner" }
 hyperindex-protocol = { path = "../hyperindex-protocol" }
 hyperindex-repo-store = { path = "../hyperindex-repo-store" }
 hyperindex-scheduler = { path = "../hyperindex-scheduler" }

@@ -31,6 +31,31 @@ enum Commands {
     Daemon(DaemonCommand),
     Impact(ImpactCommand),
     Parse(ParseCommand),
+    Query {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        query: String,
+
+        #[arg(long)]
+        intent_hint: Option<String>,
+
+        #[arg(long, default_value_t = 10)]
+        limit: u32,
+
+        #[arg(long = "path-glob")]
+        path_globs: Vec<String>,
+
+        #[arg(long)]
+        include_trace: bool,
+
+        #[arg(long)]
+        json: bool,
+    },
     Semantic(SemanticCommand),
     Doctor {
         #[arg(long)]
@@ -731,6 +756,7 @@ impl Cli {
                 ParseSubcommand::Status { json, .. } => *json,
                 ParseSubcommand::InspectFile { json, .. } => *json,
             },
+            Commands::Query { json, .. } => *json,
             Commands::Semantic(command) => match &command.command {
                 SemanticSubcommand::Status { json, .. } => *json,
                 SemanticSubcommand::Query { json, .. } => *json,
@@ -973,6 +999,27 @@ fn dispatch(cli: Cli) -> Result<String> {
             )
             .map_err(|error| anyhow!(error.to_string()))?,
         },
+        Commands::Query {
+            repo_id,
+            snapshot_id,
+            query,
+            intent_hint,
+            limit,
+            path_globs,
+            include_trace,
+            json,
+        } => commands::query::query(
+            config_path.as_deref(),
+            &repo_id,
+            &snapshot_id,
+            &query,
+            intent_hint.as_deref(),
+            limit,
+            path_globs,
+            include_trace,
+            json,
+        )
+        .map_err(|error| anyhow!(error.to_string()))?,
         Commands::Semantic(command) => match command.command {
             SemanticSubcommand::Status {
                 repo_id,

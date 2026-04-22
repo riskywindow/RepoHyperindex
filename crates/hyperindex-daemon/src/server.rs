@@ -264,6 +264,7 @@ fn parse_api_method(raw: &str) -> Option<ApiMethod> {
         "buffers_set" => ApiMethod::BuffersSet,
         "buffers_clear" => ApiMethod::BuffersClear,
         "buffers_list" => ApiMethod::BuffersList,
+        "planner_query" => ApiMethod::PlannerQuery,
         "impact_status" => ApiMethod::ImpactStatus,
         "impact_analyze" => ApiMethod::ImpactAnalyze,
         "impact_explain" => ApiMethod::ImpactExplain,

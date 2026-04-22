@@ -8,6 +8,7 @@ use hyperindex_protocol::errors::ProtocolError;
 use hyperindex_protocol::impact::{
     ImpactAnalyzeResponse, ImpactExplainResponse, ImpactStatusResponse,
 };
+use hyperindex_protocol::planner::PlannerQueryResponse;
 use hyperindex_protocol::repo::{
     RepoShowResponse, ReposAddResponse, ReposListResponse, ReposRemoveResponse,
 };
@@ -31,6 +32,7 @@ use hyperindex_scheduler::jobs::JobKind;
 use tracing::{error, info};
 
 use crate::impact::{ImpactService, build_graph_from_store};
+use crate::planner::PlannerService;
 use crate::semantic::SemanticService;
 use crate::state::DaemonStateManager;
 use crate::symbols::ParserSymbolService;
@@ -325,6 +327,9 @@ impl HandlerRegistry {
             RequestBody::SemanticInspectChunk(params) => Ok(SuccessPayload::SemanticInspectChunk(
                 self.semantic_inspect_chunk(&params)?,
             )),
+            RequestBody::PlannerQuery(params) => {
+                Ok(SuccessPayload::PlannerQuery(self.planner_query(&params)?))
+            }
             RequestBody::ImpactStatus(params) => {
                 Ok(SuccessPayload::ImpactStatus(self.impact_status(&params)?))
             }
@@ -637,6 +642,14 @@ impl HandlerRegistry {
         )
     }
 
+    fn planner_query(
+        &self,
+        params: &hyperindex_protocol::planner::PlannerQueryParams,
+    ) -> Result<PlannerQueryResponse, ProtocolError> {
+        let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
+        PlannerService.query(self.state_manager.loaded_config(), &snapshot, params)
+    }
+
     fn load_symbol_snapshot(
         &self,
         repo_id: &str,
@@ -690,6 +703,7 @@ fn method_for(body: &RequestBody) -> ApiMethod {
         RequestBody::SemanticBuild(_) => ApiMethod::SemanticBuild,
         RequestBody::SemanticQuery(_) => ApiMethod::SemanticQuery,
         RequestBody::SemanticInspectChunk(_) => ApiMethod::SemanticInspectChunk,
+        RequestBody::PlannerQuery(_) => ApiMethod::PlannerQuery,
         RequestBody::ImpactStatus(_) => ApiMethod::ImpactStatus,
         RequestBody::ImpactAnalyze(_) => ApiMethod::ImpactAnalyze,
         RequestBody::ImpactExplain(_) => ApiMethod::ImpactExplain,
@@ -731,6 +745,7 @@ fn method_name(method: &ApiMethod) -> &'static str {
         ApiMethod::SemanticBuild => "semantic_build",
         ApiMethod::SemanticQuery => "semantic_query",
         ApiMethod::SemanticInspectChunk => "semantic_inspect_chunk",
+        ApiMethod::PlannerQuery => "planner_query",
         ApiMethod::ImpactStatus => "impact_status",
         ApiMethod::ImpactAnalyze => "impact_analyze",
         ApiMethod::ImpactExplain => "impact_explain",

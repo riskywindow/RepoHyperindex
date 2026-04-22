@@ -1,0 +1,12 @@
+[package]
+name = "hyperindex-planner"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hyperindex-core = { path = "../hyperindex-core" }
+hyperindex-protocol = { path = "../hyperindex-protocol" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

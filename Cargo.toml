@@ -3,6 +3,7 @@ members = [
   "crates/hyperindex-core",
   "crates/hyperindex-protocol",
   "crates/hyperindex-config",
+  "crates/hyperindex-planner",
   "crates/hyperindex-parser",
   "crates/hyperindex-impact",
   "crates/hyperindex-impact-store",

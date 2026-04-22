@@ -4,6 +4,7 @@ pub mod daemon;
 pub mod impact;
 pub mod maintenance;
 pub mod parse;
+pub mod query;
 pub mod repo;
 pub mod semantic;
 pub mod snapshot;

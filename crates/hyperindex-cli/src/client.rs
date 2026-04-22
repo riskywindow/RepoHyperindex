@@ -308,6 +308,7 @@ fn next_request_id(body: &RequestBody) -> String {
         RequestBody::SemanticBuild(_) => "semantic-build",
         RequestBody::SemanticQuery(_) => "semantic-query",
         RequestBody::SemanticInspectChunk(_) => "semantic-inspect-chunk",
+        RequestBody::PlannerQuery(_) => "planner-query",
         RequestBody::ImpactStatus(_) => "impact-status",
         RequestBody::ImpactAnalyze(_) => "impact-analyze",
         RequestBody::ImpactExplain(_) => "impact-explain",

@@ -3,6 +3,7 @@ pub mod buffers;
 pub mod config;
 pub mod errors;
 pub mod impact;
+pub mod planner;
 pub mod repo;
 pub mod semantic;
 pub mod snapshot;

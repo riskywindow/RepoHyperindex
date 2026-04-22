@@ -312,6 +312,7 @@ dependencies = [
  "hyperindex-impact",
  "hyperindex-impact-store",
  "hyperindex-parser",
+ "hyperindex-planner",
  "hyperindex-protocol",
  "hyperindex-repo-store",
  "hyperindex-scheduler",
@@ -359,6 +360,7 @@ dependencies = [
  "hyperindex-impact",
  "hyperindex-impact-store",
  "hyperindex-parser",
+ "hyperindex-planner",
  "hyperindex-protocol",
  "hyperindex-repo-store",
  "hyperindex-scheduler",
@@ -431,6 +433,18 @@ dependencies = [
  "tracing",
  "tree-sitter",
  "tree-sitter-typescript",
+]
+
+[[package]]
+name = "hyperindex-planner"
+version = "0.1.0"
+dependencies = [
+ "hyperindex-core",
+ "hyperindex-protocol",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]
