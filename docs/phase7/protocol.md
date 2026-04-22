@@ -182,6 +182,11 @@ Response:
   - surface query
   - normalized query
   - selected mode
+  - primary query style
+  - ordered candidate styles for mixed queries
+  - ordered planned routes after deterministic hint normalization
+  - ordered intent signals
+  - normalized exact, symbol, semantic, and impact subqueries when applicable
   - selected or target context when supplied
   - normalized filters
   - normalized route hints

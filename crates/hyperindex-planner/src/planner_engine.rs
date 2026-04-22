@@ -160,6 +160,17 @@ impl PlannerEngine {
                     message: format!("selected_mode={:?}", mode.selected_mode),
                 },
                 PlannerTraceStep {
+                    code: "query_styles".to_string(),
+                    message: format!(
+                        "primary_style={:?} candidate_styles={:?}",
+                        ir.primary_style, ir.candidate_styles
+                    ),
+                },
+                PlannerTraceStep {
+                    code: "planned_routes".to_string(),
+                    message: format!("planned_routes={:?}", ir.planned_routes),
+                },
+                PlannerTraceStep {
                     code: "snapshot_bound".to_string(),
                     message: format!("snapshot={}", snapshot.snapshot_id),
                 },

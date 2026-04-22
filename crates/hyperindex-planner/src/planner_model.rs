@@ -57,10 +57,13 @@ impl PlannerWorkspace {
             });
         }
 
-        let mode = self
+        let classified = self
             .intent_router
             .classify(params, context.default_mode.clone());
-        let ir = self.ir_builder.build(context, params, snapshot, &mode)?;
+        let mode = classified.mode.clone();
+        let ir = self
+            .ir_builder
+            .build(context, params, snapshot, &classified)?;
         let route_plan = self.route_registry.plan(context, &ir);
         self.engine.query_scaffold(
             self,
@@ -91,10 +94,13 @@ impl PlannerWorkspace {
             });
         }
 
-        let mode = self
+        let classified = self
             .intent_router
             .classify(params, context.default_mode.clone());
-        let ir = self.ir_builder.build(context, params, snapshot, &mode)?;
+        let mode = classified.mode.clone();
+        let ir = self
+            .ir_builder
+            .build(context, params, snapshot, &classified)?;
         let route_plan = self.route_registry.plan(context, &ir);
         self.engine.explain_scaffold(
             self,

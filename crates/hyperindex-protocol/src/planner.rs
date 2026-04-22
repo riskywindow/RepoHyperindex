@@ -39,6 +39,38 @@ pub enum PlannerRouteKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum PlannerQueryStyle {
+    ExactLookup,
+    SymbolLookup,
+    SemanticLookup,
+    ImpactAnalysis,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerIntentSignal {
+    RegexLike,
+    QuotedLiteral,
+    PathLike,
+    GlobLike,
+    IdentifierLike,
+    QualifiedSymbolLike,
+    NaturalLanguageQuestion,
+    MultiTokenQuery,
+    ImpactPhrase,
+    SelectedSymbolContext,
+    SelectedFileContext,
+    SelectedSpanContext,
+    SelectedPackageContext,
+    SelectedWorkspaceContext,
+    SelectedImpactContext,
+    TargetContextProvided,
+    FilterScopeProvided,
+    ExplicitModeOverride,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum PlannerRouteStatus {
     Planned,
     Skipped,
@@ -226,17 +258,70 @@ pub struct PlannerModeDecision {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum PlannerExactMatchStyle {
+    Literal,
+    Regex,
+    Path,
+    Glob,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerExactQueryIntent {
+    pub normalized_term: String,
+    pub match_style: PlannerExactMatchStyle,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerSymbolQueryIntent {
+    pub normalized_symbol: String,
+    #[serde(default)]
+    pub segments: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerSemanticQueryIntent {
+    pub normalized_text: String,
+    #[serde(default)]
+    pub tokens: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerImpactQueryIntent {
+    pub normalized_text: String,
+    #[serde(default)]
+    pub action_terms: Vec<String>,
+    #[serde(default)]
+    pub subject_terms: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PlannerQueryIr {
     pub repo_id: String,
     pub snapshot_id: String,
     pub surface_query: String,
     pub normalized_query: String,
     pub selected_mode: PlannerMode,
+    pub primary_style: PlannerQueryStyle,
+    #[serde(default)]
+    pub candidate_styles: Vec<PlannerQueryStyle>,
+    #[serde(default)]
+    pub planned_routes: Vec<PlannerRouteKind>,
+    #[serde(default)]
+    pub intent_signals: Vec<PlannerIntentSignal>,
     pub limit: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selected_context: Option<PlannerContextRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_context: Option<PlannerContextRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exact_query: Option<PlannerExactQueryIntent>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol_query: Option<PlannerSymbolQueryIntent>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub semantic_query: Option<PlannerSemanticQueryIntent>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impact_query: Option<PlannerImpactQueryIntent>,
     pub filters: PlannerQueryFilters,
     pub route_hints: PlannerRouteHints,
     pub budgets: PlannerBudgetPolicy,
@@ -535,12 +620,14 @@ mod tests {
     use super::{
         PlannerAnchor, PlannerBudgetPolicy, PlannerCapabilities, PlannerDiagnostic,
         PlannerDiagnosticSeverity, PlannerEvidenceItem, PlannerEvidenceKind,
-        PlannerExplainResponse, PlannerExplanationPayload, PlannerFilterCapabilities, PlannerMode,
-        PlannerModeDecision, PlannerModeSelectionSource, PlannerNoAnswer, PlannerNoAnswerReason,
-        PlannerQueryFilters, PlannerQueryIr, PlannerQueryResponse, PlannerQueryStats,
-        PlannerResultGroup, PlannerRouteBudget, PlannerRouteCapability, PlannerRouteKind,
-        PlannerRouteStatus, PlannerRouteTrace, PlannerTrace, PlannerTraceStep, PlannerTrustPayload,
-        PlannerTrustTier,
+        PlannerExactMatchStyle, PlannerExactQueryIntent, PlannerExplainResponse,
+        PlannerExplanationPayload, PlannerFilterCapabilities, PlannerImpactQueryIntent,
+        PlannerIntentSignal, PlannerMode, PlannerModeDecision, PlannerModeSelectionSource,
+        PlannerNoAnswer, PlannerNoAnswerReason, PlannerQueryFilters, PlannerQueryIr,
+        PlannerQueryResponse, PlannerQueryStats, PlannerQueryStyle, PlannerResultGroup,
+        PlannerRouteBudget, PlannerRouteCapability, PlannerRouteKind, PlannerRouteStatus,
+        PlannerRouteTrace, PlannerSemanticQueryIntent, PlannerTrace, PlannerTraceStep,
+        PlannerTrustPayload, PlannerTrustTier,
     };
 
     #[test]
@@ -562,9 +649,41 @@ mod tests {
                 surface_query: "where do we invalidate sessions?".to_string(),
                 normalized_query: "where do we invalidate sessions?".to_string(),
                 selected_mode: PlannerMode::Semantic,
+                primary_style: PlannerQueryStyle::SemanticLookup,
+                candidate_styles: vec![
+                    PlannerQueryStyle::SemanticLookup,
+                    PlannerQueryStyle::ImpactAnalysis,
+                ],
+                planned_routes: vec![
+                    PlannerRouteKind::Semantic,
+                    PlannerRouteKind::Symbol,
+                    PlannerRouteKind::Impact,
+                ],
+                intent_signals: vec![
+                    PlannerIntentSignal::NaturalLanguageQuestion,
+                    PlannerIntentSignal::MultiTokenQuery,
+                    PlannerIntentSignal::ImpactPhrase,
+                ],
                 limit: 10,
                 selected_context: None,
                 target_context: None,
+                exact_query: None,
+                symbol_query: None,
+                semantic_query: Some(PlannerSemanticQueryIntent {
+                    normalized_text: "where do we invalidate sessions?".to_string(),
+                    tokens: vec![
+                        "where".to_string(),
+                        "do".to_string(),
+                        "we".to_string(),
+                        "invalidate".to_string(),
+                        "sessions".to_string(),
+                    ],
+                }),
+                impact_query: Some(PlannerImpactQueryIntent {
+                    normalized_text: "where do we invalidate sessions?".to_string(),
+                    action_terms: vec!["invalidate".to_string()],
+                    subject_terms: vec!["sessions".to_string()],
+                }),
                 filters: PlannerQueryFilters {
                     path_globs: vec!["packages/**".to_string()],
                     package_names: vec!["@hyperindex/auth".to_string()],
@@ -696,9 +815,24 @@ mod tests {
                 surface_query: "packages/auth/src/session/service.ts".to_string(),
                 normalized_query: "packages/auth/src/session/service.ts".to_string(),
                 selected_mode: PlannerMode::Exact,
+                primary_style: PlannerQueryStyle::ExactLookup,
+                candidate_styles: vec![PlannerQueryStyle::ExactLookup],
+                planned_routes: vec![
+                    PlannerRouteKind::Exact,
+                    PlannerRouteKind::Symbol,
+                    PlannerRouteKind::Semantic,
+                ],
+                intent_signals: vec![PlannerIntentSignal::PathLike],
                 limit: 5,
                 selected_context: None,
                 target_context: None,
+                exact_query: Some(PlannerExactQueryIntent {
+                    normalized_term: "packages/auth/src/session/service.ts".to_string(),
+                    match_style: PlannerExactMatchStyle::Path,
+                }),
+                symbol_query: None,
+                semantic_query: None,
+                impact_query: None,
                 filters: PlannerQueryFilters::default(),
                 route_hints: super::PlannerRouteHints::default(),
                 budgets: PlannerBudgetPolicy {

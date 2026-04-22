@@ -1,5 +1,61 @@
 # Repo Hyperindex Phase 7 Decisions
 
+## 2026-04-21 Encode Deterministic Route Planning In The Query IR
+
+### Status
+
+- accepted
+
+### Context
+
+- The initial planner contract only carried `selected_mode` plus the raw normalized query text.
+- This task explicitly requires:
+  - a normalized IR that can represent exact, symbol, semantic, impact, and mixed queries
+  - deterministic feature-based intent classification
+  - normalized filters and planner hints
+  - route-selection behavior that remains understandable before live execution exists
+- A single selected mode was not enough to preserve mixed-route cases such as:
+  - qualified-symbol natural-language lookups
+  - the hero query shape `where do we invalidate sessions?`
+
+### Decision
+
+- Expand `PlannerQueryIr` additively with:
+  - `primary_style`
+  - ordered `candidate_styles`
+  - ordered `planned_routes`
+  - ordered `intent_signals`
+  - per-style subqueries for:
+    - exact
+    - symbol
+    - semantic
+    - impact
+- Normalize planner filters and route hints before they enter the IR.
+- Keep classification deterministic and rule-based:
+  - explicit mode override wins
+  - regex, quoted, glob, and path-like text drive exact intent
+  - identifier and qualified-symbol seeds drive symbol intent
+  - natural-language question wording drives semantic intent
+  - blast-radius wording and action verbs drive impact intent
+  - selected context biases routing deterministically without becoming an opaque score source
+- Make the route registry consume `planned_routes` from the IR rather than inferring everything
+  from `selected_mode`.
+
+### Why
+
+- Mixed queries need a stable internal representation before live orchestration exists.
+- The IR now explains not just which mode won, but which secondary styles and routes were kept.
+- Tests can assert route-selection behavior directly without depending on future engine execution.
+
+### Consequences
+
+- Planner traces now expose omitted routes explicitly with `filtered_by_mode` or
+  `filtered_by_route_hint`.
+- Future live symbol, semantic, and impact execution can consume typed per-style subqueries
+  directly instead of reparsing the raw text.
+- Ambiguity handling is better represented in the IR now, but explicit ambiguity result payloads
+  still remain a later execution-layer slice.
+
 ## 2026-04-21 Widen The First Public Planner Surface To A Contract-Complete Front Door
 
 ### Status

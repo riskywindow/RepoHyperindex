@@ -80,9 +80,10 @@ fn unexpected_response(method: &str, payload: SuccessPayload) -> HyperindexError
 #[cfg(test)]
 mod tests {
     use hyperindex_protocol::planner::{
-        PlannerBudgetPolicy, PlannerMode, PlannerModeDecision, PlannerModeSelectionSource,
-        PlannerNoAnswer, PlannerNoAnswerReason, PlannerQueryFilters, PlannerQueryIr,
-        PlannerQueryResponse, PlannerQueryStats, PlannerRouteBudget, PlannerRouteKind,
+        PlannerBudgetPolicy, PlannerImpactQueryIntent, PlannerIntentSignal, PlannerMode,
+        PlannerModeDecision, PlannerModeSelectionSource, PlannerNoAnswer, PlannerNoAnswerReason,
+        PlannerQueryFilters, PlannerQueryIr, PlannerQueryResponse, PlannerQueryStats,
+        PlannerQueryStyle, PlannerRouteBudget, PlannerRouteKind, PlannerSemanticQueryIntent,
     };
 
     use super::{parse_mode_override, render_query_response};
@@ -113,9 +114,41 @@ mod tests {
                 surface_query: "where do we invalidate sessions?".to_string(),
                 normalized_query: "where do we invalidate sessions?".to_string(),
                 selected_mode: PlannerMode::Semantic,
+                primary_style: PlannerQueryStyle::SemanticLookup,
+                candidate_styles: vec![
+                    PlannerQueryStyle::SemanticLookup,
+                    PlannerQueryStyle::ImpactAnalysis,
+                ],
+                planned_routes: vec![
+                    PlannerRouteKind::Semantic,
+                    PlannerRouteKind::Symbol,
+                    PlannerRouteKind::Impact,
+                ],
+                intent_signals: vec![
+                    PlannerIntentSignal::NaturalLanguageQuestion,
+                    PlannerIntentSignal::MultiTokenQuery,
+                    PlannerIntentSignal::ImpactPhrase,
+                ],
                 limit: 10,
                 selected_context: None,
                 target_context: None,
+                exact_query: None,
+                symbol_query: None,
+                semantic_query: Some(PlannerSemanticQueryIntent {
+                    normalized_text: "where do we invalidate sessions?".to_string(),
+                    tokens: vec![
+                        "where".to_string(),
+                        "do".to_string(),
+                        "we".to_string(),
+                        "invalidate".to_string(),
+                        "sessions".to_string(),
+                    ],
+                }),
+                impact_query: Some(PlannerImpactQueryIntent {
+                    normalized_text: "where do we invalidate sessions?".to_string(),
+                    action_terms: vec!["invalidate".to_string()],
+                    subject_terms: vec!["sessions".to_string()],
+                }),
                 filters: PlannerQueryFilters {
                     path_globs: vec!["packages/**".to_string()],
                     package_names: Vec::new(),

@@ -268,8 +268,9 @@
           "selected_mode": "impact",
           "source": "heuristic",
           "reasons": [
-            "query includes impact-oriented language",
-            "impact remains the product wedge for blast-radius style questions"
+            "action-oriented wording implies impact-style lookup",
+            "question-form action queries can require impact analysis plus lookup fallbacks",
+            "mixed route signals kept impact_analysis, semantic_lookup"
           ]
         },
         "ir": {
@@ -278,9 +279,27 @@
           "surface_query": "where do we invalidate sessions?",
           "normalized_query": "where do we invalidate sessions?",
           "selected_mode": "impact",
+          "primary_style": "impact_analysis",
+          "candidate_styles": ["impact_analysis", "semantic_lookup"],
+          "planned_routes": ["symbol", "impact", "semantic"],
+          "intent_signals": [
+            "natural_language_question",
+            "multi_token_query",
+            "impact_phrase",
+            "filter_scope_provided"
+          ],
           "limit": 6,
+          "semantic_query": {
+            "normalized_text": "where do we invalidate sessions?",
+            "tokens": ["where", "do", "we", "invalidate", "sessions"]
+          },
+          "impact_query": {
+            "normalized_text": "where do we invalidate sessions?",
+            "action_terms": ["invalidate"],
+            "subject_terms": ["sessions"]
+          },
           "filters": {
-            "path_globs": ["packages/**", "apps/**"],
+            "path_globs": ["apps/**", "packages/**"],
             "package_names": ["@hyperindex/auth"],
             "package_roots": ["packages/auth"],
             "workspace_roots": ["."],
@@ -344,6 +363,14 @@
               "message": "selected_mode=Impact"
             },
             {
+              "code": "query_styles",
+              "message": "primary_style=ImpactAnalysis candidate_styles=[ImpactAnalysis, SemanticLookup]"
+            },
+            {
+              "code": "planned_routes",
+              "message": "planned_routes=[Symbol, Impact, Semantic]"
+            },
+            {
               "code": "snapshot_bound",
               "message": "snapshot=snap-001"
             },
@@ -353,6 +380,54 @@
             }
           ],
           "routes": [
+            {
+              "route_kind": "exact",
+              "available": false,
+              "selected": false,
+              "status": "skipped",
+              "skip_reason": "filtered_by_route_hint",
+              "budget": {
+                "route_kind": "exact",
+                "max_candidates": 10,
+                "max_groups": 6,
+                "timeout_ms": 1200
+              },
+              "notes": ["route disabled by planner route hints"]
+            },
+            {
+              "route_kind": "symbol",
+              "available": true,
+              "selected": true,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "symbol",
+                "max_candidates": 10,
+                "max_groups": 6,
+                "timeout_ms": 1200
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
+            {
+              "route_kind": "semantic",
+              "available": true,
+              "selected": true,
+              "status": "deferred",
+              "skip_reason": "execution_deferred",
+              "budget": {
+                "route_kind": "semantic",
+                "max_candidates": 12,
+                "max_groups": 6,
+                "timeout_ms": 350
+              },
+              "notes": [
+                "route registered in the Phase 7 public contract",
+                "live route execution remains deferred"
+              ]
+            },
             {
               "route_kind": "impact",
               "available": true,
@@ -369,54 +444,6 @@
                 "route registered in the Phase 7 public contract",
                 "live route execution remains deferred"
               ]
-            },
-            {
-              "route_kind": "semantic",
-              "available": true,
-              "selected": false,
-              "status": "deferred",
-              "skip_reason": "execution_deferred",
-              "budget": {
-                "route_kind": "semantic",
-                "max_candidates": 12,
-                "max_groups": 6,
-                "timeout_ms": 350
-              },
-              "notes": [
-                "route registered in the Phase 7 public contract",
-                "live route execution remains deferred"
-              ]
-            },
-            {
-              "route_kind": "symbol",
-              "available": true,
-              "selected": false,
-              "status": "deferred",
-              "skip_reason": "execution_deferred",
-              "budget": {
-                "route_kind": "symbol",
-                "max_candidates": 10,
-                "max_groups": 6,
-                "timeout_ms": 1200
-              },
-              "notes": [
-                "route registered in the Phase 7 public contract",
-                "live route execution remains deferred"
-              ]
-            },
-            {
-              "route_kind": "exact",
-              "available": false,
-              "selected": false,
-              "status": "skipped",
-              "skip_reason": "filtered_by_route_hint",
-              "budget": {
-                "route_kind": "exact",
-                "max_candidates": 10,
-                "max_groups": 6,
-                "timeout_ms": 1200
-              },
-              "notes": ["route disabled by planner route hints"]
             }
           ]
         },
@@ -457,10 +484,23 @@
           "surface_query": "SessionStore",
           "normalized_query": "SessionStore",
           "selected_mode": "symbol",
+          "primary_style": "symbol_lookup",
+          "candidate_styles": ["symbol_lookup"],
+          "planned_routes": ["symbol"],
+          "intent_signals": [
+            "identifier_like",
+            "explicit_mode_override",
+            "selected_file_context",
+            "filter_scope_provided"
+          ],
           "limit": 5,
           "selected_context": {
             "context_kind": "file",
             "path": "packages/auth/src/session/service.ts"
+          },
+          "symbol_query": {
+            "normalized_symbol": "SessionStore",
+            "segments": ["SessionStore"]
           },
           "filters": {
             "path_globs": ["packages/auth/**"],
@@ -540,6 +580,14 @@
               "message": "selected_mode=Symbol"
             },
             {
+              "code": "query_styles",
+              "message": "primary_style=SymbolLookup candidate_styles=[SymbolLookup]"
+            },
+            {
+              "code": "planned_routes",
+              "message": "planned_routes=[Symbol]"
+            },
+            {
               "code": "snapshot_bound",
               "message": "snapshot=snap-001"
             },
@@ -549,6 +597,22 @@
             }
           ],
           "routes": [
+            {
+              "route_kind": "exact",
+              "available": false,
+              "selected": false,
+              "status": "skipped",
+              "skip_reason": "filtered_by_mode",
+              "budget": {
+                "route_kind": "exact",
+                "max_candidates": 25,
+                "max_groups": 10,
+                "timeout_ms": 150
+              },
+              "notes": [
+                "route omitted from the deterministic planner route graph"
+              ]
+            },
             {
               "route_kind": "symbol",
               "available": true,
@@ -581,18 +645,20 @@
               "notes": ["route disabled by planner route hints"]
             },
             {
-              "route_kind": "exact",
-              "available": false,
+              "route_kind": "impact",
+              "available": true,
               "selected": false,
               "status": "skipped",
-              "skip_reason": "exact_engine_unavailable",
+              "skip_reason": "filtered_by_mode",
               "budget": {
-                "route_kind": "exact",
-                "max_candidates": 25,
-                "max_groups": 10,
-                "timeout_ms": 150
+                "route_kind": "impact",
+                "max_candidates": 8,
+                "max_groups": 4,
+                "timeout_ms": 600
               },
-              "notes": ["exact route remains a typed compatibility boundary in Phase 7"]
+              "notes": [
+                "route omitted from the deterministic planner route graph"
+              ]
             }
           ]
         },
@@ -605,8 +671,8 @@
         },
         "stats": {
           "limit_requested": 5,
-          "routes_considered": 3,
-          "routes_available": 1,
+          "routes_considered": 4,
+          "routes_available": 2,
           "candidates_considered": 0,
           "groups_returned": 0,
           "elapsed_ms": 0

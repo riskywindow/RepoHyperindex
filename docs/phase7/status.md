@@ -8,6 +8,98 @@ Primary planning documents:
 - [acceptance.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/acceptance.md)
 - [decisions.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/decisions.md)
 
+## 2026-04-21 Phase 7 Query IR And Deterministic Intent Classification
+
+### What Was Completed
+
+- Expanded the public planner IR in
+  [crates/hyperindex-protocol/src/planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/src/planner.rs)
+  so one normalized query can encode:
+  - exact-style intent
+  - symbol-style intent
+  - semantic natural-language intent
+  - impact-style intent
+  - mixed-route candidate styles and planned routes
+- Added typed planner IR fields for:
+  - `primary_style`
+  - `candidate_styles`
+  - `planned_routes`
+  - `intent_signals`
+  - per-style exact, symbol, semantic, and impact subqueries
+- Replaced the old single-branch heuristic in
+  [crates/hyperindex-planner/src/intent_router.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/intent_router.rs)
+  with deterministic feature-based classification using:
+  - regex, quoted, glob, and path-like signals
+  - identifier and qualified-symbol signals
+  - natural-language question signals
+  - impact/blast-radius wording and action verbs
+  - selected context bias
+  - explicit mode override
+- Normalized planner filters and route hints in
+  [crates/hyperindex-planner/src/query_ir.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/query_ir.rs)
+  so deduped, stable IR leaves the planner front door.
+- Updated
+  [crates/hyperindex-planner/src/route_registry.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_registry.rs)
+  to consume planned routes from the IR and emit explicit skipped-route traces for
+  mode-filtered and hint-filtered paths.
+- Added representative planner coverage for:
+  - identifier queries
+  - regex/exact-looking queries
+  - natural-language semantic queries
+  - blast-radius/impact queries
+  - ambiguous mixed queries
+  - explicit override behavior
+  - selected file context bias
+  - the hero query shape `where do we invalidate sessions?`
+- Refreshed the checked-in planner example catalog in
+  [crates/hyperindex-protocol/fixtures/api/planner-examples.json](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/fixtures/api/planner-examples.json)
+  so the public fixture matches the new IR contract and trace shape.
+
+### Key Decisions
+
+- Keep intent classification deterministic and explainable rather than adding learned routing or
+  opaque scoring.
+- Represent mixed queries as one selected primary style plus ordered candidate styles and planned
+  routes instead of pretending the query is purely one mode.
+- Keep route execution deferred:
+  this slice only normalizes, classifies, and traces route selection.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner -p hyperindex-protocol -p hyperindex-daemon -p hyperindex-cli
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised updated planner IR and routing coverage in:
+    - `hyperindex-planner`
+    - `hyperindex-protocol`
+    - `hyperindex-daemon`
+    - `hyperindex-cli`
+- `git diff --check`
+  - passed
+
+### Remaining Risks / TODOs
+
+- Planner execution is still deferred; no symbol, semantic, or impact backend calls happen yet.
+- The richer IR now captures mixed-route cases, but explicit `ambiguity` payload shaping is still
+  mostly a future execution-layer step.
+- Fusion, dedupe, grouping, and harness integration are still intentionally unimplemented.
+
+### Next Recommended Prompt
+
+- Implement the next Phase 7 planner slice on top of this IR:
+  execute real symbol, semantic, and impact routes against the existing engines while preserving
+  exact as explicitly unavailable and keeping planner traces aligned with the new planned-route
+  contract
+
 ## 2026-04-21 Phase 7 Planner Public Contract
 
 ### What Was Completed

@@ -1,5 +1,56 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-21 Phase 7 Planner Query IR Compatibility Note
+
+### What Was Completed
+
+- Implemented the requested Phase 7 planner query-IR and deterministic intent-classification slice
+  in the Rust runtime crates without changing the checked-in Phase 1 harness artifacts.
+- Expanded the planner contract additively with:
+  - normalized query styles
+  - deterministic intent signals
+  - bounded planned-route metadata
+  - per-style subqueries for exact, symbol, semantic, and impact routing
+- Added focused Rust coverage for representative planner classification and route-selection cases,
+  including the hero query shape `where do we invalidate sessions?`
+
+### Key Decisions
+
+- Keep this slice inside the already-approved explicit Phase 7 planner exception rather than
+  widening the Phase 1 harness.
+- Preserve all existing Phase 1 benchmark, report, and compare artifacts:
+  no `bench/` schema or adapter changes landed here.
+- Keep planner behavior deterministic and trace-oriented while route execution, fusion, and
+  grouping remain deferred.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner -p hyperindex-protocol -p hyperindex-daemon -p hyperindex-cli
+git diff --check
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- targeted `cargo test`
+  - passed
+  - exercised planner IR, protocol fixture, daemon service, and CLI contract coverage
+- `git diff --check`
+  - passed
+
+### Remaining Risks / TODOs
+
+- Phase 1 still has no planner-mode harness path.
+- Planner query execution is still deferred; this slice only normalizes and classifies queries.
+
+### Next Recommended Prompt
+
+- Implement live Phase 7 planner route execution against the checked-in symbol, semantic, and
+  impact engines while preserving the existing Phase 1 harness artifacts
+
 ## 2026-04-21 Phase 7 Planner Contract Compatibility Note
 
 ### What Was Completed

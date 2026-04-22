@@ -1,6 +1,5 @@
 use hyperindex_protocol::planner::{
-    PlannerMode, PlannerQueryIr, PlannerRouteKind, PlannerRouteSkipReason, PlannerRouteStatus,
-    PlannerRouteTrace,
+    PlannerQueryIr, PlannerRouteKind, PlannerRouteSkipReason, PlannerRouteStatus, PlannerRouteTrace,
 };
 
 use crate::common::budget_for_route;
@@ -37,23 +36,17 @@ impl Default for PlannerRouteRegistry {
 
 impl PlannerRouteRegistry {
     pub fn plan(&self, context: &PlannerRuntimeContext, ir: &PlannerQueryIr) -> PlannerRoutePlan {
-        let route_order = route_order(&ir.selected_mode, &ir.route_hints.preferred_routes);
-        let selected_route = route_order
-            .iter()
-            .find(|route_kind| !ir.route_hints.disabled_routes.contains(route_kind))
-            .cloned();
-
-        let traces = route_order
+        let traces = all_routes()
             .into_iter()
             .map(|route_kind| {
                 let budget = Some(budget_for_route(&ir.budgets, route_kind.clone()));
                 let disabled_by_hint = ir.route_hints.disabled_routes.contains(&route_kind);
+                let selected = ir.planned_routes.contains(&route_kind);
                 let available = if matches!(route_kind, PlannerRouteKind::Exact) {
                     context.route_available(route_kind.clone()) && self.exact_route.available()
                 } else {
                     context.route_available(route_kind.clone())
                 };
-                let selected = selected_route.as_ref() == Some(&route_kind);
 
                 if disabled_by_hint {
                     return PlannerRouteTrace {
@@ -67,6 +60,23 @@ impl PlannerRouteRegistry {
                         group_count: None,
                         elapsed_ms: None,
                         notes: vec!["route disabled by planner route hints".to_string()],
+                    };
+                }
+
+                if !selected {
+                    return PlannerRouteTrace {
+                        route_kind,
+                        available,
+                        selected: false,
+                        status: PlannerRouteStatus::Skipped,
+                        skip_reason: Some(PlannerRouteSkipReason::FilteredByMode),
+                        budget,
+                        candidate_count: None,
+                        group_count: None,
+                        elapsed_ms: None,
+                        notes: vec![
+                            "route omitted from the deterministic planner route graph".to_string(),
+                        ],
                     };
                 }
 
@@ -127,44 +137,11 @@ impl PlannerRouteRegistry {
     }
 }
 
-fn route_order(
-    selected_mode: &PlannerMode,
-    preferred_routes: &[PlannerRouteKind],
-) -> Vec<PlannerRouteKind> {
-    let base = match selected_mode {
-        PlannerMode::Auto => vec![
-            PlannerRouteKind::Symbol,
-            PlannerRouteKind::Semantic,
-            PlannerRouteKind::Impact,
-            PlannerRouteKind::Exact,
-        ],
-        PlannerMode::Exact => vec![
-            PlannerRouteKind::Exact,
-            PlannerRouteKind::Symbol,
-            PlannerRouteKind::Semantic,
-        ],
-        PlannerMode::Symbol => vec![
-            PlannerRouteKind::Symbol,
-            PlannerRouteKind::Exact,
-            PlannerRouteKind::Semantic,
-        ],
-        PlannerMode::Semantic => vec![PlannerRouteKind::Semantic, PlannerRouteKind::Symbol],
-        PlannerMode::Impact => vec![PlannerRouteKind::Impact, PlannerRouteKind::Symbol],
-    };
-
-    let mut ordered = Vec::new();
-    if let Some(primary) = base.first().cloned() {
-        ordered.push(primary);
-    }
-    for route_kind in preferred_routes {
-        if !ordered.contains(route_kind) {
-            ordered.push(route_kind.clone());
-        }
-    }
-    for route_kind in base {
-        if !ordered.contains(&route_kind) {
-            ordered.push(route_kind);
-        }
-    }
-    ordered
+fn all_routes() -> Vec<PlannerRouteKind> {
+    vec![
+        PlannerRouteKind::Exact,
+        PlannerRouteKind::Symbol,
+        PlannerRouteKind::Semantic,
+        PlannerRouteKind::Impact,
+    ]
 }
