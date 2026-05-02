@@ -1582,7 +1582,7 @@ test("logout", () => {
     }
 
     #[test]
-    fn planner_service_returns_grouping_deferred_query_response() {
+    fn planner_service_returns_fused_groups_from_symbol_route() {
         let tempdir = TempDir::new().unwrap();
         let loaded = test_loaded_config(&tempdir);
         let snapshot = snapshot();
@@ -1612,12 +1612,10 @@ test("logout", () => {
             .unwrap();
 
         assert!(response.trace.is_some());
-        assert!(response.groups.is_empty());
-        assert_eq!(
-            response.no_answer.unwrap().reason,
-            hyperindex_protocol::planner::PlannerNoAnswerReason::ExecutionDeferred
-        );
+        assert!(!response.groups.is_empty());
+        assert!(response.no_answer.is_none());
         assert!(response.stats.candidates_considered > 0);
+        assert!(response.stats.groups_returned > 0);
     }
 
     #[test]
@@ -1655,10 +1653,19 @@ test("logout", () => {
         assert!(response.trace.is_some());
         assert!(response.no_answer.is_none());
         assert!(response.candidates.iter().any(|candidate| {
-            candidate.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Symbol
-        }));
-        assert!(response.candidates.iter().any(|candidate| {
             candidate.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Semantic
+        }));
+        assert!(response.trace.as_ref().unwrap().routes.iter().any(|trace| {
+            trace.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Symbol
+                && trace.selected
+        }));
+        assert!(response.trace.as_ref().unwrap().routes.iter().any(|trace| {
+            trace.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Semantic
+                && trace.selected
+                && matches!(
+                    trace.status,
+                    hyperindex_protocol::planner::PlannerRouteStatus::Executed
+                )
         }));
         assert!(response.candidates.iter().all(|candidate| {
             candidate.route_score.is_some() && !candidate.evidence.is_empty()

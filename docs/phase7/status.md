@@ -8,6 +8,97 @@ Primary planning documents:
 - [acceptance.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/acceptance.md)
 - [decisions.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/decisions.md)
 
+## 2026-04-22 Phase 7 Auto Route-Planning Policy
+
+### What Was Completed
+
+- Added a dedicated planner route-policy module in
+  [route_policy.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_policy.rs)
+  so route execution policy is explicit instead of being inferred ad hoc inside the registry.
+- Implemented deterministic internal policy kinds for:
+  - single-route execution
+  - staged fallbacks
+  - multi-route candidate execution for mixed queries
+  - seed-then-impact execution when impact needs a deterministic symbol/file anchor first
+- Updated
+  [route_registry.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_registry.rs)
+  to execute selected routes sequentially with:
+  - total-timeout budget pruning
+  - early stop for satisfied fallback chains
+  - partial-result diagnostics when selected routes are unavailable or skipped
+  - deterministic seed extraction from normalized symbol/file candidates before impact
+- Updated explicit override handling in
+  [intent_router.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/intent_router.rs)
+  so non-auto overrides collapse to one consulted route instead of retaining auto-style fallback
+  plans.
+- Updated
+  [planner_engine.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/planner_engine.rs)
+  so traces and no-answer payloads record:
+  - selected-route availability
+  - low-signal handling
+  - budget exhaustion
+  - early stop
+  - partial-result state
+- Added focused coverage for:
+  - explicit single-route override behavior
+  - staged fallback stop-after-success behavior
+  - fallback when the primary route is unavailable
+  - mixed-query multi-route planning
+  - seed-then-impact execution
+  - deterministic budget pruning
+  - selected file context leading directly into impact planning
+- Tightened the daemon planner regression in
+  [crates/hyperindex-daemon/src/planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/planner.rs)
+  so it asserts stable route-trace behavior instead of depending on one engine family always
+  materializing candidates for a mixed query.
+
+### Key Decisions
+
+- Keep the new policy layer internal to the planner crate:
+  no protocol, daemon front-door, CLI, or harness contract changes were required for this slice.
+- Treat explicit non-auto mode overrides as operational routing instructions, not just heuristic
+  hints.
+- Let impact analysis run only from a deterministic selected symbol/file context or a concrete file
+  seed; otherwise resolve a seed first or stay on retrieval routes and surface low-signal state.
+- Prefer inspectable rule-based pruning and stop conditions over opaque heuristics or score-driven
+  fan-out.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner
+cargo test -p hyperindex-daemon planner_service_
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-planner`
+  - passed
+  - exercised:
+    - planner IR routing coverage
+    - route-policy unit tests
+    - registry-level fallback, impact-seed, and budget behavior
+- `cargo test -p hyperindex-daemon planner_service_`
+  - passed
+  - revalidated planner policy behavior through the daemon-backed planner service seam
+
+### Remaining Risks / TODOs
+
+- Fusion, deduplication, grouping, and trust payload shaping are still placeholder layers above the
+  new route-policy seam.
+- The low-signal and seed-resolution rules are intentionally simple and deterministic; they still
+  need future evaluation against real planner benchmarks before they should be treated as tuned.
+- Exact remains intentionally unavailable in the current repo.
+- The Phase 1 harness still has no `daemon-planner` adapter path.
+
+### Next Recommended Prompt
+
+- Implement deterministic fusion and grouping on top of the new route-policy and normalized
+  candidate seam, without widening into planner-native harness schema changes yet
+
 ## 2026-04-22 Phase 7 Route Registry And Normalized Engine Adapters
 
 ### What Was Completed

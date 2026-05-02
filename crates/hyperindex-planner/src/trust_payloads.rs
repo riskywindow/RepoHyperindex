@@ -4,7 +4,7 @@ use hyperindex_protocol::planner::PlannerResultGroup;
 pub struct TrustPayloadFactory;
 
 impl TrustPayloadFactory {
-    pub fn decorate_placeholder(&self, groups: Vec<PlannerResultGroup>) -> Vec<PlannerResultGroup> {
+    pub fn decorate(&self, groups: Vec<PlannerResultGroup>) -> Vec<PlannerResultGroup> {
         groups
     }
 }

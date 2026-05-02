@@ -1,5 +1,64 @@
 # Repo Hyperindex Phase 7 Decisions
 
+## 2026-04-22 Make Auto Route Planning Explicit And Deterministic Before Fusion
+
+### Status
+
+- accepted
+
+### Context
+
+- The previous Phase 7 planner slice could classify intent and execute normalized route adapters,
+  but the registry still treated selected routes too mechanically.
+- This task explicitly requires:
+  - single-route plans
+  - staged fallback plans
+  - multi-route candidate plans for mixed queries
+  - explicit mode override that bypasses auto routing where appropriate
+  - deterministic handling for route budgets, early stop, partial results, and low-signal impact
+    queries
+- Fusion, grouping, daemon front-door changes, and harness integration remain out of scope for this
+  slice.
+
+### Decision
+
+- Add a planner-owned route-policy layer in `crates/hyperindex-planner/src/route_policy.rs`.
+- Make the registry execute one explicit internal policy kind per query:
+  - `single_route`
+  - `staged_fallback`
+  - `multi_route_candidates`
+  - `seed_then_impact`
+- Collapse explicit non-auto mode overrides to one consulted route unless route hints disable that
+  route entirely.
+- Keep impact routing evidence-first:
+  - go directly to impact only when a selected symbol/file context or concrete file seed already
+    exists
+  - otherwise resolve one deterministic symbol/file seed first
+  - if no deterministic seed exists, keep to retrieval routes and surface low-signal or ambiguity
+    state instead of guessing
+- Apply total timeout budgets deterministically by pruning lower-priority routes before execution
+  and recording that in planner traces and diagnostics.
+
+### Why
+
+- The planner needed a real execution policy boundary before fusion and grouping could be layered on
+  top safely.
+- Impact analysis is only trustworthy when it starts from one deterministic checked-in symbol or
+  file anchor.
+- Explicit mode override should mean something operational, not just a classifier hint.
+- Budget-aware pruning and early stop keep the policy inspectable and benchmarkable without adding
+  learned heuristics.
+
+### Consequences
+
+- Planner traces now explain:
+  - which route policy was chosen
+  - whether low-signal handling, early stop, budget pruning, or partial results applied
+- `planner_query` no-answer details are now based on selected-route availability rather than any
+  globally available route.
+- Real daemon-backed planner tests can now assert route-policy behavior through traces without
+  depending on future fusion or grouped-result semantics.
+
 ## 2026-04-22 Add Planner-Side Normalized Route Adapters Over Existing Engines
 
 ### Status

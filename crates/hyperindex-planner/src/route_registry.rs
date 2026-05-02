@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use hyperindex_protocol::planner::{
-    PlannerAmbiguity, PlannerDiagnostic, PlannerQueryIr, PlannerRouteKind, PlannerRouteSkipReason,
-    PlannerRouteStatus, PlannerRouteTrace,
+    PlannerAmbiguity, PlannerAmbiguityReason, PlannerAnchor, PlannerContextRef, PlannerDiagnostic,
+    PlannerQueryIr, PlannerRouteKind, PlannerRouteSkipReason, PlannerRouteStatus,
+    PlannerRouteTrace,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 
@@ -14,6 +15,7 @@ use crate::route_adapters::{
     PlannerRouteExecutionState, PlannerRouteReadiness, PlannerRouteRequest,
     full_filter_capabilities,
 };
+use crate::route_policy::{PlannerRoutePolicyKind, plan_route_policy};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannerRoutePlan {
@@ -23,6 +25,11 @@ pub struct PlannerRoutePlan {
     pub diagnostics: Vec<PlannerDiagnostic>,
     pub ambiguity: Option<PlannerAmbiguity>,
     pub raw_candidate_count: u32,
+    pub route_policy: PlannerRoutePolicyKind,
+    pub low_signal: bool,
+    pub partial_results: bool,
+    pub budget_exhausted: bool,
+    pub early_stopped: bool,
 }
 
 impl PlannerRoutePlan {
@@ -32,6 +39,13 @@ impl PlannerRoutePlan {
 
     pub fn routes_available(&self) -> u32 {
         self.traces.iter().filter(|trace| trace.available).count() as u32
+    }
+
+    pub fn selected_routes_available(&self) -> u32 {
+        self.traces
+            .iter()
+            .filter(|trace| trace.selected && trace.available)
+            .count() as u32
     }
 
     pub fn has_deferred_routes(&self) -> bool {
@@ -80,7 +94,9 @@ impl PlannerRouteRegistry {
         ir: &PlannerQueryIr,
     ) -> PlannerRoutePlan {
         let capabilities = self.capabilities(context, snapshot);
-        let mut traces = Vec::with_capacity(capabilities.len());
+        let route_policy = plan_route_policy(ir);
+        let budget_selection = select_budgeted_routes(ir, &route_policy.selected_routes);
+        let mut traces = initialize_traces(ir, &capabilities, &route_policy, &budget_selection);
         let mut diagnostics = capabilities
             .iter()
             .flat_map(|report| report.diagnostics.clone())
@@ -88,149 +104,61 @@ impl PlannerRouteRegistry {
         let mut candidates = Vec::new();
         let mut ambiguity = None;
         let mut raw_candidate_count = 0_u32;
+        if route_policy.low_signal {
+            diagnostics.push(scaffold_warning(
+                "planner_low_signal_query",
+                "planner query is low-signal without a deterministic exact, symbol, or file seed",
+            ));
+        }
+        if budget_selection.budget_exhausted {
+            diagnostics.push(scaffold_warning(
+                "planner_budget_exhausted",
+                "planner route selection hit the configured total timeout budget before every selected route could be executed",
+            ));
+        }
 
-        for capability in &capabilities {
-            let route_kind = capability.route_kind.clone();
-            let budget = budget_for_route(&ir.budgets, route_kind.clone());
-            let disabled_by_hint = ir.route_hints.disabled_routes.contains(&route_kind);
-            let selected = ir.planned_routes.contains(&route_kind);
-
-            if disabled_by_hint {
-                traces.push(PlannerRouteTrace {
-                    route_kind,
-                    available: false,
-                    selected: false,
-                    status: PlannerRouteStatus::Skipped,
-                    skip_reason: Some(PlannerRouteSkipReason::FilteredByRouteHint),
-                    budget: Some(budget),
-                    candidate_count: None,
-                    group_count: None,
-                    elapsed_ms: None,
-                    notes: vec!["route disabled by planner route hints".to_string()],
-                });
-                continue;
-            }
-
-            if !selected {
-                traces.push(PlannerRouteTrace {
-                    route_kind,
-                    available: capability.available,
-                    selected: false,
-                    status: PlannerRouteStatus::Skipped,
-                    skip_reason: Some(PlannerRouteSkipReason::FilteredByMode),
-                    budget: Some(budget),
-                    candidate_count: None,
-                    group_count: None,
-                    elapsed_ms: None,
-                    notes: vec![
-                        "route omitted from the deterministic planner route graph".to_string(),
-                    ],
-                });
-                continue;
-            }
-
-            if !capability.available {
-                let skip_reason = if matches!(route_kind, PlannerRouteKind::Exact) {
-                    PlannerRouteSkipReason::ExactEngineUnavailable
-                } else {
-                    PlannerRouteSkipReason::CapabilityDisabled
-                };
-                traces.push(PlannerRouteTrace {
-                    route_kind,
-                    available: false,
-                    selected,
-                    status: PlannerRouteStatus::Skipped,
-                    skip_reason: Some(skip_reason),
-                    budget: Some(budget),
-                    candidate_count: None,
-                    group_count: None,
-                    elapsed_ms: None,
-                    notes: capability.notes.clone(),
-                });
-                continue;
-            }
-
-            let unsupported_filters = capability.unsupported_filters(&ir.filters);
-            if !unsupported_filters.is_empty() {
-                let filters = unsupported_filters.join(", ");
-                diagnostics.push(scaffold_warning(
-                    format!("{}_unsupported_filters", route_code(&route_kind)),
-                    format!(
-                        "{route_kind:?} route skipped because the current adapter does not support requested filters: {filters}"
-                    ),
-                ));
-                traces.push(PlannerRouteTrace {
-                    route_kind,
-                    available: capability.available,
-                    selected,
-                    status: PlannerRouteStatus::Skipped,
-                    skip_reason: Some(PlannerRouteSkipReason::CapabilityDisabled),
-                    budget: Some(budget),
-                    candidate_count: None,
-                    group_count: None,
-                    elapsed_ms: None,
-                    notes: vec![format!("unsupported requested filters: {filters}")],
-                });
-                continue;
-            }
-
-            let request = PlannerRouteRequest {
-                runtime: context,
+        let early_stopped = match route_policy.kind {
+            PlannerRoutePolicyKind::SingleRoute
+            | PlannerRoutePolicyKind::StagedFallback
+            | PlannerRoutePolicyKind::MultiRouteCandidates => self.execute_standard_policy(
+                context,
                 snapshot,
                 ir,
-                budget: budget.clone(),
-            };
-            let execution = self
-                .adapter_for(&route_kind)
-                .map(|adapter| adapter.execute(&request))
-                .unwrap_or_else(|| missing_route_execution(route_kind.clone()));
-            raw_candidate_count += execution.candidates.len() as u32;
+                &capabilities,
+                &budget_selection.executable_routes,
+                route_policy.kind.clone(),
+                &mut traces,
+                &mut diagnostics,
+                &mut candidates,
+                &mut ambiguity,
+                &mut raw_candidate_count,
+            ),
+            PlannerRoutePolicyKind::SeedThenImpact => self.execute_seed_then_impact_policy(
+                context,
+                snapshot,
+                ir,
+                &capabilities,
+                &budget_selection.executable_routes,
+                &mut traces,
+                &mut diagnostics,
+                &mut candidates,
+                &mut ambiguity,
+                &mut raw_candidate_count,
+            ),
+        };
 
-            let raw_route_candidate_count = execution.candidates.len() as u32;
-            let filtered = execution
-                .candidates
-                .into_iter()
-                .filter(|candidate| candidate.matches_filters(&ir.filters, snapshot))
-                .collect::<Vec<_>>();
-            if ambiguity.is_none() {
-                ambiguity = execution.ambiguity.clone();
-            }
-            let filtered_out = raw_route_candidate_count.saturating_sub(filtered.len() as u32);
-            let mut notes = capability.notes.clone();
-            notes.extend(execution.notes.clone());
-            if filtered_out > 0 {
-                notes.push(format!(
-                    "{filtered_out} candidate(s) filtered after normalization"
-                ));
-            }
-            diagnostics.extend(execution.diagnostics.clone());
-
-            let (status, skip_reason, candidate_count) = match execution.state {
-                PlannerRouteExecutionState::Deferred => (
-                    PlannerRouteStatus::Deferred,
-                    Some(PlannerRouteSkipReason::ExecutionDeferred),
-                    None,
+        let partial_results = candidates_exist_with_missing_selected_routes(&traces, &candidates);
+        if partial_results {
+            diagnostics.push(scaffold_warning(
+                "planner_partial_results",
+                format!(
+                    "planner returned partial route-level results after skipping {} selected route(s)",
+                    traces
+                        .iter()
+                        .filter(|trace| trace.selected && trace.status != PlannerRouteStatus::Executed)
+                        .count()
                 ),
-                PlannerRouteExecutionState::Executed => (
-                    PlannerRouteStatus::Executed,
-                    None,
-                    Some(filtered.len() as u32),
-                ),
-            };
-
-            traces.push(PlannerRouteTrace {
-                route_kind,
-                available: capability.available,
-                selected,
-                status,
-                skip_reason,
-                budget: Some(budget),
-                candidate_count,
-                group_count: None,
-                elapsed_ms: Some(execution.elapsed_ms),
-                notes,
-            });
-            candidates.extend(filtered);
+            ));
         }
 
         PlannerRoutePlan {
@@ -240,6 +168,11 @@ impl PlannerRouteRegistry {
             diagnostics,
             ambiguity,
             raw_candidate_count,
+            route_policy: route_policy.kind,
+            low_signal: route_policy.low_signal,
+            partial_results,
+            budget_exhausted: budget_selection.budget_exhausted,
+            early_stopped,
         }
     }
 
@@ -259,6 +192,556 @@ impl PlannerRouteRegistry {
             .iter()
             .find(|adapter| adapter.kind() == *route_kind)
     }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_standard_policy(
+        &self,
+        context: &PlannerRuntimeContext,
+        snapshot: &ComposedSnapshot,
+        ir: &PlannerQueryIr,
+        capabilities: &[PlannerRouteCapabilityReport],
+        executable_routes: &[PlannerRouteKind],
+        policy_kind: PlannerRoutePolicyKind,
+        traces: &mut [PlannerRouteTrace],
+        diagnostics: &mut Vec<PlannerDiagnostic>,
+        candidates: &mut Vec<NormalizedPlannerCandidate>,
+        ambiguity: &mut Option<PlannerAmbiguity>,
+        raw_candidate_count: &mut u32,
+    ) -> bool {
+        for (index, route_kind) in executable_routes.iter().enumerate() {
+            let capability = capability_for_route(capabilities, route_kind);
+            let budget = budget_for_route(&ir.budgets, route_kind.clone());
+            let attempt = self.attempt_route(context, snapshot, ir, capability, budget);
+
+            *raw_candidate_count += attempt.raw_candidate_count;
+            diagnostics.extend(attempt.diagnostics.clone());
+            if ambiguity.is_none() {
+                *ambiguity = attempt.ambiguity.clone();
+            }
+            candidates.extend(attempt.candidates.clone());
+            apply_attempt_to_trace(traces, route_kind, capability, attempt.clone());
+
+            let should_stop = match policy_kind {
+                PlannerRoutePolicyKind::SingleRoute => true,
+                PlannerRoutePolicyKind::StagedFallback => {
+                    !attempt.candidates.is_empty() || attempt.ambiguity.is_some()
+                }
+                PlannerRoutePolicyKind::MultiRouteCandidates => false,
+                PlannerRoutePolicyKind::SeedThenImpact => false,
+            };
+
+            if should_stop {
+                let skipped_message = match policy_kind {
+                    PlannerRoutePolicyKind::SingleRoute => {
+                        "single-route policy bypassed lower-priority routes".to_string()
+                    }
+                    PlannerRoutePolicyKind::StagedFallback => {
+                        format!("{route_kind:?} satisfied the staged fallback policy")
+                    }
+                    PlannerRoutePolicyKind::MultiRouteCandidates
+                    | PlannerRoutePolicyKind::SeedThenImpact => String::new(),
+                };
+                mark_remaining_routes_skipped(
+                    traces,
+                    &executable_routes[index + 1..],
+                    skipped_message,
+                );
+                return index + 1 < executable_routes.len();
+            }
+        }
+
+        false
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn execute_seed_then_impact_policy(
+        &self,
+        context: &PlannerRuntimeContext,
+        snapshot: &ComposedSnapshot,
+        ir: &PlannerQueryIr,
+        capabilities: &[PlannerRouteCapabilityReport],
+        executable_routes: &[PlannerRouteKind],
+        traces: &mut [PlannerRouteTrace],
+        diagnostics: &mut Vec<PlannerDiagnostic>,
+        candidates: &mut Vec<NormalizedPlannerCandidate>,
+        ambiguity: &mut Option<PlannerAmbiguity>,
+        raw_candidate_count: &mut u32,
+    ) -> bool {
+        let seed_routes = executable_routes
+            .iter()
+            .filter(|route_kind| **route_kind != PlannerRouteKind::Impact)
+            .cloned()
+            .collect::<Vec<_>>();
+        let impact_selected = executable_routes.contains(&PlannerRouteKind::Impact);
+        let mut derived_context = ir
+            .selected_context
+            .clone()
+            .or_else(|| ir.target_context.clone());
+
+        for (index, route_kind) in seed_routes.iter().enumerate() {
+            let capability = capability_for_route(capabilities, route_kind);
+            let budget = budget_for_route(&ir.budgets, route_kind.clone());
+            let attempt = self.attempt_route(context, snapshot, ir, capability, budget);
+
+            *raw_candidate_count += attempt.raw_candidate_count;
+            diagnostics.extend(attempt.diagnostics.clone());
+            candidates.extend(attempt.candidates.clone());
+            apply_attempt_to_trace(traces, route_kind, capability, attempt.clone());
+
+            if let Some(route_ambiguity) = attempt.ambiguity.clone() {
+                if ambiguity.is_none() {
+                    *ambiguity = Some(route_ambiguity);
+                }
+                mark_remaining_routes_skipped(
+                    traces,
+                    &seed_routes[index + 1..],
+                    "impact seed resolution stopped after an ambiguous seed route".to_string(),
+                );
+                if impact_selected {
+                    mark_remaining_routes_skipped(
+                        traces,
+                        &[PlannerRouteKind::Impact],
+                        "impact route withheld because seed resolution remained ambiguous"
+                            .to_string(),
+                    );
+                }
+                return true;
+            }
+
+            match seed_context_from_candidates(&attempt.candidates) {
+                SeedResolution::Unique(context_ref) => {
+                    derived_context = Some(context_ref);
+                    mark_remaining_routes_skipped(
+                        traces,
+                        &seed_routes[index + 1..],
+                        format!("{route_kind:?} resolved a deterministic impact seed"),
+                    );
+                    break;
+                }
+                SeedResolution::Ambiguous(candidate_contexts) => {
+                    if ambiguity.is_none() {
+                        *ambiguity = Some(PlannerAmbiguity {
+                            reason: PlannerAmbiguityReason::MultipleAnchorsRemain,
+                            details: vec![format!(
+                                "{route_kind:?} produced multiple symbol or file anchors, so impact analysis stopped before guessing"
+                            )],
+                            candidate_contexts,
+                        });
+                    }
+                    mark_remaining_routes_skipped(
+                        traces,
+                        &seed_routes[index + 1..],
+                        "impact seed resolution stopped after multiple anchors remained"
+                            .to_string(),
+                    );
+                    if impact_selected {
+                        mark_remaining_routes_skipped(
+                            traces,
+                            &[PlannerRouteKind::Impact],
+                            "impact route withheld because seed resolution remained ambiguous"
+                                .to_string(),
+                        );
+                    }
+                    return true;
+                }
+                SeedResolution::None => {}
+            }
+        }
+
+        if !impact_selected {
+            return derived_context.is_some();
+        }
+
+        let Some(seed_context) = derived_context else {
+            diagnostics.push(scaffold_warning(
+                "planner_impact_seed_missing",
+                "impact route was not executed because no deterministic symbol or file context was resolved from the selected seed routes",
+            ));
+            mark_remaining_routes_skipped(
+                traces,
+                &[PlannerRouteKind::Impact],
+                "impact route withheld until a symbol or file context is selected".to_string(),
+            );
+            return false;
+        };
+
+        let capability = capability_for_route(capabilities, &PlannerRouteKind::Impact);
+        let budget = budget_for_route(&ir.budgets, PlannerRouteKind::Impact);
+        let mut derived_ir = ir.clone();
+        if derived_ir.selected_context.is_none() && derived_ir.target_context.is_none() {
+            derived_ir.selected_context = Some(seed_context);
+        }
+        let attempt = self.attempt_route(context, snapshot, &derived_ir, capability, budget);
+        *raw_candidate_count += attempt.raw_candidate_count;
+        diagnostics.extend(attempt.diagnostics.clone());
+        if ambiguity.is_none() {
+            *ambiguity = attempt.ambiguity.clone();
+        }
+        candidates.extend(attempt.candidates.clone());
+        apply_attempt_to_trace(traces, &PlannerRouteKind::Impact, capability, attempt);
+
+        true
+    }
+
+    fn attempt_route(
+        &self,
+        context: &PlannerRuntimeContext,
+        snapshot: &ComposedSnapshot,
+        ir: &PlannerQueryIr,
+        capability: &PlannerRouteCapabilityReport,
+        budget: hyperindex_protocol::planner::PlannerRouteBudget,
+    ) -> RouteAttempt {
+        if !capability.available {
+            return RouteAttempt {
+                status: PlannerRouteStatus::Skipped,
+                skip_reason: Some(
+                    if matches!(capability.route_kind, PlannerRouteKind::Exact) {
+                        PlannerRouteSkipReason::ExactEngineUnavailable
+                    } else {
+                        PlannerRouteSkipReason::CapabilityDisabled
+                    },
+                ),
+                candidates: Vec::new(),
+                diagnostics: Vec::new(),
+                notes: capability.notes.clone(),
+                elapsed_ms: None,
+                raw_candidate_count: 0,
+                ambiguity: None,
+            };
+        }
+
+        let unsupported_filters = capability.unsupported_filters(&ir.filters);
+        if !unsupported_filters.is_empty() {
+            let filters = unsupported_filters.join(", ");
+            return RouteAttempt {
+                status: PlannerRouteStatus::Skipped,
+                skip_reason: Some(PlannerRouteSkipReason::CapabilityDisabled),
+                candidates: Vec::new(),
+                diagnostics: vec![scaffold_warning(
+                    format!("{}_unsupported_filters", route_code(&capability.route_kind)),
+                    format!(
+                        "{:?} route skipped because the current adapter does not support requested filters: {filters}",
+                        capability.route_kind
+                    ),
+                )],
+                notes: vec![format!("unsupported requested filters: {filters}")],
+                elapsed_ms: None,
+                raw_candidate_count: 0,
+                ambiguity: None,
+            };
+        }
+
+        let request = PlannerRouteRequest {
+            runtime: context,
+            snapshot,
+            ir,
+            budget,
+        };
+        let execution = self
+            .adapter_for(&capability.route_kind)
+            .map(|adapter| adapter.execute(&request))
+            .unwrap_or_else(|| missing_route_execution(capability.route_kind.clone()));
+
+        let raw_candidate_count = execution.candidates.len() as u32;
+        let filtered = execution
+            .candidates
+            .into_iter()
+            .filter(|candidate| candidate.matches_filters(&ir.filters, snapshot))
+            .collect::<Vec<_>>();
+        let filtered_out = raw_candidate_count.saturating_sub(filtered.len() as u32);
+        let mut notes = capability.notes.clone();
+        notes.extend(execution.notes.clone());
+        if filtered_out > 0 {
+            notes.push(format!(
+                "{filtered_out} candidate(s) filtered after normalization"
+            ));
+        }
+
+        let (status, skip_reason, elapsed_ms) = match execution.state {
+            PlannerRouteExecutionState::Deferred => (
+                PlannerRouteStatus::Deferred,
+                Some(PlannerRouteSkipReason::ExecutionDeferred),
+                Some(execution.elapsed_ms),
+            ),
+            PlannerRouteExecutionState::Executed => (
+                PlannerRouteStatus::Executed,
+                None,
+                Some(execution.elapsed_ms),
+            ),
+        };
+
+        RouteAttempt {
+            status,
+            skip_reason,
+            candidates: filtered,
+            diagnostics: execution.diagnostics,
+            notes,
+            elapsed_ms,
+            raw_candidate_count,
+            ambiguity: execution.ambiguity,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RouteAttempt {
+    status: PlannerRouteStatus,
+    skip_reason: Option<PlannerRouteSkipReason>,
+    candidates: Vec<NormalizedPlannerCandidate>,
+    diagnostics: Vec<PlannerDiagnostic>,
+    notes: Vec<String>,
+    elapsed_ms: Option<u64>,
+    raw_candidate_count: u32,
+    ambiguity: Option<PlannerAmbiguity>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct BudgetSelection {
+    executable_routes: Vec<PlannerRouteKind>,
+    exhausted_routes: Vec<PlannerRouteKind>,
+    zero_budget_routes: Vec<PlannerRouteKind>,
+    budget_exhausted: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SeedResolution {
+    None,
+    Unique(PlannerContextRef),
+    Ambiguous(Vec<PlannerContextRef>),
+}
+
+fn initialize_traces(
+    ir: &PlannerQueryIr,
+    capabilities: &[PlannerRouteCapabilityReport],
+    route_policy: &crate::route_policy::PlannerRoutePolicy,
+    budget_selection: &BudgetSelection,
+) -> Vec<PlannerRouteTrace> {
+    all_routes()
+        .into_iter()
+        .map(|route_kind| {
+            let capability = capability_for_route(capabilities, &route_kind);
+            let budget = budget_for_route(&ir.budgets, route_kind.clone());
+            let selected = route_policy.selected_routes.contains(&route_kind);
+            let disabled_by_hint = ir.route_hints.disabled_routes.contains(&route_kind);
+
+            if disabled_by_hint {
+                return PlannerRouteTrace {
+                    route_kind,
+                    available: false,
+                    selected: false,
+                    status: PlannerRouteStatus::Skipped,
+                    skip_reason: Some(PlannerRouteSkipReason::FilteredByRouteHint),
+                    budget: Some(budget),
+                    candidate_count: None,
+                    group_count: None,
+                    elapsed_ms: None,
+                    notes: vec!["route disabled by planner route hints".to_string()],
+                };
+            }
+
+            let mut trace = PlannerRouteTrace {
+                route_kind: route_kind.clone(),
+                available: capability.available,
+                selected,
+                status: if selected {
+                    PlannerRouteStatus::Planned
+                } else {
+                    PlannerRouteStatus::Skipped
+                },
+                skip_reason: if selected {
+                    None
+                } else {
+                    Some(PlannerRouteSkipReason::FilteredByMode)
+                },
+                budget: Some(budget),
+                candidate_count: None,
+                group_count: None,
+                elapsed_ms: None,
+                notes: if selected {
+                    route_policy.notes.clone()
+                } else {
+                    vec![format!(
+                        "route omitted by {:?} planner policy",
+                        route_policy.kind
+                    )]
+                },
+            };
+
+            if budget_selection.zero_budget_routes.contains(&route_kind) {
+                trace.status = PlannerRouteStatus::Skipped;
+                trace.skip_reason = Some(PlannerRouteSkipReason::ExecutionDeferred);
+                trace.notes = vec![
+                    "route budget disables execution because timeout or max_candidates resolved to zero"
+                        .to_string(),
+                ];
+            } else if budget_selection.exhausted_routes.contains(&route_kind) {
+                trace.status = PlannerRouteStatus::Skipped;
+                trace.skip_reason = Some(PlannerRouteSkipReason::ExecutionDeferred);
+                trace.notes = vec![
+                    "route omitted because the planner total timeout budget was exhausted first"
+                        .to_string(),
+                ];
+            }
+
+            trace
+        })
+        .collect()
+}
+
+fn capability_for_route<'a>(
+    capabilities: &'a [PlannerRouteCapabilityReport],
+    route_kind: &PlannerRouteKind,
+) -> &'a PlannerRouteCapabilityReport {
+    capabilities
+        .iter()
+        .find(|capability| capability.route_kind == *route_kind)
+        .expect("every public route must have a capability report")
+}
+
+fn select_budgeted_routes(
+    ir: &PlannerQueryIr,
+    selected_routes: &[PlannerRouteKind],
+) -> BudgetSelection {
+    let mut selection = BudgetSelection::default();
+    let mut reserved_timeout_ms = 0_u64;
+    let mut deferred_first_route = None;
+
+    for route_kind in selected_routes {
+        let budget = budget_for_route(&ir.budgets, route_kind.clone());
+        if budget.timeout_ms == 0 || budget.max_candidates == 0 {
+            selection.zero_budget_routes.push(route_kind.clone());
+            selection.budget_exhausted = true;
+            continue;
+        }
+
+        if !selection.executable_routes.is_empty()
+            && reserved_timeout_ms.saturating_add(budget.timeout_ms) > ir.budgets.total_timeout_ms
+        {
+            selection.exhausted_routes.push(route_kind.clone());
+            selection.budget_exhausted = true;
+            continue;
+        }
+
+        if selection.executable_routes.is_empty() && budget.timeout_ms > ir.budgets.total_timeout_ms
+        {
+            deferred_first_route = Some(route_kind.clone());
+            selection.budget_exhausted = true;
+            continue;
+        }
+
+        reserved_timeout_ms = reserved_timeout_ms.saturating_add(budget.timeout_ms);
+        selection.executable_routes.push(route_kind.clone());
+    }
+
+    if selection.executable_routes.is_empty() {
+        if let Some(route_kind) = deferred_first_route {
+            selection.executable_routes.push(route_kind);
+        }
+    }
+
+    selection
+}
+
+fn apply_attempt_to_trace(
+    traces: &mut [PlannerRouteTrace],
+    route_kind: &PlannerRouteKind,
+    capability: &PlannerRouteCapabilityReport,
+    attempt: RouteAttempt,
+) {
+    let trace = trace_mut(traces, route_kind);
+    trace.available = capability.available;
+    trace.status = attempt.status;
+    trace.skip_reason = attempt.skip_reason;
+    trace.candidate_count =
+        (trace.status == PlannerRouteStatus::Executed).then_some(attempt.candidates.len() as u32);
+    trace.elapsed_ms = attempt.elapsed_ms;
+    trace.notes = attempt.notes;
+}
+
+fn trace_mut<'a>(
+    traces: &'a mut [PlannerRouteTrace],
+    route_kind: &PlannerRouteKind,
+) -> &'a mut PlannerRouteTrace {
+    traces
+        .iter_mut()
+        .find(|trace| trace.route_kind == *route_kind)
+        .expect("every public route must have a trace slot")
+}
+
+fn mark_remaining_routes_skipped(
+    traces: &mut [PlannerRouteTrace],
+    remaining_routes: &[PlannerRouteKind],
+    message: String,
+) {
+    for route_kind in remaining_routes {
+        let trace = trace_mut(traces, route_kind);
+        if trace.status == PlannerRouteStatus::Planned {
+            trace.status = PlannerRouteStatus::Skipped;
+            trace.skip_reason = Some(PlannerRouteSkipReason::ExecutionDeferred);
+            trace.notes = vec![message.clone()];
+        }
+    }
+}
+
+fn seed_context_from_candidates(candidates: &[NormalizedPlannerCandidate]) -> SeedResolution {
+    let mut contexts = Vec::new();
+    for candidate in candidates {
+        let Some(context) = candidate_context(candidate) else {
+            continue;
+        };
+        if !contexts.contains(&context) {
+            contexts.push(context);
+        }
+    }
+
+    match contexts.len() {
+        0 => SeedResolution::None,
+        1 => SeedResolution::Unique(contexts.remove(0)),
+        _ => SeedResolution::Ambiguous(contexts),
+    }
+}
+
+fn candidate_context(candidate: &NormalizedPlannerCandidate) -> Option<PlannerContextRef> {
+    match &candidate.anchor {
+        PlannerAnchor::Symbol {
+            symbol_id,
+            path,
+            span,
+        } => Some(PlannerContextRef::Symbol {
+            symbol_id: symbol_id.clone(),
+            path: path.clone(),
+            span: span.clone(),
+            display_name: Some(candidate.label.clone()),
+        }),
+        PlannerAnchor::Span { path, span } => Some(PlannerContextRef::Span {
+            path: path.clone(),
+            span: span.clone(),
+        }),
+        PlannerAnchor::File { path } => Some(PlannerContextRef::File { path: path.clone() }),
+        PlannerAnchor::Impact { entity } => Some(PlannerContextRef::Impact {
+            entity: entity.clone(),
+        }),
+        PlannerAnchor::Package { .. } | PlannerAnchor::Workspace { .. } => None,
+    }
+}
+
+fn candidates_exist_with_missing_selected_routes(
+    traces: &[PlannerRouteTrace],
+    candidates: &[NormalizedPlannerCandidate],
+) -> bool {
+    !candidates.is_empty()
+        && traces.iter().any(|trace| {
+            trace.selected
+                && matches!(
+                    trace.status,
+                    PlannerRouteStatus::Skipped | PlannerRouteStatus::Deferred
+                )
+                && !trace.notes.iter().any(|note| {
+                    note.contains("single-route policy bypassed")
+                        || note.contains("satisfied the staged fallback policy")
+                        || note.contains("resolved a deterministic impact seed")
+                })
+        })
 }
 
 fn all_routes() -> Vec<PlannerRouteKind> {
@@ -399,8 +882,9 @@ mod tests {
     use std::sync::Arc;
 
     use hyperindex_protocol::planner::{
-        PlannerAnchor, PlannerEvidenceItem, PlannerEvidenceKind, PlannerMode, PlannerQueryFilters,
-        PlannerQueryIr, PlannerQueryStyle, PlannerRouteHints, PlannerRouteKind, PlannerRouteStatus,
+        PlannerAnchor, PlannerEvidenceItem, PlannerEvidenceKind, PlannerImpactQueryIntent,
+        PlannerMode, PlannerQueryFilters, PlannerQueryIr, PlannerQueryStyle, PlannerRouteHints,
+        PlannerRouteKind, PlannerRouteSkipReason, PlannerRouteStatus, PlannerSymbolQueryIntent,
     };
     use hyperindex_protocol::snapshot::{
         BaseSnapshot, BaseSnapshotKind, ComposedSnapshot, WorkingTreeOverlay,
@@ -502,6 +986,41 @@ mod tests {
         }
     }
 
+    fn exact_ir() -> PlannerQueryIr {
+        let mut query_ir = ir();
+        query_ir.selected_mode = PlannerMode::Exact;
+        query_ir.primary_style = PlannerQueryStyle::ExactLookup;
+        query_ir.candidate_styles = vec![PlannerQueryStyle::ExactLookup];
+        query_ir.planned_routes = vec![
+            PlannerRouteKind::Exact,
+            PlannerRouteKind::Symbol,
+            PlannerRouteKind::Semantic,
+        ];
+        query_ir
+    }
+
+    fn impact_ir() -> PlannerQueryIr {
+        let mut query_ir = ir();
+        query_ir.selected_mode = PlannerMode::Impact;
+        query_ir.primary_style = PlannerQueryStyle::ImpactAnalysis;
+        query_ir.candidate_styles = vec![PlannerQueryStyle::ImpactAnalysis];
+        query_ir.planned_routes = vec![
+            PlannerRouteKind::Symbol,
+            PlannerRouteKind::Semantic,
+            PlannerRouteKind::Impact,
+        ];
+        query_ir.symbol_query = Some(PlannerSymbolQueryIntent {
+            normalized_symbol: "SessionStore".to_string(),
+            segments: vec!["SessionStore".to_string()],
+        });
+        query_ir.impact_query = Some(PlannerImpactQueryIntent {
+            normalized_text: "what breaks if I rename SessionStore".to_string(),
+            action_terms: vec!["rename".to_string()],
+            subject_terms: vec!["SessionStore".to_string()],
+        });
+        query_ir
+    }
+
     fn candidate(route_kind: PlannerRouteKind, path: &str) -> NormalizedPlannerCandidate {
         NormalizedPlannerCandidate {
             candidate_id: format!("{route_kind:?}:{path}"),
@@ -601,6 +1120,10 @@ mod tests {
 
         assert_eq!(plan.candidates.len(), 2);
         assert_eq!(
+            plan.route_policy,
+            crate::route_policy::PlannerRoutePolicyKind::MultiRouteCandidates
+        );
+        assert_eq!(
             plan.candidates
                 .iter()
                 .map(|candidate| candidate.route_kind.clone())
@@ -665,6 +1188,371 @@ mod tests {
         assert!(plan.traces.iter().any(|trace| {
             trace.route_kind == PlannerRouteKind::Symbol
                 && trace.status == PlannerRouteStatus::Skipped
+        }));
+    }
+
+    #[test]
+    fn registry_stops_after_symbol_success_in_staged_fallback_plan() {
+        let mut query_ir = ir();
+        query_ir.candidate_styles = vec![PlannerQueryStyle::SymbolLookup];
+        let registry = PlannerRouteRegistry::new(vec![
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Symbol,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Symbol,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(
+                        PlannerRouteKind::Symbol,
+                        "packages/auth/src/session/service.ts",
+                    )],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 5,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Semantic,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Semantic,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(PlannerRouteKind::Semantic, "src/session.ts")],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 7,
+                    ambiguity: None,
+                },
+            }),
+        ]);
+
+        let plan = registry.plan(&PlannerRuntimeContext::default(), &snapshot(), &query_ir);
+
+        assert_eq!(
+            plan.route_policy,
+            crate::route_policy::PlannerRoutePolicyKind::StagedFallback
+        );
+        assert!(plan.early_stopped);
+        assert_eq!(plan.candidates.len(), 1);
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Symbol
+                && trace.status == PlannerRouteStatus::Executed
+        }));
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Semantic
+                && trace.status == PlannerRouteStatus::Skipped
+                && trace
+                    .notes
+                    .iter()
+                    .any(|note| note.contains("staged fallback policy"))
+        }));
+    }
+
+    #[test]
+    fn registry_falls_back_when_primary_exact_route_is_unavailable() {
+        let registry = PlannerRouteRegistry::new(vec![
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Exact,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Exact,
+                    enabled: true,
+                    available: false,
+                    readiness: PlannerRouteReadiness::Unavailable,
+                    reason: Some("exact engine does not ship".to_string()),
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: vec!["exact engine does not ship".to_string()],
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: Vec::new(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 0,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Symbol,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Symbol,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(
+                        PlannerRouteKind::Symbol,
+                        "packages/auth/src/session/service.ts",
+                    )],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 5,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Semantic,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Semantic,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(PlannerRouteKind::Semantic, "src/session.ts")],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 7,
+                    ambiguity: None,
+                },
+            }),
+        ]);
+
+        let plan = registry.plan(&PlannerRuntimeContext::default(), &snapshot(), &exact_ir());
+
+        assert_eq!(plan.candidates.len(), 1);
+        assert!(plan.partial_results);
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Exact
+                && trace.skip_reason == Some(PlannerRouteSkipReason::ExactEngineUnavailable)
+        }));
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Symbol
+                && trace.status == PlannerRouteStatus::Executed
+        }));
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Semantic
+                && trace.status == PlannerRouteStatus::Skipped
+        }));
+    }
+
+    #[test]
+    fn registry_seeds_impact_from_symbol_result_before_running_impact() {
+        let registry = PlannerRouteRegistry::new(vec![
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Symbol,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Symbol,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(
+                        PlannerRouteKind::Symbol,
+                        "packages/auth/src/session/service.ts",
+                    )],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 5,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Semantic,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Semantic,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(PlannerRouteKind::Semantic, "src/session.ts")],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 7,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Impact,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Impact,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![NormalizedPlannerCandidate {
+                        candidate_id: "impact:sym.invalidateSession".to_string(),
+                        route_kind: PlannerRouteKind::Impact,
+                        engine_type: PlannerRouteKind::Impact,
+                        label: "invalidateSession".to_string(),
+                        anchor: PlannerAnchor::File {
+                            path: "packages/auth/src/session/service.ts".to_string(),
+                        },
+                        rank: Some(1),
+                        engine_score: Some(95),
+                        normalized_score: None,
+                        primary_path: Some("packages/auth/src/session/service.ts".to_string()),
+                        primary_symbol_id: None,
+                        primary_span: None,
+                        language: Some(hyperindex_protocol::symbols::LanguageId::Typescript),
+                        extension: Some("ts".to_string()),
+                        symbol_kind: None,
+                        package_name: None,
+                        package_root: None,
+                        workspace_root: Some("/tmp/repo".to_string()),
+                        evidence: Vec::new(),
+                        engine_diagnostics: Vec::new(),
+                        notes: Vec::new(),
+                    }],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 9,
+                    ambiguity: None,
+                },
+            }),
+        ]);
+
+        let plan = registry.plan(&PlannerRuntimeContext::default(), &snapshot(), &impact_ir());
+
+        assert_eq!(
+            plan.route_policy,
+            crate::route_policy::PlannerRoutePolicyKind::SeedThenImpact
+        );
+        assert_eq!(
+            plan.candidates
+                .iter()
+                .map(|candidate| candidate.route_kind.clone())
+                .collect::<Vec<_>>(),
+            vec![PlannerRouteKind::Symbol, PlannerRouteKind::Impact]
+        );
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Semantic
+                && trace.status == PlannerRouteStatus::Skipped
+                && trace
+                    .notes
+                    .iter()
+                    .any(|note| note.contains("deterministic impact seed"))
+        }));
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Impact
+                && trace.status == PlannerRouteStatus::Executed
+        }));
+    }
+
+    #[test]
+    fn registry_prunes_lower_priority_routes_when_timeout_budget_is_exhausted() {
+        let mut query_ir = ir();
+        query_ir.budgets.total_timeout_ms = 250;
+
+        let registry = PlannerRouteRegistry::new(vec![
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Symbol,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Symbol,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(
+                        PlannerRouteKind::Symbol,
+                        "packages/auth/src/session/service.ts",
+                    )],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 5,
+                    ambiguity: None,
+                },
+            }),
+            Arc::new(FakeAdapter {
+                route_kind: PlannerRouteKind::Semantic,
+                capability: PlannerRouteCapabilityReport {
+                    route_kind: PlannerRouteKind::Semantic,
+                    enabled: true,
+                    available: true,
+                    readiness: PlannerRouteReadiness::Ready,
+                    reason: None,
+                    supported_filters: full_filter_capabilities(),
+                    constraints: PlannerRouteConstraints::default(),
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                },
+                execution: PlannerRouteExecution {
+                    state: PlannerRouteExecutionState::Executed,
+                    candidates: vec![candidate(PlannerRouteKind::Semantic, "src/session.ts")],
+                    diagnostics: Vec::new(),
+                    notes: Vec::new(),
+                    elapsed_ms: 7,
+                    ambiguity: None,
+                },
+            }),
+        ]);
+
+        let plan = registry.plan(&PlannerRuntimeContext::default(), &snapshot(), &query_ir);
+
+        assert!(plan.budget_exhausted);
+        assert_eq!(plan.candidates.len(), 1);
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Symbol
+                && trace.status == PlannerRouteStatus::Executed
+        }));
+        assert!(plan.traces.iter().any(|trace| {
+            trace.route_kind == PlannerRouteKind::Semantic
+                && trace.status == PlannerRouteStatus::Skipped
+                && trace
+                    .notes
+                    .iter()
+                    .any(|note| note.contains("total timeout budget"))
         }));
     }
 }

@@ -136,9 +136,13 @@ impl PlannerEngine {
             "planning phase7 unified query scaffold"
         );
 
-        let fused_groups = fusion.fuse_placeholder(&route_plan.traces);
-        let grouped = grouping.group_placeholder(fused_groups);
-        let groups = trust_payloads.decorate_placeholder(grouped);
+        let fused_candidates = fusion.fuse(
+            &route_plan.candidates,
+            &route_plan.traces,
+            &route_plan.route_policy,
+        );
+        let grouped = grouping.group(fused_candidates, params.limit);
+        let groups = trust_payloads.decorate(grouped);
         let candidates = route_plan
             .candidates
             .iter()
@@ -147,18 +151,12 @@ impl PlannerEngine {
 
         let mut diagnostics = runtime_diagnostics(context);
         diagnostics.extend(route_plan.diagnostics.clone());
-        diagnostics.push(scaffold_warning(
-            if candidates.is_empty() {
-                "planner_execution_deferred"
-            } else {
-                "planner_grouping_deferred"
-            },
-            if candidates.is_empty() {
-                "planner route execution, score fusion, and grouping remain deferred in this contract slice"
-            } else {
-                "planner route execution is live, but score fusion and grouping remain deferred in this contract slice"
-            },
-        ));
+        if candidates.is_empty() && groups.is_empty() {
+            diagnostics.push(scaffold_warning(
+                "planner_execution_deferred",
+                "planner route execution, score fusion, and grouping remain deferred in this contract slice",
+            ));
+        }
         diagnostics.push(scaffold_info(
             "planner_contract_ready",
             "planner protocol, config, daemon, and CLI surfaces are wired for Phase 7 implementation work",
@@ -167,14 +165,15 @@ impl PlannerEngine {
             diagnostics.push(scaffold_info(
                 "planner_candidates_materialized",
                 format!(
-                    "planner explain materialized {} normalized candidate(s) across {} route(s)",
+                    "planner explain materialized {} normalized candidate(s) across {} route(s), fused into {} group(s)",
                     candidates.len(),
                     route_plan
                         .traces
                         .iter()
                         .filter(|trace| trace.status
                             == hyperindex_protocol::planner::PlannerRouteStatus::Executed)
-                        .count()
+                        .count(),
+                    groups.len()
                 ),
             ));
         }
@@ -202,6 +201,17 @@ impl PlannerEngine {
                 PlannerTraceStep {
                     code: "planned_routes".to_string(),
                     message: format!("planned_routes={:?}", ir.planned_routes),
+                },
+                PlannerTraceStep {
+                    code: "route_policy".to_string(),
+                    message: format!(
+                        "policy={:?} low_signal={} budget_exhausted={} early_stopped={} partial_results={}",
+                        route_plan.route_policy,
+                        route_plan.low_signal,
+                        route_plan.budget_exhausted,
+                        route_plan.early_stopped,
+                        route_plan.partial_results
+                    ),
                 },
                 PlannerTraceStep {
                     code: "snapshot_bound".to_string(),
@@ -279,10 +289,17 @@ fn no_answer_for(
             ],
         });
     }
-    if route_plan.routes_available() == 0 {
+    if route_plan.selected_routes_available() == 0 {
+        let mut details = vec!["no selected planner route is currently available".to_string()];
+        if route_plan.budget_exhausted {
+            details.push(
+                "the configured route budget exhausted lower-priority routes before execution"
+                    .to_string(),
+            );
+        }
         return Some(PlannerNoAnswer {
             reason: PlannerNoAnswerReason::NoRouteAvailable,
-            details: vec!["no enabled planner route is ready for this snapshot".to_string()],
+            details,
         });
     }
     if route_plan.has_deferred_routes() {
@@ -302,8 +319,21 @@ fn no_answer_for(
             ],
         });
     }
+    let mut details = vec!["no selected route produced a normalized candidate".to_string()];
+    if route_plan.low_signal {
+        details.push(
+            "add a quoted literal, exact symbol, file path, or selected context to ground the planner deterministically"
+                .to_string(),
+        );
+    }
+    if route_plan.budget_exhausted {
+        details.push(
+            "the planner route budget exhausted lower-priority routes before they were attempted"
+                .to_string(),
+        );
+    }
     Some(PlannerNoAnswer {
         reason: PlannerNoAnswerReason::NoCandidateMatched,
-        details: vec!["no selected route produced a normalized candidate".to_string()],
+        details,
     })
 }

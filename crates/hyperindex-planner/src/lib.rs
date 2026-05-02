@@ -8,6 +8,7 @@ pub mod planner_model;
 pub mod query_ir;
 pub mod result_grouping;
 pub mod route_adapters;
+mod route_policy;
 pub mod route_registry;
 pub mod score_fusion;
 pub mod trust_payloads;

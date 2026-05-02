@@ -271,17 +271,7 @@ fn classify_from_override(
     mode_override: PlannerMode,
 ) -> ClassifiedIntent {
     let primary_style = mode_to_style(&mode_override);
-    let planned_routes = planned_routes_for_styles(
-        std::slice::from_ref(&primary_style),
-        features.exact_query.is_some(),
-        &params.route_hints.preferred_routes,
-        &params.route_hints.disabled_routes,
-        if params.route_hints.require_exact_seed {
-            ExactSeedPolicy::Always
-        } else {
-            ExactSeedPolicy::WhenExactLike
-        },
-    );
+    let planned_routes = planned_routes_for_override(&mode_override, &params.route_hints);
 
     push_signal(
         &mut features.signals,
@@ -622,6 +612,24 @@ fn planned_routes_for_styles(
     reordered
         .into_iter()
         .filter(|route_kind| !disabled_routes.contains(route_kind))
+        .collect()
+}
+
+fn planned_routes_for_override(
+    mode_override: &PlannerMode,
+    route_hints: &hyperindex_protocol::planner::PlannerRouteHints,
+) -> Vec<PlannerRouteKind> {
+    let route_kind = match mode_override {
+        PlannerMode::Auto => return Vec::new(),
+        PlannerMode::Exact => PlannerRouteKind::Exact,
+        PlannerMode::Symbol => PlannerRouteKind::Symbol,
+        PlannerMode::Semantic => PlannerRouteKind::Semantic,
+        PlannerMode::Impact => PlannerRouteKind::Impact,
+    };
+
+    (!route_hints.disabled_routes.contains(&route_kind))
+        .then_some(route_kind)
+        .into_iter()
         .collect()
 }
 

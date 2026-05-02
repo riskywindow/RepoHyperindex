@@ -1,5 +1,68 @@
 # Repo Hyperindex Phase 1 Status: Complete
 
+## 2026-04-22 Phase 7 Planner Auto-Policy Compatibility Note
+
+### What Was Completed
+
+- Implemented the requested Phase 7 planner auto-route policy in the Rust runtime crates without
+  changing the checked-in Phase 1 harness artifacts.
+- Added a planner-owned route-policy layer in
+  [crates/hyperindex-planner/src/route_policy.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-planner/src/route_policy.rs)
+  for:
+  - single-route plans
+  - staged fallback plans
+  - multi-route candidate plans for mixed queries
+  - seed-then-impact planning when impact needs deterministic symbol/file context first
+- Updated the route registry and planner engine so planner traces and no-answer payloads now carry
+  deterministic policy details for:
+  - budget pruning
+  - early stop
+  - partial results
+  - low-signal handling
+  - selected symbol/file context leading directly into impact analysis
+- Added focused Rust coverage for representative exact, symbol, semantic, and impact route-policy
+  behavior plus fallback and budget-constrained cases.
+
+### Key Decisions
+
+- Keep this work inside the already-approved explicit Phase 7 planner exception rather than
+  widening the Phase 1 harness.
+- Preserve the checked-in Phase 1 boundary:
+  no `bench/` adapter, schema, metric, report, compare, or corpus changes landed here.
+- Keep the policy deterministic and inspectable:
+  no learned routing, no score fusion, and no grouped planner output landed in this slice.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-planner
+cargo test -p hyperindex-daemon planner_service_
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-planner`
+  - passed
+  - exercised planner IR, route policy, registry fallback, and budget behavior
+- `cargo test -p hyperindex-daemon planner_service_`
+  - passed
+  - revalidated planner policy behavior through the daemon-backed planner service seam
+
+### Remaining Risks / TODOs
+
+- Phase 1 still has no planner-mode harness adapter.
+- Planner fusion, dedupe, grouping, and trust payload shaping are still deferred above the new
+  route-policy seam.
+- Exact search remains intentionally unavailable in the current repo.
+
+### Next Recommended Prompt
+
+- Implement deterministic planner fusion and grouping on top of the new route-policy layer while
+  preserving the existing Phase 1 harness artifacts
+
 ## 2026-04-22 Phase 7 Planner Adapter Compatibility Note
 
 ### What Was Completed
