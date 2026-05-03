@@ -1,7 +1,7 @@
 use hyperindex_protocol::planner::{
-    PlannerCandidate, PlannerExplainResponse, PlannerModeDecision, PlannerNoAnswer,
+    PlannerAmbiguity, PlannerCandidate, PlannerExplainResponse, PlannerModeDecision, PlannerNoAnswer,
     PlannerNoAnswerReason, PlannerQueryIr, PlannerQueryParams, PlannerQueryResponse,
-    PlannerQueryStats, PlannerTrace, PlannerTraceStep,
+    PlannerQueryStats, PlannerRouteStatus, PlannerTrace, PlannerTraceStep,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use tracing::info;
@@ -12,7 +12,9 @@ use crate::planner_model::{PlannerResult, PlannerWorkspace};
 use crate::result_grouping::ResultGrouping;
 use crate::route_registry::PlannerRoutePlan;
 use crate::score_fusion::ScoreFusion;
-use crate::trust_payloads::TrustPayloadFactory;
+use crate::trust_payloads::{
+    TrustDecoratorContext, TrustPayloadFactory, all_groups_low_confidence, trust_tier_summary,
+};
 
 #[derive(Debug, Clone)]
 struct PlannerScaffoldOutput {
@@ -23,7 +25,7 @@ struct PlannerScaffoldOutput {
     diagnostics: Vec<hyperindex_protocol::planner::PlannerDiagnostic>,
     trace: PlannerTrace,
     no_answer: Option<PlannerNoAnswer>,
-    ambiguity: Option<hyperindex_protocol::planner::PlannerAmbiguity>,
+    ambiguity: Option<PlannerAmbiguity>,
     stats: PlannerQueryStats,
 }
 
@@ -136,19 +138,34 @@ impl PlannerEngine {
             "planning phase7 unified query scaffold"
         );
 
+        // --- Score fusion ---
         let fused_candidates = fusion.fuse(
             &route_plan.candidates,
             &route_plan.traces,
             &route_plan.route_policy,
         );
+        let fused_count = fused_candidates.len();
+
+        // --- Result grouping ---
         let grouped = grouping.group(fused_candidates, params.limit);
-        let groups = trust_payloads.decorate(grouped);
+        let grouped_count = grouped.len();
+
+        // --- Trust decoration ---
+        let trust_ctx = TrustDecoratorContext {
+            route_plan: &route_plan,
+            ir: &ir,
+        };
+        let trust_output = trust_payloads.decorate(grouped, &trust_ctx);
+        let groups = trust_output.groups;
+
+        // --- Public candidates for explain ---
         let candidates = route_plan
             .candidates
             .iter()
             .map(|candidate| candidate.to_public_candidate())
             .collect::<Vec<_>>();
 
+        // --- Diagnostics ---
         let mut diagnostics = runtime_diagnostics(context);
         diagnostics.extend(route_plan.diagnostics.clone());
         if candidates.is_empty() && groups.is_empty() {
@@ -170,19 +187,33 @@ impl PlannerEngine {
                     route_plan
                         .traces
                         .iter()
-                        .filter(|trace| trace.status
-                            == hyperindex_protocol::planner::PlannerRouteStatus::Executed)
+                        .filter(|trace| trace.status == PlannerRouteStatus::Executed)
                         .count(),
                     groups.len()
                 ),
             ));
         }
 
+        // --- Post-trust diagnostics ---
+        if all_groups_low_confidence(&groups) {
+            diagnostics.push(scaffold_warning(
+                "planner_all_groups_low_confidence",
+                "all result groups have Low or NeedsReview trust; consider adding structural seeds to the query",
+            ));
+        }
+
+        // --- Ambiguity ---
+        // Prefer route-level ambiguity over score-gap ambiguity
         let routes_considered = route_plan.routes_considered();
         let routes_available = route_plan.routes_available();
         let groups_returned = groups.len() as u32;
         let no_answer = no_answer_for(context, params, &route_plan, groups_returned);
-        let ambiguity = route_plan.ambiguity.clone();
+        let ambiguity = route_plan
+            .ambiguity
+            .clone()
+            .or(trust_output.ambiguity);
+
+        // --- Trace ---
         let trace = PlannerTrace {
             planner_version: planner_version(),
             selected_mode: mode.selected_mode.clone(),
@@ -230,6 +261,29 @@ impl PlannerEngine {
                         "raw_candidates={} normalized_candidates={}",
                         route_plan.raw_candidate_count,
                         candidates.len()
+                    ),
+                },
+                PlannerTraceStep {
+                    code: "fusion_summary".to_string(),
+                    message: format!(
+                        "fused {} normalized candidate(s) into {} dedup group(s)",
+                        route_plan.candidates.len(),
+                        fused_count
+                    ),
+                },
+                PlannerTraceStep {
+                    code: "grouping_summary".to_string(),
+                    message: format!(
+                        "grouped into {} result group(s), limit={}",
+                        grouped_count, params.limit
+                    ),
+                },
+                PlannerTraceStep {
+                    code: "trust_decoration".to_string(),
+                    message: format!(
+                        "decorated {} group(s): {}",
+                        groups.len(),
+                        trust_tier_summary(&groups)
                     ),
                 },
             ],
