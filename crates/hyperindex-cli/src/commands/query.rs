@@ -1,10 +1,14 @@
 use std::path::Path;
 
 use hyperindex_core::{HyperindexError, HyperindexResult};
-use hyperindex_planner::cli_integration::render_query_response;
+use hyperindex_planner::cli_integration::{
+    render_capabilities_response, render_explain_response, render_query_response,
+    render_status_response,
+};
 use hyperindex_protocol::api::{RequestBody, SuccessPayload};
 use hyperindex_protocol::planner::{
-    PlannerMode, PlannerQueryFilters, PlannerQueryParams, PlannerRouteHints, PlannerUserQuery,
+    PlannerCapabilitiesParams, PlannerExplainParams, PlannerMode, PlannerQueryFilters,
+    PlannerQueryParams, PlannerRouteHints, PlannerStatusParams, PlannerUserQuery,
 };
 
 use crate::client::DaemonClient;
@@ -52,6 +56,88 @@ pub fn query(
     }
 }
 
+pub fn explain(
+    config_path: Option<&Path>,
+    repo_id: &str,
+    snapshot_id: &str,
+    query_text: &str,
+    mode_override: Option<&str>,
+    limit: u32,
+    path_globs: Vec<String>,
+    json_output: bool,
+) -> HyperindexResult<String> {
+    let client = DaemonClient::load(config_path)?;
+    match client.send(RequestBody::PlannerExplain(PlannerExplainParams {
+        query: PlannerQueryParams {
+            repo_id: repo_id.to_string(),
+            snapshot_id: snapshot_id.to_string(),
+            query: PlannerUserQuery {
+                text: query_text.to_string(),
+            },
+            mode_override: parse_mode_override(mode_override)?,
+            selected_context: None,
+            target_context: None,
+            filters: PlannerQueryFilters {
+                path_globs,
+                package_names: Vec::new(),
+                package_roots: Vec::new(),
+                workspace_roots: Vec::new(),
+                languages: Vec::new(),
+                extensions: Vec::new(),
+                symbol_kinds: Vec::new(),
+            },
+            route_hints: PlannerRouteHints::default(),
+            budgets: None,
+            limit,
+            explain: true,
+            include_trace: true,
+        },
+    }))? {
+        SuccessPayload::PlannerExplain(response) => {
+            render_explain_response(&response, json_output).map_err(render_error)
+        }
+        other => Err(unexpected_response("planner_explain", other)),
+    }
+}
+
+pub fn status(
+    config_path: Option<&Path>,
+    repo_id: &str,
+    snapshot_id: &str,
+    json_output: bool,
+) -> HyperindexResult<String> {
+    let client = DaemonClient::load(config_path)?;
+    match client.send(RequestBody::PlannerStatus(PlannerStatusParams {
+        repo_id: repo_id.to_string(),
+        snapshot_id: snapshot_id.to_string(),
+    }))? {
+        SuccessPayload::PlannerStatus(response) => {
+            render_status_response(&response, json_output).map_err(render_error)
+        }
+        other => Err(unexpected_response("planner_status", other)),
+    }
+}
+
+pub fn capabilities(
+    config_path: Option<&Path>,
+    repo_id: &str,
+    snapshot_id: &str,
+    json_output: bool,
+) -> HyperindexResult<String> {
+    let client = DaemonClient::load(config_path)?;
+    match client.send(RequestBody::PlannerCapabilities(
+        PlannerCapabilitiesParams {
+            repo_id: repo_id.to_string(),
+            snapshot_id: snapshot_id.to_string(),
+        },
+    ))? {
+        SuccessPayload::PlannerCapabilities(response) => {
+            render_capabilities_response(&response, json_output).map_err(render_error)
+        }
+        other => Err(unexpected_response("planner_capabilities", other)),
+    }
+}
+
 fn parse_mode_override(raw: Option<&str>) -> HyperindexResult<Option<PlannerMode>> {
     match raw {
         None => Ok(None),
@@ -61,7 +147,7 @@ fn parse_mode_override(raw: Option<&str>) -> HyperindexResult<Option<PlannerMode
         Some("semantic") => Ok(Some(PlannerMode::Semantic)),
         Some("impact") => Ok(Some(PlannerMode::Impact)),
         Some(other) => Err(HyperindexError::Message(format!(
-            "unsupported planner mode override {other}; expected auto, exact, symbol, semantic, or impact"
+            "unsupported planner mode {other}; expected auto, exact, symbol, semantic, or impact"
         ))),
     }
 }
@@ -86,7 +172,8 @@ mod tests {
         PlannerQueryStyle, PlannerRouteBudget, PlannerRouteKind, PlannerSemanticQueryIntent,
     };
 
-    use super::{parse_mode_override, render_query_response};
+    use super::parse_mode_override;
+    use hyperindex_planner::cli_integration::render_query_response;
 
     #[test]
     fn parse_mode_override_accepts_supported_values() {

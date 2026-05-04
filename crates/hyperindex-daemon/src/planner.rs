@@ -1835,4 +1835,549 @@ test("logout", () => {
                 .all(|evidence| evidence.score.is_some())
         }));
     }
+
+    // ── smoke tests: unified planner through daemon service ──
+
+    /// Smoke: an identifier-like query in auto mode routes through
+    /// the symbol engine and returns at least one group with a trace.
+    #[test]
+    fn smoke_auto_mode_exact_ish_query() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+        let snapshot = snapshot();
+        persist_snapshot_and_index(&loaded, &snapshot);
+
+        let response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "invalidateSession".to_string(),
+                    },
+                    mode_override: Some(PlannerMode::Auto),
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        // The identifier "invalidateSession" should route through symbol
+        assert!(!response.groups.is_empty(), "auto-mode identifier query returned no groups");
+        assert!(response.no_answer.is_none());
+        assert!(response.stats.candidates_considered > 0);
+
+        // Trace must be present and show symbol route executed
+        let trace = response.trace.as_ref().expect("trace should be present");
+        let symbol_trace = trace
+            .routes
+            .iter()
+            .find(|r| r.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Symbol)
+            .expect("symbol route should appear in trace");
+        assert!(symbol_trace.selected);
+        assert_eq!(
+            symbol_trace.status,
+            hyperindex_protocol::planner::PlannerRouteStatus::Executed,
+        );
+        assert!(symbol_trace.candidate_count.unwrap_or(0) > 0);
+
+        // Groups should have trust payloads and evidence
+        for group in &response.groups {
+            assert!(!group.evidence.is_empty(), "group should have evidence");
+            assert!(
+                !group.explanation.summary.is_empty(),
+                "group should have explanation summary"
+            );
+        }
+
+        // JSON serialization should roundtrip
+        let json = serde_json::to_string_pretty(&response).unwrap();
+        let decoded: hyperindex_protocol::planner::PlannerQueryResponse =
+            serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.stats.groups_returned, response.stats.groups_returned);
+    }
+
+    /// Smoke: a natural-language query in auto mode routes through
+    /// semantic (and possibly symbol) engines.
+    #[test]
+    fn smoke_auto_mode_semantic_style_query() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+        let snapshot = snapshot();
+        build_semantic_index(&loaded, &snapshot);
+
+        let response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "where do we invalidate sessions?".to_string(),
+                    },
+                    mode_override: Some(PlannerMode::Auto),
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        assert!(!response.groups.is_empty(), "semantic-style query returned no groups");
+        assert!(response.no_answer.is_none());
+
+        // Trace must show semantic route was executed
+        let trace = response.trace.as_ref().expect("trace should be present");
+        let semantic_trace = trace
+            .routes
+            .iter()
+            .find(|r| r.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Semantic)
+            .expect("semantic route should appear in trace");
+        assert!(semantic_trace.selected);
+        assert_eq!(
+            semantic_trace.status,
+            hyperindex_protocol::planner::PlannerRouteStatus::Executed,
+        );
+
+        // Natural language should be detected
+        assert!(
+            response
+                .ir
+                .intent_signals
+                .contains(&hyperindex_protocol::planner::PlannerIntentSignal::NaturalLanguageQuestion),
+            "should detect natural language question signal"
+        );
+
+        // JSON serialization roundtrip
+        let json = serde_json::to_string_pretty(&response).unwrap();
+        let decoded: hyperindex_protocol::planner::PlannerQueryResponse =
+            serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded.groups.len(), response.groups.len());
+    }
+
+    /// Smoke: an impact-style query in auto mode with a selected file
+    /// context routes through the impact engine.
+    #[test]
+    fn smoke_auto_mode_impact_style_query() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+        let snapshot = snapshot();
+        persist_snapshot_and_index(&loaded, &snapshot);
+
+        let response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "what breaks if I change session.ts".to_string(),
+                    },
+                    mode_override: Some(PlannerMode::Auto),
+                    selected_context: Some(PlannerContextRef::File {
+                        path: "src/session.ts".to_string(),
+                    }),
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        // Impact route should be in the trace
+        let trace = response.trace.as_ref().expect("trace should be present");
+        let impact_trace = trace
+            .routes
+            .iter()
+            .find(|r| r.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Impact)
+            .expect("impact route should appear in trace");
+        assert!(impact_trace.selected);
+        assert_eq!(
+            impact_trace.status,
+            hyperindex_protocol::planner::PlannerRouteStatus::Executed,
+        );
+
+        // Should detect impact phrase signal
+        assert!(
+            response
+                .ir
+                .intent_signals
+                .contains(&hyperindex_protocol::planner::PlannerIntentSignal::ImpactPhrase),
+            "should detect impact phrase signal"
+        );
+
+        // JSON roundtrip
+        let json = serde_json::to_string_pretty(&response).unwrap();
+        assert!(json.contains("\"include_trace\"") || json.contains("trace"));
+    }
+
+    /// North-star demo smoke: the full flow from question to grouped
+    /// evidence to impact through the unified planner surface.
+    #[test]
+    fn smoke_north_star_demo_flow() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+        let snapshot = snapshot();
+        build_semantic_index(&loaded, &snapshot);
+
+        // Step 1: query "where do we invalidate sessions?"
+        let query_response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "where do we invalidate sessions?".to_string(),
+                    },
+                    mode_override: Some(PlannerMode::Auto),
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        assert!(!query_response.groups.is_empty(), "step 1: query should return groups");
+        assert!(query_response.no_answer.is_none(), "step 1: no no_answer expected");
+
+        // Step 2: inspect grouped evidence
+        let first_group = &query_response.groups[0];
+        assert!(
+            !first_group.evidence.is_empty(),
+            "step 2: first group should have evidence"
+        );
+        assert!(
+            !first_group.explanation.summary.is_empty(),
+            "step 2: first group should have explanation"
+        );
+        assert!(
+            first_group.trust.evidence_count > 0,
+            "step 2: trust payload should report evidence count"
+        );
+
+        // Step 3: pick a symbol from the result and ask for impact
+        // through the same unified planner surface
+        let symbol_context = first_group
+            .anchor
+            .as_ref()
+            .map(|anchor| match anchor {
+                hyperindex_protocol::planner::PlannerAnchor::Symbol {
+                    symbol_id,
+                    path,
+                    span,
+                } => PlannerContextRef::Symbol {
+                    symbol_id: symbol_id.clone(),
+                    path: path.clone(),
+                    span: span.clone(),
+                    display_name: Some(first_group.label.clone()),
+                },
+                hyperindex_protocol::planner::PlannerAnchor::File { path } => {
+                    PlannerContextRef::File { path: path.clone() }
+                }
+                other => PlannerContextRef::File {
+                    path: format!("{:?}", other),
+                },
+            })
+            .or_else(|| {
+                // Fallback: use a known file from the test corpus
+                Some(PlannerContextRef::File {
+                    path: "src/session.ts".to_string(),
+                })
+            });
+
+        let impact_response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "what breaks if I change this".to_string(),
+                    },
+                    mode_override: Some(PlannerMode::Impact),
+                    selected_context: symbol_context,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        // The impact route should have been executed
+        let impact_trace = impact_response
+            .trace
+            .as_ref()
+            .expect("step 3: trace should be present")
+            .routes
+            .iter()
+            .find(|r| r.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Impact)
+            .expect("step 3: impact route should appear in trace");
+        assert!(impact_trace.selected);
+        assert_eq!(
+            impact_trace.status,
+            hyperindex_protocol::planner::PlannerRouteStatus::Executed,
+        );
+
+        // Step 4: inspect the planner explanation payload via explain endpoint
+        let explain_response = PlannerService
+            .explain(
+                &loaded,
+                &snapshot,
+                &PlannerExplainParams {
+                    query: PlannerQueryParams {
+                        repo_id: snapshot.repo_id.clone(),
+                        snapshot_id: snapshot.snapshot_id.clone(),
+                        query: PlannerUserQuery {
+                            text: "where do we invalidate sessions?".to_string(),
+                        },
+                        mode_override: Some(PlannerMode::Auto),
+                        selected_context: None,
+                        target_context: None,
+                        filters: PlannerQueryFilters::default(),
+                        route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                        budgets: None,
+                        limit: 10,
+                        explain: true,
+                        include_trace: true,
+                    },
+                },
+            )
+            .unwrap();
+
+        // Explain should return candidates, trace, and groups
+        assert!(
+            explain_response.trace.is_some(),
+            "step 4: explain should include trace"
+        );
+        assert!(
+            !explain_response.candidates.is_empty(),
+            "step 4: explain should include candidates"
+        );
+        assert!(
+            explain_response.no_answer.is_none(),
+            "step 4: explain should not report no_answer"
+        );
+
+        // Candidates should have scored evidence
+        for candidate in &explain_response.candidates {
+            assert!(candidate.route_score.is_some(), "candidate should have route_score");
+            assert!(!candidate.evidence.is_empty(), "candidate should have evidence");
+        }
+
+        // Explain trace should show planner version
+        let explain_trace = explain_response.trace.as_ref().unwrap();
+        assert!(
+            !explain_trace.planner_version.is_empty(),
+            "step 4: planner version should be present"
+        );
+
+        // JSON roundtrip for the full explain response
+        let explain_json = serde_json::to_string_pretty(&explain_response).unwrap();
+        let decoded: hyperindex_protocol::planner::PlannerExplainResponse =
+            serde_json::from_str(&explain_json).unwrap();
+        assert_eq!(decoded.candidates.len(), explain_response.candidates.len());
+
+        // Verify planner status is queryable
+        let status = PlannerService
+            .status(
+                &loaded,
+                &snapshot,
+                &PlannerStatusParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            status.state,
+            hyperindex_protocol::planner::PlannerQueryState::Ready,
+        );
+
+        // Verify planner capabilities are queryable
+        let capabilities = PlannerService
+            .capabilities(
+                &loaded,
+                &snapshot,
+                &PlannerCapabilitiesParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                },
+            )
+            .unwrap();
+        assert!(capabilities.capabilities.query);
+        assert!(capabilities.capabilities.explain);
+        assert!(capabilities.capabilities.trace);
+
+        // Verify CLI rendering for all response types
+        let query_human =
+            hyperindex_planner::cli_integration::render_query_response(&query_response, false)
+                .unwrap();
+        assert!(query_human.contains("planner query"));
+
+        let query_json =
+            hyperindex_planner::cli_integration::render_query_response(&query_response, true)
+                .unwrap();
+        assert!(query_json.contains("\"snapshot_id\""));
+
+        let explain_human =
+            hyperindex_planner::cli_integration::render_explain_response(&explain_response, false)
+                .unwrap();
+        assert!(explain_human.contains("planner explain"));
+
+        let status_human =
+            hyperindex_planner::cli_integration::render_status_response(&status, false).unwrap();
+        assert!(status_human.contains("planner status"));
+
+        let caps_human =
+            hyperindex_planner::cli_integration::render_capabilities_response(&capabilities, false)
+                .unwrap();
+        assert!(caps_human.contains("planner capabilities"));
+    }
+
+    /// Smoke: verify that all planner CLI renderers produce valid JSON
+    /// for machine consumption.
+    #[test]
+    fn smoke_json_output_is_first_class() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+        let snapshot = snapshot();
+        build_semantic_index(&loaded, &snapshot);
+
+        let query_response = PlannerService
+            .query(
+                &loaded,
+                &snapshot,
+                &PlannerQueryParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                    query: PlannerUserQuery {
+                        text: "invalidateSession".to_string(),
+                    },
+                    mode_override: None,
+                    selected_context: None,
+                    target_context: None,
+                    filters: PlannerQueryFilters::default(),
+                    route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                    budgets: None,
+                    limit: 10,
+                    explain: false,
+                    include_trace: true,
+                },
+            )
+            .unwrap();
+
+        // JSON output must parse back to the same type
+        let json_str =
+            hyperindex_planner::cli_integration::render_query_response(&query_response, true)
+                .unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert!(parsed.is_object());
+        assert!(parsed["groups"].is_array());
+        assert!(parsed["stats"]["groups_returned"].is_number());
+        assert!(parsed["trace"].is_object());
+        assert!(parsed["ir"]["intent_signals"].is_array());
+
+        // Explain JSON
+        let explain_response = PlannerService
+            .explain(
+                &loaded,
+                &snapshot,
+                &PlannerExplainParams {
+                    query: PlannerQueryParams {
+                        repo_id: snapshot.repo_id.clone(),
+                        snapshot_id: snapshot.snapshot_id.clone(),
+                        query: PlannerUserQuery {
+                            text: "invalidateSession".to_string(),
+                        },
+                        mode_override: None,
+                        selected_context: None,
+                        target_context: None,
+                        filters: PlannerQueryFilters::default(),
+                        route_hints: hyperindex_protocol::planner::PlannerRouteHints::default(),
+                        budgets: None,
+                        limit: 10,
+                        explain: true,
+                        include_trace: true,
+                    },
+                },
+            )
+            .unwrap();
+
+        let explain_json =
+            hyperindex_planner::cli_integration::render_explain_response(&explain_response, true)
+                .unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&explain_json).unwrap();
+        assert!(parsed.is_object());
+        assert!(parsed["candidates"].is_array());
+        assert!(parsed["trace"]["routes"].is_array());
+
+        // Status JSON
+        let status = PlannerService
+            .status(
+                &loaded,
+                &snapshot,
+                &PlannerStatusParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                },
+            )
+            .unwrap();
+
+        let status_json =
+            hyperindex_planner::cli_integration::render_status_response(&status, true).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&status_json).unwrap();
+        assert!(parsed.is_object());
+        assert!(parsed["state"].is_string());
+        assert!(parsed["capabilities"]["routes"].is_array());
+
+        // Capabilities JSON
+        let caps = PlannerService
+            .capabilities(
+                &loaded,
+                &snapshot,
+                &PlannerCapabilitiesParams {
+                    repo_id: snapshot.repo_id.clone(),
+                    snapshot_id: snapshot.snapshot_id.clone(),
+                },
+            )
+            .unwrap();
+
+        let caps_json =
+            hyperindex_planner::cli_integration::render_capabilities_response(&caps, true).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&caps_json).unwrap();
+        assert!(parsed.is_object());
+        assert!(parsed["capabilities"]["modes"].is_array());
+        assert!(parsed["budgets"]["route_budgets"].is_array());
+    }
 }

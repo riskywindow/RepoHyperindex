@@ -31,31 +31,7 @@ enum Commands {
     Daemon(DaemonCommand),
     Impact(ImpactCommand),
     Parse(ParseCommand),
-    Query {
-        #[arg(long)]
-        repo_id: String,
-
-        #[arg(long)]
-        snapshot_id: String,
-
-        #[arg(long)]
-        query: String,
-
-        #[arg(long)]
-        mode_override: Option<String>,
-
-        #[arg(long, default_value_t = 10)]
-        limit: u32,
-
-        #[arg(long = "path-glob")]
-        path_globs: Vec<String>,
-
-        #[arg(long)]
-        include_trace: bool,
-
-        #[arg(long)]
-        json: bool,
-    },
+    Query(QueryCommand),
     Semantic(SemanticCommand),
     Doctor {
         #[arg(long)]
@@ -156,6 +132,84 @@ enum DaemonSubcommand {
         json: bool,
     },
     Stop {
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Args)]
+struct QueryCommand {
+    #[command(subcommand)]
+    command: QuerySubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum QuerySubcommand {
+    #[command(alias = "search")]
+    Run {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        query: String,
+
+        #[arg(long, alias = "mode-override")]
+        mode: Option<String>,
+
+        #[arg(long, default_value_t = 10)]
+        limit: u32,
+
+        #[arg(long = "path-glob")]
+        path_globs: Vec<String>,
+
+        #[arg(long)]
+        include_trace: bool,
+
+        #[arg(long)]
+        json: bool,
+    },
+    Explain {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        query: String,
+
+        #[arg(long, alias = "mode-override")]
+        mode: Option<String>,
+
+        #[arg(long, default_value_t = 10)]
+        limit: u32,
+
+        #[arg(long = "path-glob")]
+        path_globs: Vec<String>,
+
+        #[arg(long)]
+        json: bool,
+    },
+    Status {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
+        #[arg(long)]
+        json: bool,
+    },
+    Capabilities {
+        #[arg(long)]
+        repo_id: String,
+
+        #[arg(long)]
+        snapshot_id: String,
+
         #[arg(long)]
         json: bool,
     },
@@ -756,7 +810,12 @@ impl Cli {
                 ParseSubcommand::Status { json, .. } => *json,
                 ParseSubcommand::InspectFile { json, .. } => *json,
             },
-            Commands::Query { json, .. } => *json,
+            Commands::Query(command) => match &command.command {
+                QuerySubcommand::Run { json, .. } => *json,
+                QuerySubcommand::Explain { json, .. } => *json,
+                QuerySubcommand::Status { json, .. } => *json,
+                QuerySubcommand::Capabilities { json, .. } => *json,
+            },
             Commands::Semantic(command) => match &command.command {
                 SemanticSubcommand::Status { json, .. } => *json,
                 SemanticSubcommand::Query { json, .. } => *json,
@@ -999,27 +1058,62 @@ fn dispatch(cli: Cli) -> Result<String> {
             )
             .map_err(|error| anyhow!(error.to_string()))?,
         },
-        Commands::Query {
-            repo_id,
-            snapshot_id,
-            query,
-            mode_override,
-            limit,
-            path_globs,
-            include_trace,
-            json,
-        } => commands::query::query(
-            config_path.as_deref(),
-            &repo_id,
-            &snapshot_id,
-            &query,
-            mode_override.as_deref(),
-            limit,
-            path_globs,
-            include_trace,
-            json,
-        )
-        .map_err(|error| anyhow!(error.to_string()))?,
+        Commands::Query(command) => match command.command {
+            QuerySubcommand::Run {
+                repo_id,
+                snapshot_id,
+                query,
+                mode,
+                limit,
+                path_globs,
+                include_trace,
+                json,
+            } => commands::query::query(
+                config_path.as_deref(),
+                &repo_id,
+                &snapshot_id,
+                &query,
+                mode.as_deref(),
+                limit,
+                path_globs,
+                include_trace,
+                json,
+            )
+            .map_err(|error| anyhow!(error.to_string()))?,
+            QuerySubcommand::Explain {
+                repo_id,
+                snapshot_id,
+                query,
+                mode,
+                limit,
+                path_globs,
+                json,
+            } => commands::query::explain(
+                config_path.as_deref(),
+                &repo_id,
+                &snapshot_id,
+                &query,
+                mode.as_deref(),
+                limit,
+                path_globs,
+                json,
+            )
+            .map_err(|error| anyhow!(error.to_string()))?,
+            QuerySubcommand::Status {
+                repo_id,
+                snapshot_id,
+                json,
+            } => commands::query::status(config_path.as_deref(), &repo_id, &snapshot_id, json)
+                .map_err(|error| anyhow!(error.to_string()))?,
+            QuerySubcommand::Capabilities {
+                repo_id,
+                snapshot_id,
+                json,
+            } => {
+                commands::query::capabilities(config_path.as_deref(), &repo_id, &snapshot_id, json)
+                    .map_err(|error| anyhow!(error.to_string()))?
+            }
+        },
         Commands::Semantic(command) => match command.command {
             SemanticSubcommand::Status {
                 repo_id,
