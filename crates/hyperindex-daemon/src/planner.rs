@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use hyperindex_config::LoadedConfig;
+use hyperindex_core::HyperindexResult;
 use hyperindex_planner::route_adapters::{
     NormalizedPlannerCandidate, PlannerRouteCapabilityReport, PlannerRouteConstraints,
     PlannerRouteExecution, PlannerRouteExecutionState, full_filter_capabilities,
@@ -29,6 +30,7 @@ use hyperindex_protocol::semantic::{
     SemanticQueryText,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
+use hyperindex_protocol::status::PlannerRuntimeStatus;
 use hyperindex_protocol::symbols::{
     ParseDiagnosticSeverity, SymbolSearchMode, SymbolSearchParams, SymbolSearchQuery,
 };
@@ -42,6 +44,57 @@ use crate::symbols::ParserSymbolService;
 
 #[derive(Debug, Default, Clone)]
 pub struct PlannerService;
+
+#[derive(Debug, Clone)]
+pub struct PlannerManager {
+    loaded: LoadedConfig,
+    service: PlannerService,
+}
+
+impl PlannerManager {
+    pub fn from_loaded_config(loaded: &LoadedConfig) -> Self {
+        Self {
+            loaded: loaded.clone(),
+            service: PlannerService,
+        }
+    }
+
+    pub fn runtime_status(&self) -> HyperindexResult<PlannerRuntimeStatus> {
+        scan_planner_runtime_status(&self.loaded)
+    }
+
+    pub fn status(
+        &self,
+        snapshot: &ComposedSnapshot,
+        params: &PlannerStatusParams,
+    ) -> Result<PlannerStatusResponse, ProtocolError> {
+        self.service.status(&self.loaded, snapshot, params)
+    }
+
+    pub fn capabilities(
+        &self,
+        snapshot: &ComposedSnapshot,
+        params: &PlannerCapabilitiesParams,
+    ) -> Result<PlannerCapabilitiesResponse, ProtocolError> {
+        self.service.capabilities(&self.loaded, snapshot, params)
+    }
+
+    pub fn query(
+        &self,
+        snapshot: &ComposedSnapshot,
+        params: &PlannerQueryParams,
+    ) -> Result<PlannerQueryResponse, ProtocolError> {
+        self.service.query(&self.loaded, snapshot, params)
+    }
+
+    pub fn explain(
+        &self,
+        snapshot: &ComposedSnapshot,
+        params: &PlannerExplainParams,
+    ) -> Result<PlannerExplainResponse, ProtocolError> {
+        self.service.explain(&self.loaded, snapshot, params)
+    }
+}
 
 impl PlannerService {
     pub fn status(
@@ -132,6 +185,26 @@ impl PlannerService {
             .explain(&context, &params.query, snapshot)
             .map_err(map_planner_error)
     }
+}
+
+pub fn scan_planner_runtime_status(
+    loaded: &LoadedConfig,
+) -> HyperindexResult<PlannerRuntimeStatus> {
+    let context = runtime_context(loaded);
+    let capabilities = context.capabilities();
+    Ok(PlannerRuntimeStatus {
+        enabled: context.planner_enabled,
+        query_state: context.query_state(),
+        default_mode: context.default_mode.clone(),
+        default_limit: context.default_limit,
+        max_limit: context.max_limit,
+        status: capabilities.status,
+        query: capabilities.query,
+        explain: capabilities.explain,
+        trace: capabilities.trace,
+        routes: capabilities.routes,
+        diagnostics: hyperindex_planner::daemon_integration::runtime_diagnostics(&context),
+    })
 }
 
 fn route_registry(loaded: &LoadedConfig) -> PlannerRouteRegistry {
@@ -1441,7 +1514,7 @@ mod tests {
     use hyperindex_symbols::SymbolWorkspace;
     use tempfile::TempDir;
 
-    use super::PlannerService;
+    use super::{PlannerManager, PlannerService, scan_planner_runtime_status};
 
     fn test_loaded_config(tempdir: &TempDir) -> LoadedConfig {
         let runtime_root = tempdir.path().join(".hyperindex");
@@ -1871,7 +1944,10 @@ test("logout", () => {
             .unwrap();
 
         // The identifier "invalidateSession" should route through symbol
-        assert!(!response.groups.is_empty(), "auto-mode identifier query returned no groups");
+        assert!(
+            !response.groups.is_empty(),
+            "auto-mode identifier query returned no groups"
+        );
         assert!(response.no_answer.is_none());
         assert!(response.stats.candidates_considered > 0);
 
@@ -1902,7 +1978,10 @@ test("logout", () => {
         let json = serde_json::to_string_pretty(&response).unwrap();
         let decoded: hyperindex_protocol::planner::PlannerQueryResponse =
             serde_json::from_str(&json).unwrap();
-        assert_eq!(decoded.stats.groups_returned, response.stats.groups_returned);
+        assert_eq!(
+            decoded.stats.groups_returned,
+            response.stats.groups_returned
+        );
     }
 
     /// Smoke: a natural-language query in auto mode routes through
@@ -1937,7 +2016,10 @@ test("logout", () => {
             )
             .unwrap();
 
-        assert!(!response.groups.is_empty(), "semantic-style query returned no groups");
+        assert!(
+            !response.groups.is_empty(),
+            "semantic-style query returned no groups"
+        );
         assert!(response.no_answer.is_none());
 
         // Trace must show semantic route was executed
@@ -1955,10 +2037,9 @@ test("logout", () => {
 
         // Natural language should be detected
         assert!(
-            response
-                .ir
-                .intent_signals
-                .contains(&hyperindex_protocol::planner::PlannerIntentSignal::NaturalLanguageQuestion),
+            response.ir.intent_signals.contains(
+                &hyperindex_protocol::planner::PlannerIntentSignal::NaturalLanguageQuestion
+            ),
             "should detect natural language question signal"
         );
 
@@ -2063,8 +2144,14 @@ test("logout", () => {
             )
             .unwrap();
 
-        assert!(!query_response.groups.is_empty(), "step 1: query should return groups");
-        assert!(query_response.no_answer.is_none(), "step 1: no no_answer expected");
+        assert!(
+            !query_response.groups.is_empty(),
+            "step 1: query should return groups"
+        );
+        assert!(
+            query_response.no_answer.is_none(),
+            "step 1: no no_answer expected"
+        );
 
         // Step 2: inspect grouped evidence
         let first_group = &query_response.groups[0];
@@ -2191,8 +2278,14 @@ test("logout", () => {
 
         // Candidates should have scored evidence
         for candidate in &explain_response.candidates {
-            assert!(candidate.route_score.is_some(), "candidate should have route_score");
-            assert!(!candidate.evidence.is_empty(), "candidate should have evidence");
+            assert!(
+                candidate.route_score.is_some(),
+                "candidate should have route_score"
+            );
+            assert!(
+                !candidate.evidence.is_empty(),
+                "candidate should have evidence"
+            );
         }
 
         // Explain trace should show planner version
@@ -2379,5 +2472,25 @@ test("logout", () => {
         assert!(parsed.is_object());
         assert!(parsed["capabilities"]["modes"].is_array());
         assert!(parsed["budgets"]["route_budgets"].is_array());
+    }
+
+    #[test]
+    fn planner_runtime_status_reports_manager_ready_routes() {
+        let tempdir = TempDir::new().unwrap();
+        let loaded = test_loaded_config(&tempdir);
+
+        let status = scan_planner_runtime_status(&loaded).unwrap();
+        assert!(status.enabled);
+        assert!(status.query);
+        assert!(status.trace);
+        assert!(status.routes.iter().any(|route| {
+            route.route_kind == hyperindex_protocol::planner::PlannerRouteKind::Symbol
+                && route.available
+        }));
+
+        let manager = PlannerManager::from_loaded_config(&loaded);
+        let managed = manager.runtime_status().unwrap();
+        assert_eq!(managed.query_state, status.query_state);
+        assert_eq!(managed.routes, status.routes);
     }
 }

@@ -8,6 +8,95 @@ Primary planning documents:
 - [acceptance.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/acceptance.md)
 - [decisions.md](/Users/rishivinodkumar/RepoHyperindex/docs/phase7/decisions.md)
 
+## 2026-05-09 Phase 7 Planner Front Door Through The Daemon Runtime
+
+### What Was Completed
+
+- Promoted the planner into a daemon-managed runtime seam in:
+  - [crates/hyperindex-daemon/src/planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/planner.rs)
+  - [crates/hyperindex-daemon/src/state.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/state.rs)
+  - [crates/hyperindex-daemon/src/handlers.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/handlers.rs)
+- The runtime now owns:
+  - planner runtime summary
+  - planner status
+  - planner capabilities
+  - unified planner query execution
+  - planner explain and trace responses
+- Extended
+  [RuntimeStatus](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/src/status.rs)
+  and
+  [hyperctl daemon status](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/commands/daemon.rs)
+  so operators can see planner state, default mode, route readiness counts, and planner
+  diagnostics without scraping per-query output.
+- Reworked the unified CLI front door in:
+  - [crates/hyperindex-cli/src/bin/hyperctl.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/bin/hyperctl.rs)
+  - [crates/hyperindex-cli/src/commands/query.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/commands/query.rs)
+- `hyperctl query` now supports:
+  - direct invocation without `run`
+  - explicit `--mode auto|exact|symbol|semantic|impact`
+  - selected symbol/file context for same-surface follow-up impact queries
+  - `query explain`
+  - `query status`
+  - `query capabilities`
+  - JSON-first machine output across all planner commands
+- Fixed the local Unix-socket daemon path in
+  [crates/hyperindex-daemon/src/server.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/server.rs)
+  by switching accepted client streams back to blocking mode before servicing a request, which
+  prevents large planner explain and trace payloads from truncating on partial socket writes.
+- Extended the checked-in daemon smoke flow in
+  [scripts/phase2-smoke.sh](/Users/rishivinodkumar/RepoHyperindex/scripts/phase2-smoke.sh) so it
+  now proves:
+  - planner status and capabilities
+  - exact-ish auto query
+  - semantic-style auto query
+  - impact-style auto query
+  - grouped evidence for `where do we invalidate sessions?`
+  - same-surface symbol-to-impact follow-up
+  - planner explanation payload inspection through the unified surface
+
+### Key Decisions
+
+- Treat the planner as part of the real daemon runtime rather than leaving it as a thin handler
+  shim.
+- Keep planner follow-up impact queries on the same `hyperctl query` surface by carrying selected
+  symbol/file context instead of forcing callers back to engine-specific commands.
+- Make transport correctness for large explain and trace payloads part of planner bring-up work.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-cli -p hyperindex-daemon -p hyperindex-protocol
+bash scripts/phase2-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-cli -p hyperindex-daemon -p hyperindex-protocol`
+  - passed
+  - exercised direct unified-query CLI parsing, planner manager coverage, planner runtime status,
+    and existing daemon-backed planner service tests
+- `bash scripts/phase2-smoke.sh`
+  - passed
+  - validated the real socket-backed north-star planner path end to end
+
+### Remaining Risks / TODOs
+
+- The planner runtime summary is intentionally runtime-wide and does not replace snapshot-scoped
+  `planner_status`.
+- Exact remains intentionally unavailable.
+- The Phase 1 harness still has no dedicated planner adapter or planner-specific evaluation budget
+  coverage.
+
+### Next Recommended Prompt
+
+- add a planner-mode harness adapter that reuses the current daemon and CLI JSON surface without
+  widening into answer generation
+- broaden planner smoke coverage to more selected-context and filter combinations if future local
+  debugging requires it
+
 ## 2026-04-22 Phase 7 Auto Route-Planning Policy
 
 ### What Was Completed

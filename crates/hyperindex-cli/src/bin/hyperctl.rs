@@ -138,81 +138,112 @@ enum DaemonSubcommand {
 }
 
 #[derive(Debug, Args)]
+#[command(args_conflicts_with_subcommands = true, subcommand_negates_reqs = true)]
 struct QueryCommand {
     #[command(subcommand)]
-    command: QuerySubcommand,
+    command: Option<QuerySubcommand>,
+
+    #[command(flatten)]
+    run: QueryRunArgs,
+}
+
+#[derive(Debug, Args, Clone, Default)]
+struct QuerySharedArgs {
+    #[arg(long)]
+    repo_id: Option<String>,
+
+    #[arg(long)]
+    snapshot_id: Option<String>,
+
+    #[arg(long)]
+    query: Option<String>,
+
+    #[arg(long, alias = "mode-override")]
+    mode: Option<String>,
+
+    #[arg(long, default_value_t = 10)]
+    limit: u32,
+
+    #[arg(long = "path-glob")]
+    path_globs: Vec<String>,
+
+    #[arg(long = "selected-file")]
+    selected_file: Option<String>,
+
+    #[arg(long = "selected-symbol-id")]
+    selected_symbol_id: Option<String>,
+
+    #[arg(long = "selected-symbol-path")]
+    selected_symbol_path: Option<String>,
+
+    #[arg(long = "selected-symbol-name")]
+    selected_symbol_name: Option<String>,
+
+    #[arg(long = "target-file")]
+    target_file: Option<String>,
+
+    #[arg(long = "target-symbol-id")]
+    target_symbol_id: Option<String>,
+
+    #[arg(long = "target-symbol-path")]
+    target_symbol_path: Option<String>,
+
+    #[arg(long = "target-symbol-name")]
+    target_symbol_name: Option<String>,
+}
+
+#[derive(Debug, Args, Clone, Default)]
+struct QueryRunArgs {
+    #[command(flatten)]
+    shared: QuerySharedArgs,
+
+    #[arg(long)]
+    include_trace: bool,
+
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Args, Clone, Default)]
+struct QueryExplainArgs {
+    #[command(flatten)]
+    shared: QuerySharedArgs,
+
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Args, Clone, Default)]
+struct QueryStatusArgs {
+    #[arg(long)]
+    repo_id: String,
+
+    #[arg(long)]
+    snapshot_id: String,
+
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Args, Clone, Default)]
+struct QueryCapabilitiesArgs {
+    #[arg(long)]
+    repo_id: String,
+
+    #[arg(long)]
+    snapshot_id: String,
+
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Debug, Subcommand)]
 enum QuerySubcommand {
     #[command(alias = "search")]
-    Run {
-        #[arg(long)]
-        repo_id: String,
-
-        #[arg(long)]
-        snapshot_id: String,
-
-        #[arg(long)]
-        query: String,
-
-        #[arg(long, alias = "mode-override")]
-        mode: Option<String>,
-
-        #[arg(long, default_value_t = 10)]
-        limit: u32,
-
-        #[arg(long = "path-glob")]
-        path_globs: Vec<String>,
-
-        #[arg(long)]
-        include_trace: bool,
-
-        #[arg(long)]
-        json: bool,
-    },
-    Explain {
-        #[arg(long)]
-        repo_id: String,
-
-        #[arg(long)]
-        snapshot_id: String,
-
-        #[arg(long)]
-        query: String,
-
-        #[arg(long, alias = "mode-override")]
-        mode: Option<String>,
-
-        #[arg(long, default_value_t = 10)]
-        limit: u32,
-
-        #[arg(long = "path-glob")]
-        path_globs: Vec<String>,
-
-        #[arg(long)]
-        json: bool,
-    },
-    Status {
-        #[arg(long)]
-        repo_id: String,
-
-        #[arg(long)]
-        snapshot_id: String,
-
-        #[arg(long)]
-        json: bool,
-    },
-    Capabilities {
-        #[arg(long)]
-        repo_id: String,
-
-        #[arg(long)]
-        snapshot_id: String,
-
-        #[arg(long)]
-        json: bool,
-    },
+    Run(QueryRunArgs),
+    Explain(QueryExplainArgs),
+    Status(QueryStatusArgs),
+    Capabilities(QueryCapabilitiesArgs),
 }
 
 #[derive(Debug, Args)]
@@ -811,10 +842,11 @@ impl Cli {
                 ParseSubcommand::InspectFile { json, .. } => *json,
             },
             Commands::Query(command) => match &command.command {
-                QuerySubcommand::Run { json, .. } => *json,
-                QuerySubcommand::Explain { json, .. } => *json,
-                QuerySubcommand::Status { json, .. } => *json,
-                QuerySubcommand::Capabilities { json, .. } => *json,
+                Some(QuerySubcommand::Run(args)) => args.json,
+                Some(QuerySubcommand::Explain(args)) => args.json,
+                Some(QuerySubcommand::Status(args)) => args.json,
+                Some(QuerySubcommand::Capabilities(args)) => args.json,
+                None => command.run.json,
             },
             Commands::Semantic(command) => match &command.command {
                 SemanticSubcommand::Status { json, .. } => *json,
@@ -1059,58 +1091,33 @@ fn dispatch(cli: Cli) -> Result<String> {
             .map_err(|error| anyhow!(error.to_string()))?,
         },
         Commands::Query(command) => match command.command {
-            QuerySubcommand::Run {
-                repo_id,
-                snapshot_id,
-                query,
-                mode,
-                limit,
-                path_globs,
-                include_trace,
-                json,
-            } => commands::query::query(
+            Some(QuerySubcommand::Run(args)) => {
+                let input = unified_query_input_from_run(&args)?;
+                commands::query::query(config_path.as_deref(), &input, args.json)
+                    .map_err(|error| anyhow!(error.to_string()))?
+            }
+            Some(QuerySubcommand::Explain(args)) => {
+                let input = unified_query_input_from_explain(&args)?;
+                commands::query::explain(config_path.as_deref(), &input, args.json)
+                    .map_err(|error| anyhow!(error.to_string()))?
+            }
+            Some(QuerySubcommand::Status(args)) => commands::query::status(
                 config_path.as_deref(),
-                &repo_id,
-                &snapshot_id,
-                &query,
-                mode.as_deref(),
-                limit,
-                path_globs,
-                include_trace,
-                json,
+                &args.repo_id,
+                &args.snapshot_id,
+                args.json,
             )
             .map_err(|error| anyhow!(error.to_string()))?,
-            QuerySubcommand::Explain {
-                repo_id,
-                snapshot_id,
-                query,
-                mode,
-                limit,
-                path_globs,
-                json,
-            } => commands::query::explain(
+            Some(QuerySubcommand::Capabilities(args)) => commands::query::capabilities(
                 config_path.as_deref(),
-                &repo_id,
-                &snapshot_id,
-                &query,
-                mode.as_deref(),
-                limit,
-                path_globs,
-                json,
+                &args.repo_id,
+                &args.snapshot_id,
+                args.json,
             )
             .map_err(|error| anyhow!(error.to_string()))?,
-            QuerySubcommand::Status {
-                repo_id,
-                snapshot_id,
-                json,
-            } => commands::query::status(config_path.as_deref(), &repo_id, &snapshot_id, json)
-                .map_err(|error| anyhow!(error.to_string()))?,
-            QuerySubcommand::Capabilities {
-                repo_id,
-                snapshot_id,
-                json,
-            } => {
-                commands::query::capabilities(config_path.as_deref(), &repo_id, &snapshot_id, json)
+            None => {
+                let input = unified_query_input_from_run(&command.run)?;
+                commands::query::query(config_path.as_deref(), &input, command.run.json)
                     .map_err(|error| anyhow!(error.to_string()))?
             }
         },
@@ -1415,4 +1422,134 @@ fn dispatch(cli: Cli) -> Result<String> {
         },
     };
     Ok(output)
+}
+
+fn unified_query_input_from_run(
+    args: &QueryRunArgs,
+) -> Result<commands::query::UnifiedQueryCommandInput> {
+    Ok(commands::query::UnifiedQueryCommandInput {
+        repo_id: required_query_value(args.shared.repo_id.as_deref(), "--repo-id")?,
+        snapshot_id: required_query_value(args.shared.snapshot_id.as_deref(), "--snapshot-id")?,
+        query: required_query_value(args.shared.query.as_deref(), "--query")?,
+        mode_override: args.shared.mode.clone(),
+        limit: args.shared.limit,
+        path_globs: args.shared.path_globs.clone(),
+        selected_context: selected_context_from_shared(&args.shared),
+        target_context: target_context_from_shared(&args.shared),
+        include_trace: args.include_trace,
+    })
+}
+
+fn unified_query_input_from_explain(
+    args: &QueryExplainArgs,
+) -> Result<commands::query::UnifiedQueryCommandInput> {
+    Ok(commands::query::UnifiedQueryCommandInput {
+        repo_id: required_query_value(args.shared.repo_id.as_deref(), "--repo-id")?,
+        snapshot_id: required_query_value(args.shared.snapshot_id.as_deref(), "--snapshot-id")?,
+        query: required_query_value(args.shared.query.as_deref(), "--query")?,
+        mode_override: args.shared.mode.clone(),
+        limit: args.shared.limit,
+        path_globs: args.shared.path_globs.clone(),
+        selected_context: selected_context_from_shared(&args.shared),
+        target_context: target_context_from_shared(&args.shared),
+        include_trace: true,
+    })
+}
+
+fn selected_context_from_shared(shared: &QuerySharedArgs) -> commands::query::QueryContextInput {
+    commands::query::QueryContextInput {
+        file: shared.selected_file.clone(),
+        symbol_id: shared.selected_symbol_id.clone(),
+        symbol_path: shared.selected_symbol_path.clone(),
+        symbol_name: shared.selected_symbol_name.clone(),
+    }
+}
+
+fn target_context_from_shared(shared: &QuerySharedArgs) -> commands::query::QueryContextInput {
+    commands::query::QueryContextInput {
+        file: shared.target_file.clone(),
+        symbol_id: shared.target_symbol_id.clone(),
+        symbol_path: shared.target_symbol_path.clone(),
+        symbol_name: shared.target_symbol_name.clone(),
+    }
+}
+
+fn required_query_value(value: Option<&str>, flag: &str) -> Result<String> {
+    value
+        .map(ToString::to_string)
+        .ok_or_else(|| anyhow!("{flag} is required"))
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::{
+        Cli, Commands, QuerySubcommand, required_query_value, unified_query_input_from_run,
+    };
+
+    #[test]
+    fn query_command_parses_direct_front_door() {
+        let cli = Cli::parse_from([
+            "hyperctl",
+            "query",
+            "--repo-id",
+            "repo-123",
+            "--snapshot-id",
+            "snap-123",
+            "--query",
+            "invalidateSession",
+            "--mode",
+            "auto",
+            "--selected-symbol-id",
+            "sym-123",
+            "--selected-symbol-path",
+            "packages/auth/src/session/service.ts",
+            "--json",
+        ]);
+
+        match cli.command {
+            Commands::Query(command) => {
+                assert!(command.command.is_none());
+                let input = unified_query_input_from_run(&command.run).unwrap();
+                assert_eq!(input.repo_id, "repo-123");
+                assert_eq!(input.mode_override.as_deref(), Some("auto"));
+                assert_eq!(input.selected_context.symbol_id.as_deref(), Some("sym-123"));
+            }
+            other => panic!("expected query command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn query_command_keeps_explain_subcommand() {
+        let cli = Cli::parse_from([
+            "hyperctl",
+            "query",
+            "explain",
+            "--repo-id",
+            "repo-123",
+            "--snapshot-id",
+            "snap-123",
+            "--query",
+            "where do we invalidate sessions?",
+            "--json",
+        ]);
+
+        match cli.command {
+            Commands::Query(command) => match command.command {
+                Some(QuerySubcommand::Explain(args)) => {
+                    assert_eq!(args.shared.repo_id.as_deref(), Some("repo-123"));
+                    assert!(args.json);
+                }
+                other => panic!("expected query explain, got {other:?}"),
+            },
+            other => panic!("expected query command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn required_query_value_reports_missing_flags() {
+        let error = required_query_value(None, "--repo-id").unwrap_err();
+        assert!(error.to_string().contains("--repo-id"));
+    }
 }

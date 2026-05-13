@@ -164,6 +164,9 @@ fn serve_connection(
     max_frame_bytes: usize,
     handlers: &HandlerRegistry,
 ) -> HyperindexResult<()> {
+    stream
+        .set_nonblocking(false)
+        .map_err(|error| HyperindexError::Message(format!("set_blocking failed: {error}")))?;
     let raw = read_request_bytes(&mut stream, max_frame_bytes)?;
     let encoded =
         tokio::runtime::Handle::current().block_on(response_bytes_from_raw(&raw, handlers))?;

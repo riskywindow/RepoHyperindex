@@ -78,6 +78,68 @@ print("|".join(parts))
 PY
 }
 
+planner_route_field() {
+  JSON_INPUT="$(cat)" python3 - "$1" "$2" <<'PY'
+import json
+import os
+import sys
+
+route_kind = sys.argv[1]
+field = sys.argv[2]
+value = json.loads(os.environ["JSON_INPUT"])
+
+trace = value.get("trace") or {}
+for route in trace.get("routes", []):
+    if route.get("route_kind") != route_kind:
+        continue
+    current = route
+    for part in field.split("."):
+        current = current[part]
+    if isinstance(current, bool):
+        print("true" if current else "false")
+    else:
+        print(current)
+    raise SystemExit(0)
+
+raise SystemExit(f"route {route_kind} field {field} not found")
+PY
+}
+
+planner_first_group_evidence_count() {
+  JSON_INPUT="$(cat)" python3 - <<'PY'
+import json
+import os
+
+value = json.loads(os.environ["JSON_INPUT"])
+groups = value.get("groups", [])
+print(len(groups[0].get("evidence", [])) if groups else 0)
+PY
+}
+
+planner_first_symbol_candidate_field() {
+  JSON_INPUT="$(cat)" python3 - "$1" <<'PY'
+import json
+import os
+import sys
+
+field = sys.argv[1]
+value = json.loads(os.environ["JSON_INPUT"])
+for candidate in value.get("candidates", []):
+    if candidate.get("route_kind") != "symbol":
+        continue
+    anchor = candidate.get("anchor", {})
+    if anchor.get("anchor_kind") != "symbol":
+        continue
+    if field == "label":
+        print(candidate.get("label", ""))
+    else:
+        print(anchor.get(field, ""))
+    raise SystemExit(0)
+
+raise SystemExit(f"symbol candidate field {field} not found")
+PY
+}
+
 cleanup() {
   if [[ -f "$config_path" ]]; then
     "$hyperctl" --config-path "$config_path" daemon stop --json >/dev/null 2>&1 || true
@@ -216,6 +278,66 @@ if [[ "$(printf '%s' "$semantic_status_ready_json" | json_field 'state')" != "re
   exit 1
 fi
 
+printf '\n== query status ==\n'
+planner_status_json="$("$hyperctl" --config-path "$config_path" query status \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --json)"
+printf '%s\n' "$planner_status_json"
+
+if [[ "$(printf '%s' "$planner_status_json" | json_field 'state')" != "ready" ]]; then
+  printf 'expected planner status to report ready after prerequisite builds\n' >&2
+  exit 1
+fi
+
+printf '\n== query capabilities ==\n'
+planner_capabilities_json="$("$hyperctl" --config-path "$config_path" query capabilities \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --json)"
+printf '%s\n' "$planner_capabilities_json"
+
+if [[ "$(printf '%s' "$planner_capabilities_json" | json_field 'capabilities.query')" != "true" ]]; then
+  printf 'expected planner capabilities to expose query support\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_capabilities_json" | json_field 'capabilities.trace')" != "true" ]]; then
+  printf 'expected planner capabilities to expose trace support\n' >&2
+  exit 1
+fi
+
+printf '\n== query auto (exact-ish identifier) ==\n'
+planner_exactish_json="$("$hyperctl" --config-path "$config_path" query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "invalidateSession" \
+  --mode auto \
+  --limit 1 \
+  --include-trace \
+  --json)"
+printf '%s\n' "$planner_exactish_json"
+
+if [[ "$(printf '%s' "$planner_exactish_json" | json_field 'mode.selected_mode')" != "symbol" ]]; then
+  printf 'expected exact-ish auto query to select symbol mode\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_exactish_json" | planner_route_field symbol selected)" != "true" ]]; then
+  printf 'expected exact-ish auto query to select the symbol route\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_exactish_json" | planner_route_field symbol status)" != "executed" ]]; then
+  printf 'expected exact-ish auto query to execute the symbol route\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_exactish_json" | planner_first_group_evidence_count)" -le 0 ]]; then
+  printf 'expected exact-ish auto query to return grouped evidence\n' >&2
+  exit 1
+fi
+
 printf '\n== semantic query (north-star clean) ==\n'
 semantic_clean_json="$("$hyperctl" --config-path "$config_path" semantic query \
   --repo-id "$repo_id" \
@@ -258,6 +380,83 @@ semantic_clean_api_chunk_id="$(printf '%s' "$semantic_clean_api_json" | json_fie
 
 if [[ "$(printf '%s' "$semantic_clean_api_json" | json_field 'hits.0.chunk.path')" != "packages/api/src/routes/logout.ts" ]]; then
   printf 'expected clean api-scoped semantic hit to be packages/api/src/routes/logout.ts\n' >&2
+  exit 1
+fi
+
+printf '\n== query auto (north-star semantic) ==\n'
+planner_semantic_json="$("$hyperctl" --config-path "$config_path" query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "where do we invalidate sessions?" \
+  --mode auto \
+  --limit 1 \
+  --include-trace \
+  --json)"
+printf '%s\n' "$planner_semantic_json"
+
+if [[ "$(printf '%s' "$planner_semantic_json" | planner_route_field semantic status)" != "executed" ]]; then
+  printf 'expected north-star auto query to execute the semantic route\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_semantic_json" | planner_first_group_evidence_count)" -le 0 ]]; then
+  printf 'expected north-star auto query to return grouped evidence\n' >&2
+  exit 1
+fi
+
+selected_symbol_id="$(printf '%s' "$planner_semantic_json" | json_field 'groups.0.anchor.symbol_id')"
+selected_symbol_path="$(printf '%s' "$planner_semantic_json" | json_field 'groups.0.anchor.path')"
+selected_symbol_name="$(printf '%s' "$planner_semantic_json" | json_field 'groups.0.label')"
+
+printf '\n== query auto (north-star impact follow-up) ==\n'
+planner_impact_json="$("$hyperctl" --config-path "$config_path" query \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "what breaks if I change this?" \
+  --mode auto \
+  --limit 1 \
+  --selected-symbol-id "$selected_symbol_id" \
+  --selected-symbol-path "$selected_symbol_path" \
+  --selected-symbol-name "$selected_symbol_name" \
+  --include-trace \
+  --json)"
+printf '%s\n' "$planner_impact_json"
+
+if [[ "$(printf '%s' "$planner_impact_json" | planner_route_field impact selected)" != "true" ]]; then
+  printf 'expected impact follow-up query to select the impact route\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_impact_json" | planner_route_field impact status)" != "executed" ]]; then
+  printf 'expected impact follow-up query to execute the impact route\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_impact_json" | planner_first_group_evidence_count)" -le 0 ]]; then
+  printf 'expected impact follow-up query to return grouped evidence\n' >&2
+  exit 1
+fi
+
+printf '\n== query explain (impact follow-up) ==\n'
+planner_impact_explain_json="$("$hyperctl" --config-path "$config_path" query explain \
+  --repo-id "$repo_id" \
+  --snapshot-id "$snapshot_clean_id" \
+  --query "what breaks if I change this?" \
+  --mode auto \
+  --limit 1 \
+  --selected-symbol-id "$selected_symbol_id" \
+  --selected-symbol-path "$selected_symbol_path" \
+  --selected-symbol-name "$selected_symbol_name" \
+  --json)"
+printf '%s\n' "$planner_impact_explain_json"
+
+if [[ "$(printf '%s' "$planner_impact_explain_json" | planner_route_field impact status)" != "executed" ]]; then
+  printf 'expected impact explain to expose the impact route trace\n' >&2
+  exit 1
+fi
+
+if [[ "$(printf '%s' "$planner_impact_explain_json" | json_field 'candidates.0.route_kind')" != "impact" ]]; then
+  printf 'expected impact explain to return impact candidates\n' >&2
   exit 1
 fi
 

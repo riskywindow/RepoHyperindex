@@ -1,5 +1,57 @@
 # Repo Hyperindex Phase 7 Decisions
 
+## 2026-05-09 Promote The Planner To A Daemon-Managed Local Front Door
+
+### Status
+
+- accepted
+
+### Context
+
+- The repo already had live planner status, capabilities, query, and explain contracts plus real
+  route execution over symbol, semantic, and impact engines.
+- The daemon still invoked planner service helpers directly from request handlers, so the planner
+  was not a first-class runtime-managed component alongside the other engines.
+- `hyperctl query` still behaved mostly like a thin `query run` wrapper:
+  it did not expose a clean direct front door or selected symbol/file context for unified
+  follow-up impact queries.
+- Real planner explain and trace payloads are materially larger than earlier daemon responses, so
+  the socket transport has to handle multi-chunk local writes correctly.
+
+### Decision
+
+- Add a daemon-owned planner manager that is responsible for:
+  - runtime planner summary/status
+  - planner capabilities
+  - unified planner query execution
+  - planner explain and trace responses
+- Surface planner runtime summary additively in `daemon_status`.
+- Make `hyperctl query` the direct unified front door while preserving:
+  - `hyperctl query explain`
+  - `hyperctl query status`
+  - `hyperctl query capabilities`
+- Add selected symbol/file context arguments to the CLI so one planner query can seed a later
+  impact query through the same surface.
+- Keep planner output JSON-first for machine consumers and fix the Unix-socket response path so
+  large explain or trace payloads are written completely.
+
+### Why
+
+- Planner orchestration is now part of the real local runtime, not just a contract seam.
+- The north-star user path depends on carrying a grounded symbol or file anchor from one unified
+  query into the next without dropping back to engine-specific commands.
+- Debuggable planner behavior requires large trace and explanation payloads to survive the real
+  daemon transport intact.
+
+### Consequences
+
+- The daemon now exposes planner readiness both as a repo or snapshot-scoped API and as a runtime
+  summary in `daemon_status`.
+- `hyperctl query` can be used directly for auto, exact, symbol, semantic, and impact planner
+  modes, and can pass selected symbol/file context for same-surface follow-up queries.
+- The checked-in Phase 2 smoke flow now exercises the real north-star planner path over the local
+  Unix-socket daemon instead of relying only on engine-specific commands.
+
 ## 2026-04-22 Make Auto Route Planning Explicit And Deterministic Before Fusion
 
 ### Status

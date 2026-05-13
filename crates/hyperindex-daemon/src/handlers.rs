@@ -35,7 +35,6 @@ use hyperindex_scheduler::jobs::JobKind;
 use tracing::{error, info};
 
 use crate::impact::{ImpactService, build_graph_from_store};
-use crate::planner::PlannerService;
 use crate::semantic::SemanticService;
 use crate::state::DaemonStateManager;
 use crate::symbols::ParserSymbolService;
@@ -659,7 +658,9 @@ impl HandlerRegistry {
         params: &hyperindex_protocol::planner::PlannerQueryParams,
     ) -> Result<PlannerQueryResponse, ProtocolError> {
         let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
-        PlannerService.query(self.state_manager.loaded_config(), &snapshot, params)
+        self.state_manager
+            .planner_manager()
+            .query(&snapshot, params)
     }
 
     fn planner_status(
@@ -667,7 +668,9 @@ impl HandlerRegistry {
         params: &hyperindex_protocol::planner::PlannerStatusParams,
     ) -> Result<PlannerStatusResponse, ProtocolError> {
         let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
-        PlannerService.status(self.state_manager.loaded_config(), &snapshot, params)
+        self.state_manager
+            .planner_manager()
+            .status(&snapshot, params)
     }
 
     fn planner_explain(
@@ -676,7 +679,9 @@ impl HandlerRegistry {
     ) -> Result<PlannerExplainResponse, ProtocolError> {
         let snapshot =
             self.load_symbol_snapshot(&params.query.repo_id, &params.query.snapshot_id)?;
-        PlannerService.explain(self.state_manager.loaded_config(), &snapshot, params)
+        self.state_manager
+            .planner_manager()
+            .explain(&snapshot, params)
     }
 
     fn planner_capabilities(
@@ -684,7 +689,9 @@ impl HandlerRegistry {
         params: &hyperindex_protocol::planner::PlannerCapabilitiesParams,
     ) -> Result<PlannerCapabilitiesResponse, ProtocolError> {
         let snapshot = self.load_symbol_snapshot(&params.repo_id, &params.snapshot_id)?;
-        PlannerService.capabilities(self.state_manager.loaded_config(), &snapshot, params)
+        self.state_manager
+            .planner_manager()
+            .capabilities(&snapshot, params)
     }
 
     fn load_symbol_snapshot(

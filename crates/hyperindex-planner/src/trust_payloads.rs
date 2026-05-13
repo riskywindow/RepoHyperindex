@@ -1,7 +1,6 @@
 use hyperindex_protocol::planner::{
     PlannerAmbiguity, PlannerAmbiguityReason, PlannerAnchor, PlannerContextRef,
-    PlannerEvidenceKind, PlannerQueryIr, PlannerResultGroup, PlannerTrustPayload,
-    PlannerTrustTier,
+    PlannerEvidenceKind, PlannerQueryIr, PlannerResultGroup, PlannerTrustPayload, PlannerTrustTier,
 };
 
 use crate::route_registry::PlannerRoutePlan;
@@ -99,20 +98,14 @@ struct TierDecision {
     reasons: Vec<String>,
 }
 
-fn compute_tier(
-    profile: &EvidenceProfile,
-    route_count: usize,
-    low_signal: bool,
-) -> TierDecision {
+fn compute_tier(profile: &EvidenceProfile, route_count: usize, low_signal: bool) -> TierDecision {
     // HIGH: exact + symbol corroboration
     if profile.has_exact && profile.has_symbol {
         return TierDecision {
             tier: PlannerTrustTier::High,
             deterministic: true,
             template_id: "planner.trust.corroborated".to_string(),
-            reasons: vec![
-                "exact and symbol routes both matched this result".to_string(),
-            ],
+            reasons: vec!["exact and symbol routes both matched this result".to_string()],
         };
     }
 
@@ -185,8 +178,7 @@ fn compute_tier(
         let mut reasons =
             vec!["only semantic similarity matched; no structural confirmation".to_string()];
         if profile.has_impact {
-            reasons
-                .push("impact evidence present but lacks structural anchor".to_string());
+            reasons.push("impact evidence present but lacks structural anchor".to_string());
         }
         return TierDecision {
             tier: PlannerTrustTier::Low,
@@ -255,15 +247,13 @@ fn decorate_group(
     }
 
     if ctx.route_plan.partial_results {
-        warnings.push(
-            "some selected routes were not consulted; results may be incomplete".to_string(),
-        );
+        warnings
+            .push("some selected routes were not consulted; results may be incomplete".to_string());
     }
 
     if ctx.route_plan.budget_exhausted {
-        warnings.push(
-            "route budget was exhausted before all routes could be consulted".to_string(),
-        );
+        warnings
+            .push("route budget was exhausted before all routes could be consulted".to_string());
     }
 
     // --- Explanation details ---
@@ -282,8 +272,7 @@ fn decorate_group(
 
     // --- Enhance explanation ---
     group.explanation.details = details;
-    group.explanation.template_id =
-        explanation_template_id(&group.trust.tier, route_count);
+    group.explanation.template_id = explanation_template_id(&group.trust.tier, route_count);
 }
 
 // ---------------------------------------------------------------------------
@@ -328,10 +317,7 @@ fn build_explanation_details(
     }
 
     // Route policy
-    details.push(format!(
-        "route policy: {:?}",
-        ctx.route_plan.route_policy
-    ));
+    details.push(format!("route policy: {:?}", ctx.route_plan.route_policy));
 
     details
 }
@@ -482,7 +468,11 @@ mod tests {
 
     // -- helpers --
 
-    fn stub_route_plan(low_signal: bool, partial_results: bool, budget_exhausted: bool) -> PlannerRoutePlan {
+    fn stub_route_plan(
+        low_signal: bool,
+        partial_results: bool,
+        budget_exhausted: bool,
+    ) -> PlannerRoutePlan {
         PlannerRoutePlan {
             traces: Vec::new(),
             capabilities: Vec::new(),
@@ -878,11 +868,13 @@ mod tests {
         ];
 
         let output = TrustPayloadFactory.decorate(groups, &ctx);
-        assert!(output.groups[0]
-            .trust
-            .warnings
-            .iter()
-            .any(|w| w.contains("score gap")));
+        assert!(
+            output.groups[0]
+                .trust
+                .warnings
+                .iter()
+                .any(|w| w.contains("score gap"))
+        );
     }
 
     #[test]
@@ -905,11 +897,13 @@ mod tests {
         )];
 
         let output = TrustPayloadFactory.decorate(groups, &ctx);
-        assert!(output.groups[0]
-            .trust
-            .warnings
-            .iter()
-            .any(|w| w.contains("low-signal")));
+        assert!(
+            output.groups[0]
+                .trust
+                .warnings
+                .iter()
+                .any(|w| w.contains("low-signal"))
+        );
     }
 
     #[test]
@@ -932,11 +926,13 @@ mod tests {
         )];
 
         let output = TrustPayloadFactory.decorate(groups, &ctx);
-        assert!(output.groups[0]
-            .trust
-            .warnings
-            .iter()
-            .any(|w| w.contains("not consulted")));
+        assert!(
+            output.groups[0]
+                .trust
+                .warnings
+                .iter()
+                .any(|w| w.contains("not consulted"))
+        );
     }
 
     #[test]
@@ -959,11 +955,13 @@ mod tests {
         )];
 
         let output = TrustPayloadFactory.decorate(groups, &ctx);
-        assert!(output.groups[0]
-            .trust
-            .warnings
-            .iter()
-            .any(|w| w.contains("budget")));
+        assert!(
+            output.groups[0]
+                .trust
+                .warnings
+                .iter()
+                .any(|w| w.contains("budget"))
+        );
     }
 
     // -- explanation detail tests --
@@ -989,7 +987,11 @@ mod tests {
 
         let output = TrustPayloadFactory.decorate(groups, &ctx);
         let details = &output.groups[0].explanation.details;
-        assert!(details.iter().any(|d| d.contains("Symbol") && d.contains("Semantic")));
+        assert!(
+            details
+                .iter()
+                .any(|d| d.contains("Symbol") && d.contains("Semantic"))
+        );
         assert!(details.iter().any(|d| d.contains("SymbolHit")));
         assert!(details.iter().any(|d| d.contains("fused score: 95")));
         assert!(details.iter().any(|d| d.contains("route policy")));
@@ -1191,10 +1193,7 @@ mod tests {
                     vec![PlannerRouteKind::Symbol, PlannerRouteKind::Semantic],
                     vec![
                         evidence(PlannerEvidenceKind::SymbolHit, PlannerRouteKind::Symbol),
-                        evidence(
-                            PlannerEvidenceKind::SemanticHit,
-                            PlannerRouteKind::Semantic,
-                        ),
+                        evidence(PlannerEvidenceKind::SemanticHit, PlannerRouteKind::Semantic),
                     ],
                     Some(PlannerAnchor::Symbol {
                         symbol_id: SymbolId("sym.A".to_string()),

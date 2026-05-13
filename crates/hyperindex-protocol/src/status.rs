@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::TransportKind;
 use crate::impact::ImpactMaterializationMode;
+use crate::planner::{PlannerDiagnostic, PlannerMode, PlannerQueryState, PlannerRouteCapability};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct EmptyParams {}
@@ -122,6 +123,41 @@ impl Default for SemanticRuntimeStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlannerRuntimeStatus {
+    pub enabled: bool,
+    pub query_state: PlannerQueryState,
+    pub default_mode: PlannerMode,
+    pub default_limit: u32,
+    pub max_limit: u32,
+    pub status: bool,
+    pub query: bool,
+    pub explain: bool,
+    pub trace: bool,
+    #[serde(default)]
+    pub routes: Vec<PlannerRouteCapability>,
+    #[serde(default)]
+    pub diagnostics: Vec<PlannerDiagnostic>,
+}
+
+impl Default for PlannerRuntimeStatus {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            query_state: PlannerQueryState::Disabled,
+            default_mode: PlannerMode::Auto,
+            default_limit: 0,
+            max_limit: 0,
+            status: false,
+            query: false,
+            explain: false,
+            trace: false,
+            routes: Vec::new(),
+            diagnostics: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RuntimeStatus {
     pub protocol_version: String,
     pub config_version: u32,
@@ -142,6 +178,8 @@ pub struct RuntimeStatus {
     pub impact: Option<ImpactRuntimeStatus>,
     #[serde(default)]
     pub semantic: Option<SemanticRuntimeStatus>,
+    #[serde(default)]
+    pub planner: Option<PlannerRuntimeStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -1,5 +1,117 @@
 # Repo Hyperindex Phase 2 Status: Complete
 
+## 2026-05-09 Planner Runtime Integration
+
+### Scope
+
+- Integrated the Phase 7 unified planner into the existing Phase 2 daemon/runtime as a
+  first-class local service.
+- Kept the integration local-only, observable, and machine-consumable through the daemon protocol
+  and `hyperctl`.
+- Did not add editor UI, remote transport, or any freeform answer-generation endpoint.
+
+### What Was Completed
+
+- Added a daemon-managed planner seam in
+  [planner.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/planner.rs)
+  and
+  [state.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/state.rs)
+  so the runtime now owns:
+  - planner runtime summary
+  - planner status
+  - planner capabilities
+  - unified planner query execution
+  - planner explain and trace responses
+- Routed the planner protocol handlers through that manager in
+  [handlers.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/handlers.rs)
+  instead of invoking the planner helpers ad hoc.
+- Extended
+  [RuntimeStatus](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-protocol/src/status.rs)
+  and
+  [hyperctl daemon status](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/commands/daemon.rs)
+  with planner runtime fields so operators can see:
+  - planner enabled state
+  - default mode and limits
+  - ready route counts
+  - planner diagnostics
+- Polished the unified CLI front door in
+  [hyperctl.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/bin/hyperctl.rs)
+  and
+  [query.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-cli/src/commands/query.rs):
+  - `hyperctl query`
+  - `hyperctl query --mode auto|exact|symbol|semantic|impact`
+  - `hyperctl query explain`
+  - `hyperctl query status`
+  - `hyperctl query capabilities`
+  - selected symbol/file context flags for same-surface follow-up impact queries
+- Promoted planner JSON output as a first-class machine surface across:
+  - unified query
+  - explain
+  - status
+  - capabilities
+- Fixed the real Unix-socket daemon response path in
+  [server.rs](/Users/rishivinodkumar/RepoHyperindex/crates/hyperindex-daemon/src/server.rs)
+  so accepted client streams are switched back to blocking mode before request handling; this
+  prevents large planner explain and trace payloads from truncating at partial writes.
+- Extended the checked-in socket-backed smoke flow in
+  [scripts/phase2-smoke.sh](/Users/rishivinodkumar/RepoHyperindex/scripts/phase2-smoke.sh) to
+  prove:
+  - daemon start
+  - repo registration
+  - symbol and semantic prerequisites
+  - planner status and capabilities
+  - exact-ish auto query
+  - semantic-style auto query
+  - impact-style auto query
+  - trace inspection for each
+  - north-star grouped evidence flow for `where do we invalidate sessions?`
+  - same-surface symbol-to-impact follow-up through `hyperctl query`
+
+### Key Decisions
+
+- Keep the planner on the same daemon/runtime spine instead of introducing a planner-specific
+  service boundary.
+- Treat planner runtime summary as part of `daemon_status`, not something callers must infer from
+  per-query traces.
+- Consider large planner trace and explain responses a real transport requirement for the local
+  daemon, not just an implementation detail.
+
+### Commands Run
+
+```bash
+cargo fmt --all
+cargo test -p hyperindex-cli -p hyperindex-daemon -p hyperindex-protocol
+bash scripts/phase2-smoke.sh
+```
+
+### Command Results
+
+- `cargo fmt --all`
+  - passed
+- `cargo test -p hyperindex-cli -p hyperindex-daemon -p hyperindex-protocol`
+  - passed
+  - validated planner manager routing, direct `hyperctl query` parsing, planner JSON rendering,
+    daemon runtime summary updates, and the existing daemon planner service coverage
+- `bash scripts/phase2-smoke.sh`
+  - passed
+  - validated the real Unix-socket daemon path for planner status, capabilities, unified query,
+    trace inspection, north-star grouped evidence, and same-surface impact follow-up
+
+### Remaining Risks / TODOs
+
+- The planner runtime summary in `daemon_status` is runtime-wide; snapshot-specific readiness still
+  lives on `planner_status`.
+- Exact remains intentionally unavailable in the current repository.
+- The smoke flow now proves the planner user path over the real daemon, but there is still no
+  dedicated benchmark or harness adapter for planner-mode evaluation.
+
+### Next Recommended Prompt
+
+- add a `daemon-planner` harness adapter that reuses the current planner JSON contract without
+  changing Phase 1 result schemas
+- expose more planner-side filter and selected-context combinations in CLI smoke or focused cargo
+  tests if operators need broader local debugging coverage
+
 ## 2026-04-12 Impact Runtime Extension
 
 ### Scope

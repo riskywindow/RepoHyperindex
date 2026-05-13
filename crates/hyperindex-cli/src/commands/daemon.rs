@@ -21,6 +21,7 @@ use crate::client::{
     read_pid_file,
 };
 use hyperindex_daemon::impact::scan_impact_runtime_status;
+use hyperindex_daemon::planner::scan_planner_runtime_status;
 use hyperindex_daemon::semantic::scan_semantic_runtime_status;
 
 pub fn start(config_path: Option<&Path>, json_output: bool) -> HyperindexResult<String> {
@@ -241,6 +242,7 @@ fn local_stopped_status(
         symbol_index: None,
         impact: Some(scan_impact_runtime_status(loaded)?),
         semantic: Some(scan_semantic_runtime_status(loaded)?),
+        planner: Some(scan_planner_runtime_status(loaded)?),
     })
 }
 
@@ -347,6 +349,40 @@ fn render_lifecycle_result(
                 .semantic
                 .as_ref()
                 .map(|semantic| semantic.stale_build_count.to_string())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_state: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| format!("{:?}", planner.query_state).to_lowercase())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_default_mode: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| format!("{:?}", planner.default_mode).to_lowercase())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_ready_routes: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| {
+                    format!(
+                        "{}/{}",
+                        planner
+                            .routes
+                            .iter()
+                            .filter(|route| route.available)
+                            .count(),
+                        planner.routes.len()
+                    )
+                })
                 .unwrap_or_else(|| "-".to_string())
         ),
         format!(
@@ -457,6 +493,40 @@ fn render_status_report(
                 .semantic
                 .as_ref()
                 .map(|semantic| semantic.stale_build_count.to_string())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_state: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| format!("{:?}", planner.query_state).to_lowercase())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_default_mode: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| format!("{:?}", planner.default_mode).to_lowercase())
+                .unwrap_or_else(|| "-".to_string())
+        ),
+        format!(
+            "planner_ready_routes: {}",
+            status
+                .planner
+                .as_ref()
+                .map(|planner| {
+                    format!(
+                        "{}/{}",
+                        planner
+                            .routes
+                            .iter()
+                            .filter(|route| route.available)
+                            .count(),
+                        planner.routes.len()
+                    )
+                })
                 .unwrap_or_else(|| "-".to_string())
         ),
         format!("connected_clients: {}", status.transport.connected_clients),

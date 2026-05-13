@@ -1,7 +1,7 @@
 use hyperindex_protocol::planner::{
-    PlannerAmbiguity, PlannerCandidate, PlannerExplainResponse, PlannerModeDecision, PlannerNoAnswer,
-    PlannerNoAnswerReason, PlannerQueryIr, PlannerQueryParams, PlannerQueryResponse,
-    PlannerQueryStats, PlannerRouteStatus, PlannerTrace, PlannerTraceStep,
+    PlannerAmbiguity, PlannerCandidate, PlannerExplainResponse, PlannerModeDecision,
+    PlannerNoAnswer, PlannerNoAnswerReason, PlannerQueryIr, PlannerQueryParams,
+    PlannerQueryResponse, PlannerQueryStats, PlannerRouteStatus, PlannerTrace, PlannerTraceStep,
 };
 use hyperindex_protocol::snapshot::ComposedSnapshot;
 use tracing::info;
@@ -208,10 +208,7 @@ impl PlannerEngine {
         let routes_available = route_plan.routes_available();
         let groups_returned = groups.len() as u32;
         let no_answer = no_answer_for(context, params, &route_plan, groups_returned);
-        let ambiguity = route_plan
-            .ambiguity
-            .clone()
-            .or(trust_output.ambiguity);
+        let ambiguity = route_plan.ambiguity.clone().or(trust_output.ambiguity);
 
         // --- Trace ---
         let trace = PlannerTrace {

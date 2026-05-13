@@ -7,48 +7,42 @@ use hyperindex_planner::cli_integration::{
 };
 use hyperindex_protocol::api::{RequestBody, SuccessPayload};
 use hyperindex_protocol::planner::{
-    PlannerCapabilitiesParams, PlannerExplainParams, PlannerMode, PlannerQueryFilters,
-    PlannerQueryParams, PlannerRouteHints, PlannerStatusParams, PlannerUserQuery,
+    PlannerCapabilitiesParams, PlannerContextRef, PlannerExplainParams, PlannerMode,
+    PlannerQueryFilters, PlannerQueryParams, PlannerRouteHints, PlannerStatusParams,
+    PlannerUserQuery,
 };
+use hyperindex_protocol::symbols::SymbolId;
 
 use crate::client::DaemonClient;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct QueryContextInput {
+    pub file: Option<String>,
+    pub symbol_id: Option<String>,
+    pub symbol_path: Option<String>,
+    pub symbol_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnifiedQueryCommandInput {
+    pub repo_id: String,
+    pub snapshot_id: String,
+    pub query: String,
+    pub mode_override: Option<String>,
+    pub limit: u32,
+    pub path_globs: Vec<String>,
+    pub selected_context: QueryContextInput,
+    pub target_context: QueryContextInput,
+    pub include_trace: bool,
+}
+
 pub fn query(
     config_path: Option<&Path>,
-    repo_id: &str,
-    snapshot_id: &str,
-    query: &str,
-    mode_override: Option<&str>,
-    limit: u32,
-    path_globs: Vec<String>,
-    include_trace: bool,
+    input: &UnifiedQueryCommandInput,
     json_output: bool,
 ) -> HyperindexResult<String> {
     let client = DaemonClient::load(config_path)?;
-    match client.send(RequestBody::PlannerQuery(PlannerQueryParams {
-        repo_id: repo_id.to_string(),
-        snapshot_id: snapshot_id.to_string(),
-        query: PlannerUserQuery {
-            text: query.to_string(),
-        },
-        mode_override: parse_mode_override(mode_override)?,
-        selected_context: None,
-        target_context: None,
-        filters: PlannerQueryFilters {
-            path_globs,
-            package_names: Vec::new(),
-            package_roots: Vec::new(),
-            workspace_roots: Vec::new(),
-            languages: Vec::new(),
-            extensions: Vec::new(),
-            symbol_kinds: Vec::new(),
-        },
-        route_hints: PlannerRouteHints::default(),
-        budgets: None,
-        limit,
-        explain: false,
-        include_trace,
-    }))? {
+    match client.send(RequestBody::PlannerQuery(build_query_params(input, false)?))? {
         SuccessPayload::PlannerQuery(response) => {
             render_query_response(&response, json_output).map_err(render_error)
         }
@@ -58,40 +52,12 @@ pub fn query(
 
 pub fn explain(
     config_path: Option<&Path>,
-    repo_id: &str,
-    snapshot_id: &str,
-    query_text: &str,
-    mode_override: Option<&str>,
-    limit: u32,
-    path_globs: Vec<String>,
+    input: &UnifiedQueryCommandInput,
     json_output: bool,
 ) -> HyperindexResult<String> {
     let client = DaemonClient::load(config_path)?;
     match client.send(RequestBody::PlannerExplain(PlannerExplainParams {
-        query: PlannerQueryParams {
-            repo_id: repo_id.to_string(),
-            snapshot_id: snapshot_id.to_string(),
-            query: PlannerUserQuery {
-                text: query_text.to_string(),
-            },
-            mode_override: parse_mode_override(mode_override)?,
-            selected_context: None,
-            target_context: None,
-            filters: PlannerQueryFilters {
-                path_globs,
-                package_names: Vec::new(),
-                package_roots: Vec::new(),
-                workspace_roots: Vec::new(),
-                languages: Vec::new(),
-                extensions: Vec::new(),
-                symbol_kinds: Vec::new(),
-            },
-            route_hints: PlannerRouteHints::default(),
-            budgets: None,
-            limit,
-            explain: true,
-            include_trace: true,
-        },
+        query: build_query_params(input, true)?,
     }))? {
         SuccessPayload::PlannerExplain(response) => {
             render_explain_response(&response, json_output).map_err(render_error)
@@ -138,6 +104,72 @@ pub fn capabilities(
     }
 }
 
+fn build_query_params(
+    input: &UnifiedQueryCommandInput,
+    explain: bool,
+) -> HyperindexResult<PlannerQueryParams> {
+    Ok(PlannerQueryParams {
+        repo_id: input.repo_id.clone(),
+        snapshot_id: input.snapshot_id.clone(),
+        query: PlannerUserQuery {
+            text: input.query.clone(),
+        },
+        mode_override: parse_mode_override(input.mode_override.as_deref())?,
+        selected_context: query_context("selected", &input.selected_context)?,
+        target_context: query_context("target", &input.target_context)?,
+        filters: PlannerQueryFilters {
+            path_globs: input.path_globs.clone(),
+            package_names: Vec::new(),
+            package_roots: Vec::new(),
+            workspace_roots: Vec::new(),
+            languages: Vec::new(),
+            extensions: Vec::new(),
+            symbol_kinds: Vec::new(),
+        },
+        route_hints: PlannerRouteHints::default(),
+        budgets: None,
+        limit: input.limit,
+        explain,
+        include_trace: explain || input.include_trace,
+    })
+}
+
+fn query_context(
+    label: &str,
+    input: &QueryContextInput,
+) -> HyperindexResult<Option<PlannerContextRef>> {
+    if let Some(path) = input.file.as_deref() {
+        if input.symbol_id.is_some() || input.symbol_path.is_some() || input.symbol_name.is_some() {
+            return Err(HyperindexError::Message(format!(
+                "{label} planner context must be either --{label}-file or the pair --{label}-symbol-id with --{label}-symbol-path"
+            )));
+        }
+        return Ok(Some(PlannerContextRef::File {
+            path: path.to_string(),
+        }));
+    }
+
+    match (input.symbol_id.as_deref(), input.symbol_path.as_deref()) {
+        (None, None) => {
+            if input.symbol_name.is_some() {
+                return Err(HyperindexError::Message(format!(
+                    "{label} planner context requires --{label}-symbol-id and --{label}-symbol-path when --{label}-symbol-name is set"
+                )));
+            }
+            Ok(None)
+        }
+        (Some(symbol_id), Some(path)) => Ok(Some(PlannerContextRef::Symbol {
+            symbol_id: SymbolId(symbol_id.to_string()),
+            path: path.to_string(),
+            span: None,
+            display_name: input.symbol_name.clone(),
+        })),
+        _ => Err(HyperindexError::Message(format!(
+            "{label} planner context must be either --{label}-file or the pair --{label}-symbol-id with --{label}-symbol-path"
+        ))),
+    }
+}
+
 fn parse_mode_override(raw: Option<&str>) -> HyperindexResult<Option<PlannerMode>> {
     match raw {
         None => Ok(None),
@@ -172,7 +204,10 @@ mod tests {
         PlannerQueryStyle, PlannerRouteBudget, PlannerRouteKind, PlannerSemanticQueryIntent,
     };
 
-    use super::parse_mode_override;
+    use super::{
+        QueryContextInput, UnifiedQueryCommandInput, build_query_params, parse_mode_override,
+        query_context,
+    };
     use hyperindex_planner::cli_integration::render_query_response;
 
     #[test]
@@ -279,5 +314,81 @@ mod tests {
         assert!(human.contains("planner query snap-123"));
         let json = render_query_response(&response, true).unwrap();
         assert!(json.contains("\"snapshot_id\": \"snap-123\""));
+    }
+
+    #[test]
+    fn query_context_supports_file_and_symbol_inputs() {
+        let file = query_context(
+            "selected",
+            &QueryContextInput {
+                file: Some("packages/auth/src/session/service.ts".to_string()),
+                ..QueryContextInput::default()
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            file,
+            Some(hyperindex_protocol::planner::PlannerContextRef::File { .. })
+        ));
+
+        let symbol = query_context(
+            "selected",
+            &QueryContextInput {
+                symbol_id: Some("sym-123".to_string()),
+                symbol_path: Some("packages/auth/src/session/service.ts".to_string()),
+                symbol_name: Some("invalidateSession".to_string()),
+                ..QueryContextInput::default()
+            },
+        )
+        .unwrap();
+        assert!(matches!(
+            symbol,
+            Some(hyperindex_protocol::planner::PlannerContextRef::Symbol { .. })
+        ));
+    }
+
+    #[test]
+    fn query_context_rejects_partial_symbol_inputs() {
+        let error = query_context(
+            "target",
+            &QueryContextInput {
+                symbol_id: Some("sym-123".to_string()),
+                ..QueryContextInput::default()
+            },
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("--target-symbol-id"));
+    }
+
+    #[test]
+    fn build_query_params_carries_context_and_trace_flags() {
+        let params = build_query_params(
+            &UnifiedQueryCommandInput {
+                repo_id: "repo-123".to_string(),
+                snapshot_id: "snap-123".to_string(),
+                query: "what breaks if I change this".to_string(),
+                mode_override: Some("impact".to_string()),
+                limit: 5,
+                path_globs: vec!["packages/**".to_string()],
+                selected_context: QueryContextInput {
+                    symbol_id: Some("sym-123".to_string()),
+                    symbol_path: Some("packages/auth/src/session/service.ts".to_string()),
+                    symbol_name: Some("invalidateSession".to_string()),
+                    ..QueryContextInput::default()
+                },
+                target_context: QueryContextInput::default(),
+                include_trace: false,
+            },
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(params.mode_override, Some(PlannerMode::Impact));
+        assert!(params.explain);
+        assert!(params.include_trace);
+        assert!(matches!(
+            params.selected_context,
+            Some(hyperindex_protocol::planner::PlannerContextRef::Symbol { .. })
+        ));
     }
 }

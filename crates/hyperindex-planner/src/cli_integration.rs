@@ -170,10 +170,7 @@ pub fn render_explain_response(
 
     if let Some(trace) = &response.trace {
         lines.push("trace:".to_string());
-        lines.push(format!(
-            "  planner_version: {}",
-            trace.planner_version
-        ));
+        lines.push(format!("  planner_version: {}", trace.planner_version));
         lines.push(format!("  selected_mode: {:?}", trace.selected_mode));
         for step in &trace.steps {
             lines.push(format!("  step: {} - {}", step.code, step.message));
@@ -290,10 +287,7 @@ pub fn render_capabilities_response(
         response.capabilities.explain,
         response.capabilities.trace,
     ));
-    lines.push(format!(
-        "  modes: {:?}",
-        response.capabilities.modes
-    ));
+    lines.push(format!("  modes: {:?}", response.capabilities.modes));
 
     lines.push("routes:".to_string());
     for route in &response.capabilities.routes {
@@ -322,10 +316,7 @@ pub fn render_capabilities_response(
         for budget in &response.budgets.route_budgets {
             lines.push(format!(
                 "  {:?}: max_candidates={}, max_groups={}, timeout={}ms",
-                budget.route_kind,
-                budget.max_candidates,
-                budget.max_groups,
-                budget.timeout_ms,
+                budget.route_kind, budget.max_candidates, budget.max_groups, budget.timeout_ms,
             ));
         }
     }

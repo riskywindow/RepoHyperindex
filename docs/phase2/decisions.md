@@ -1,5 +1,36 @@
 # Repo Hyperindex Phase 2 Decisions
 
+## 2026-05-09 - Later-phase planner integration stays inside the existing Phase 2 daemon/runtime
+
+### Decision
+
+Keep the unified planner on the existing local daemon/runtime spine as a daemon-managed service
+with:
+
+- one shared socket or stdio transport
+- runtime-visible planner status in `daemon_status`
+- repo and snapshot-scoped planner query surfaces routed through a dedicated manager instead of
+  ad hoc handler calls
+
+### Why
+
+- Planner routing depends on the same repo registry, snapshot manifests, symbol state, semantic
+  state, and impact state the Phase 2 runtime already owns.
+- A second planner-specific control plane would duplicate local state and make observability worse
+  for the actual `hyperctl` user path.
+- The planner emits larger trace and explanation payloads than earlier control-plane methods, so
+  the local transport implementation needs to be treated as part of the product surface, not as a
+  thin incidental wrapper.
+
+### Consequence
+
+- `daemon_status` now exposes a planner runtime summary alongside parser, symbol, semantic, and
+  impact summaries.
+- The runtime owns a dedicated planner manager/service seam for status, capabilities, query, and
+  explain flows.
+- The Unix-socket daemon must keep accepted connections in blocking mode while serving a request so
+  large planner JSON responses do not truncate at partial writes.
+
 ## 2026-04-09 - Phase 4 parser and symbol services integrate through the existing Phase 2 daemon/runtime
 
 ### Decision

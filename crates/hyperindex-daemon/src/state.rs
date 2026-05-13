@@ -19,6 +19,7 @@ use hyperindex_watcher::{PollingWatcher, WatcherService};
 use tokio::sync::watch;
 
 use crate::impact::scan_impact_runtime_status;
+use crate::planner::{PlannerManager, scan_planner_runtime_status};
 use crate::semantic::scan_semantic_runtime_status;
 use crate::symbols::{scan_parse_runtime_status, scan_symbol_runtime_status};
 
@@ -45,12 +46,14 @@ pub struct DaemonStateManager {
     scheduler: Mutex<SchedulerService>,
     inner: Mutex<StateInner>,
     snapshot_assembler: SnapshotAssembler,
+    planner_manager: PlannerManager,
     shutdown_tx: watch::Sender<bool>,
 }
 
 impl DaemonStateManager {
     pub fn new(loaded_config: LoadedConfig) -> Arc<Self> {
         let (shutdown_tx, _) = watch::channel(false);
+        let planner_manager = PlannerManager::from_loaded_config(&loaded_config);
         Arc::new(Self {
             loaded_config,
             scheduler: Mutex::new(SchedulerService::new()),
@@ -63,6 +66,7 @@ impl DaemonStateManager {
                 last_error_code: BTreeMap::new(),
             }),
             snapshot_assembler: SnapshotAssembler,
+            planner_manager,
             shutdown_tx,
         })
     }
@@ -73,6 +77,10 @@ impl DaemonStateManager {
 
     pub fn snapshot_assembler(&self) -> &SnapshotAssembler {
         &self.snapshot_assembler
+    }
+
+    pub fn planner_manager(&self) -> &PlannerManager {
+        &self.planner_manager
     }
 
     pub fn shutdown_receiver(&self) -> watch::Receiver<bool> {
@@ -196,6 +204,7 @@ impl DaemonStateManager {
             symbol_index: Some(scan_symbol_runtime_status(&self.loaded_config)?),
             impact: Some(scan_impact_runtime_status(&self.loaded_config)?),
             semantic: Some(scan_semantic_runtime_status(&self.loaded_config)?),
+            planner: Some(scan_planner_runtime_status(&self.loaded_config)?),
         })
     }
 
